@@ -1,0 +1,167 @@
+---
+description: Next.js + Supabase: safe data fetching, error visibility, and debugging rules
+globs: **/*.ts, **/*.tsx
+alwaysApply: true
+---
+
+# Next.js + Supabase: Debugging & Data Fetching Rules
+
+## 1. Always destructure AND check Supabase errors explicitly
+
+Never ignore the `error` return. Supabase JS v2 never throws — it returns `{ data, error }`. Silent failures happen when `error` is not checked.
+
+```ts
+// ✅ Correct
+const { data, error } = await supabase.from('table').select('*')
+if (error) {
+  console.error('[Supabase:table.select]', {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+  })
+  throw new Error(error.message)
+}
+
+// ❌ Wrong — silent failure
+const { data } = await supabase.from('table').select('*')
+```
+
+---
+
+## 2. Use NEXT_PUBLIC_ prefix for all client-accessible env vars
+
+Vite uses `VITE_` prefixes. Next.js requires `NEXT_PUBLIC_` for variables accessed in the browser. Mismatched prefixes cause Supabase to initialize with `undefined` — silently breaking all queries.
+
+```ts
+// ✅ Correct (Next.js)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+// ❌ Wrong (Vite prefix — undefined in Next.js)
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL!,
+  process.env.VITE_SUPABASE_ANON_KEY!
+)
+```
+
+---
+
+## 3. Know where errors surface based on component type
+
+| Component Type | Where errors appear |
+|---|---|
+| `'use client'` | Browser DevTools console |
+| Server Component (no directive) | **Terminal** (`npm run dev` output) |
+| API Route / Server Action | **Terminal** or server logs |
+
+When a page loads blank with nothing in DevTools — **check the terminal first**.
+
+---
+
+## 4. Never swallow errors in catch blocks
+
+```ts
+// ✅ Correct — always log + rethrow or handle visibly
+try {
+  const result = await fetchSomeData()
+} catch (err) {
+  console.error('[Context: fetchSomeData]', err)
+  throw err // or set error state
+}
+
+// ❌ Wrong — completely hides the problem
+try {
+  const result = await fetchSomeData()
+} catch (err) {
+  // silent
+}
+```
+
+---
+
+## 5. Use a shared Supabase error handler utility
+
+Create and use a single utility to standardize error logging across all service files:
+
+```ts
+// lib/supabaseErrorHandler.ts
+export function handleSupabaseError(error: any, context: string): never {
+  console.error(`[Supabase:${context}]`, {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+  })
+  throw new Error(`Supabase error in ${context}: ${error.message}`)
+}
+
+// Usage
+const { data, error } = await supabase.from('projects').select('*')
+if (error) handleSupabaseError(error, 'projects.select')
+```
+
+---
+
+## 6. Add temporary debug logging when diagnosing silent failures
+
+When a Server Component or service function is failing with no visible error, add explicit logging before adding any other fix:
+
+```ts
+console.log('[DEBUG] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+const { data, error } = await supabase.from('your_table').select('*')
+console.log('[DEBUG] data:', JSON.stringify(data, null, 2))
+console.log('[DEBUG] error:', JSON.stringify(error, null, 2))
+```
+
+Remove debug logs before committing.
+
+---
+
+## 7. Mark components explicitly as client or server
+
+Don't rely on implicit behavior. Be intentional:
+
+```ts
+// Client component — errors visible in DevTools
+'use client'
+
+// Server component — no directive needed, but errors go to terminal
+// Place all Supabase fetches here when possible for performance
+```
+
+Avoid mixing server-only Supabase calls inside `'use client'` components unless you are explicitly aware of the security implications (anon key exposed).
+
+---
+
+## 8. Validate Supabase client initialization on startup
+
+Add a guard in your Supabase client file to catch misconfiguration early:
+
+```ts
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error(
+    'Missing Supabase environment variables. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
+  )
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
+```
+
+---
+
+## 9. Enable React Strict Mode in next.config.js
+
+Surfaces additional warnings and double-invocation issues in development:
+
+```js
+// next.config.js
+module.exports = {
+  reactStrictMode: true,
+}
+```

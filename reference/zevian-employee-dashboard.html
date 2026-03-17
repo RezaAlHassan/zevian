@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Zevian — My Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c10;--sf:#111318;--s2:#181c24;--s3:#1e2330;--s4:#252b3a;
+  --bd:rgba(255,255,255,.06);--bdh:rgba(255,255,255,.12);
+  --tx:#f0f2f7;--t2:#8b93a8;--t3:#545d73;
+  --ac:#5b7fff;--ag:rgba(91,127,255,.09);--ab:rgba(91,127,255,.25);
+  --te:#00d4aa;--tg:rgba(0,212,170,.07);--tb:rgba(0,212,170,.2);
+  --wn:#f59e0b;--wg:rgba(245,158,11,.08);--wb:rgba(245,158,11,.2);
+  --dn:#f04438;--dg:rgba(240,68,56,.07);--db:rgba(240,68,56,.2);
+  --gn:#10b981;--gg:rgba(16,185,129,.07);--gb:rgba(16,185,129,.22);
+  --pu:#8b5cf6;--pg:rgba(139,92,246,.08);--pb:rgba(139,92,246,.22);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;overflow:hidden;}
+::selection{background:rgba(91,127,255,.25);}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px;}
+
+/* ── LAYOUT ──────────────────────────────── */
+.shell{display:flex;height:100vh;}
+
+/* sidebar */
+.sidebar{width:216px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;}
+.logo{height:54px;display:flex;align-items:center;gap:9px;padding:0 16px;border-bottom:1px solid var(--bd);}
+.lmark{width:26px;height:26px;background:var(--ac);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;box-shadow:0 0 16px rgba(91,127,255,.3);}
+.lname{font-weight:800;font-size:15px;letter-spacing:-.4px;}
+.nav{flex:1;padding:10px 8px;overflow-y:auto;}
+.nlabel{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.11em;padding:0 8px;margin:14px 0 5px;}
+.nlabel:first-child{margin-top:4px;}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .14s;position:relative;}
+.ni svg{width:14px;height:14px;flex-shrink:0;opacity:.7;}
+.ni:hover{background:var(--s2);color:var(--tx);}
+.ni.on{background:var(--ag);color:var(--ac);}
+.ni.on svg{opacity:1;}
+.nbadge{margin-left:auto;background:var(--wn);color:#fff;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:10px;line-height:1.5;}
+.sfoot{padding:10px 8px;border-top:1px solid var(--bd);}
+.urow{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;transition:background .14s;}
+.urow:hover{background:var(--s2);}
+.av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0;}
+.uname{font-size:12px;font-weight:700;line-height:1.2;}
+.urole{font-size:10px;color:var(--t3);}
+
+/* content */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{height:54px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;padding:0 24px;flex-shrink:0;}
+.topbar-title{font-size:14px;font-weight:800;letter-spacing:-.3px;flex:1;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .14s;font-family:'Syne',sans-serif;border:none;line-height:1;}
+.btn svg{width:13px;height:13px;}
+.btn-p{background:var(--ac);color:#fff;box-shadow:0 0 14px rgba(91,127,255,.22);}
+.btn-p:hover{background:#6e8fff;}
+.btn-s{background:var(--s2);color:var(--t2);border:1px solid var(--bd);}
+.btn-s:hover{border-color:var(--bdh);color:var(--tx);}
+
+.page-body{flex:1;overflow-y:auto;padding:24px;}
+.page-inner{max-width:1080px;margin:0 auto;}
+
+/* ── HERO BANNER ─────────────────────────── */
+.hero{
+  background:var(--sf);border:1px solid var(--bd);border-radius:16px;
+  padding:24px 28px;margin-bottom:20px;
+  display:flex;align-items:center;gap:20px;
+  position:relative;overflow:hidden;
+  animation:up .3s ease both;
+}
+.hero::before{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:200px;height:200px;
+  background:radial-gradient(circle,rgba(91,127,255,.12) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-av{
+  width:56px;height:56px;border-radius:14px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--ac),var(--pu));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:800;color:#fff;
+  box-shadow:0 0 24px rgba(91,127,255,.3);
+}
+.hero-meta{flex:1;}
+.hero-greeting{font-size:12px;font-weight:600;color:var(--t3);margin-bottom:3px;}
+.hero-name{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.15;margin-bottom:4px;}
+.hero-sub{font-size:12.5px;color:var(--t2);}
+.hero-score-block{text-align:right;flex-shrink:0;}
+.hero-score-label{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+.hero-score{font-size:44px;font-weight:800;letter-spacing:-2px;line-height:1;color:var(--gn);}
+.hero-score-denom{font-size:16px;font-weight:600;color:var(--t3);}
+.hero-delta{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:12px;font-weight:700;color:var(--gn);}
+.hero-delta svg{width:11px;height:11px;}
+
+/* ── KPI STRIP ───────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.kpi{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;transition:border-color .2s;animation:up .3s ease both;}
+.kpi:hover{border-color:var(--bdh);}
+.kpi-label{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+.kpi-label svg{width:12px;height:12px;opacity:.6;}
+.kpi-value{font-size:26px;font-weight:800;letter-spacing:-.8px;line-height:1;margin-bottom:4px;}
+.kpi-meta{font-size:11px;color:var(--t3);}
+.delta{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;}
+.delta.up{color:var(--gn);background:var(--gg);}
+.delta.dn{color:var(--dn);background:var(--dg);}
+
+/* ── GRID ────────────────────────────────── */
+.grid-2{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start;}
+.grid-full{display:flex;flex-direction:column;gap:16px;}
+
+/* ── CARD ────────────────────────────────── */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:13px;overflow:hidden;animation:up .3s ease both;}
+.card-hd{padding:14px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px;}
+.card-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.card-dot.blue{background:var(--ac);}
+.card-dot.green{background:var(--gn);}
+.card-dot.purple{background:var(--pu);}
+.card-dot.amber{background:var(--wn);}
+.card-dot.teal{background:var(--te);}
+.card-title{font-size:12px;font-weight:600;color:var(--t2);flex:1;}
+.card-action{font-size:11.5px;font-weight:700;color:var(--ac);cursor:pointer;margin-left:auto;}
+.card-action:hover{color:#8eaaff;}
+.card-body{padding:16px 18px;}
+
+/* ── SCORE SPARKLINE ─────────────────────── */
+.sparkline{display:flex;align-items:flex-end;gap:5px;height:52px;}
+.spark-col{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;}
+.spark-bar{width:100%;border-radius:4px 4px 0 0;min-height:4px;transition:opacity .15s;}
+.spark-bar:hover{opacity:.75;}
+.spark-label{font-size:9.5px;font-weight:700;color:var(--t3);}
+.spark-val{font-size:9.5px;font-weight:700;color:var(--t2);}
+
+/* ── GOAL ITEMS ──────────────────────────── */
+.goal-item{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:border-color .15s;}
+.goal-item:last-child{margin-bottom:0;}
+.goal-item:hover{border-color:var(--bdh);}
+.goal-icon{width:36px;height:36px;border-radius:9px;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.goal-info{flex:1;min-width:0;}
+.goal-name{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.goal-proj{font-size:11px;color:var(--t3);}
+.goal-right{text-align:right;flex-shrink:0;}
+.goal-score{font-size:18px;font-weight:800;letter-spacing:-.4px;line-height:1;}
+.goal-rpts{font-size:10.5px;color:var(--t3);margin-top:2px;}
+.goal-bar{width:48px;height:3px;background:var(--s3);border-radius:2px;overflow:hidden;margin-top:4px;margin-left:auto;}
+.goal-bar-fill{height:100%;border-radius:2px;}
+
+/* ── CRITERIA BREAKDOWN ──────────────────── */
+.crit-block{background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:8px;}
+.crit-block:last-child{margin-bottom:0;}
+.crit-block-name{font-size:12px;font-weight:700;color:var(--tx);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.crit-block-score{font-size:13px;font-weight:800;}
+.crit-row{display:flex;align-items:center;gap:9px;margin-bottom:7px;}
+.crit-row:last-child{margin-bottom:0;}
+.crit-name{font-size:11.5px;color:var(--t2);flex:1;}
+.crit-bar-wrap{width:80px;height:3px;background:var(--s3);border-radius:2px;overflow:hidden;flex-shrink:0;}
+.crit-bar-fill{height:100%;border-radius:2px;}
+.crit-score{font-size:11.5px;font-weight:800;min-width:24px;text-align:right;flex-shrink:0;}
+
+/* ── REPORT HISTORY ──────────────────────── */
+.report-row{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;margin-bottom:5px;cursor:pointer;transition:border-color .15s;}
+.report-row:last-child{margin-bottom:0;}
+.report-row:hover{border-color:var(--bdh);}
+.report-date{font-size:12px;font-weight:600;color:var(--t2);min-width:90px;flex-shrink:0;}
+.report-goal{font-size:12.5px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.report-score{font-size:14px;font-weight:800;flex-shrink:0;}
+.report-status{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;flex-shrink:0;text-transform:uppercase;letter-spacing:.04em;}
+.report-status.reviewed{background:var(--gg);color:var(--gn);}
+.report-status.pending{background:var(--wg);color:var(--wn);}
+
+/* ── ORG METRIC ROWS ─────────────────────── */
+.org-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;margin-bottom:5px;}
+.org-row:last-child{margin-bottom:0;}
+.org-emo{font-size:15px;flex-shrink:0;line-height:1;}
+.org-name{font-size:12.5px;font-weight:600;color:var(--tx);flex:1;}
+.org-bar-wrap{width:64px;height:3px;background:var(--s3);border-radius:2px;overflow:hidden;flex-shrink:0;}
+.org-bar-fill{height:100%;border-radius:2px;}
+.org-score{font-size:13px;font-weight:800;min-width:28px;text-align:right;flex-shrink:0;}
+.org-feedback{font-size:11px;color:var(--t3);line-height:1.55;padding:7px 10px;background:var(--s3);border-radius:6px;margin-top:6px;display:none;}
+.org-row.open + .org-feedback{display:block;}
+
+/* ── DUE BANNER ──────────────────────────── */
+.due-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--wg);border:1px solid var(--wb);border-radius:11px;margin-bottom:10px;}
+.due-banner svg{width:14px;height:14px;color:var(--wn);flex-shrink:0;}
+.due-label{font-size:13px;font-weight:800;color:var(--wn);flex:1;}
+.due-sub{font-size:11px;color:rgba(245,158,11,.65);}
+
+/* ── MANAGER CARD ────────────────────────── */
+.mgr-card{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;}
+.mgr-av{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;}
+.mgr-name{font-size:13px;font-weight:700;margin-bottom:1px;}
+.mgr-role{font-size:11px;color:var(--t3);}
+.mgr-actions{margin-left:auto;display:flex;gap:6px;}
+
+/* ── NEXT DUE SECTION ────────────────────── */
+.proj-info-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;margin-bottom:5px;}
+.proj-info-row:last-child{margin-bottom:0;}
+.proj-emoji{font-size:16px;flex-shrink:0;}
+.proj-name{font-size:12.5px;font-weight:600;flex:1;}
+.proj-freq{font-size:11px;color:var(--t3);text-align:right;flex-shrink:0;}
+.proj-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;flex-shrink:0;}
+.proj-badge.due{background:var(--wg);color:var(--wn);border:1px solid var(--wb);}
+.proj-badge.ok{background:var(--gg);color:var(--gn);border:1px solid var(--gb);}
+
+/* ── SCORE COLOR UTIL ────────────────────── */
+.c-gn{color:var(--gn);}
+.c-wn{color:var(--wn);}
+.c-dn{color:var(--dn);}
+.f-gn{background:var(--gn);}
+.f-wn{background:var(--wn);}
+.f-dn{background:var(--dn);}
+.b-gn{background:var(--gg);border:1px solid var(--gb);}
+.b-wn{background:var(--wg);border:1px solid var(--wb);}
+.b-dn{background:var(--dg);border:1px solid var(--db);}
+
+/* ── DIVIDER ─────────────────────────────── */
+.divider{height:1px;background:var(--bd);margin:14px 0;}
+
+/* ── ANIM ────────────────────────────────── */
+@keyframes up{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ── SIDEBAR ──────────────────────────────── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="lmark">Z</div>
+    <span class="lname">Zevian</span>
+  </div>
+  <nav class="nav">
+    <div class="nlabel">Workspace</div>
+    <div class="ni on">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+      Dashboard
+    </div>
+    <div class="ni">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 3V1h6v2"/></svg>
+      Projects
+    </div>
+    <div class="ni">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg>
+      Goals
+    </div>
+    <div class="ni">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 4h12M2 8h8M2 12h6"/><circle cx="13" cy="12" r="2.5"/><path d="M13 9.5V11"/></svg>
+      Submit Report
+      <span class="nbadge">Due</span>
+    </div>
+    <div class="ni">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+      My Performance
+    </div>
+  </nav>
+  <div class="sfoot">
+    <div class="urow">
+      <div class="av" style="background:linear-gradient(135deg,var(--ac),var(--pu))">SR</div>
+      <div style="flex:1;min-width:0">
+        <div class="uname">Sofia Reyes</div>
+        <div class="urole">Engineer</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── CONTENT ───────────────────────────────── -->
+<div class="content">
+  <div class="topbar">
+    <span class="topbar-title">Dashboard</span>
+    <button class="btn btn-s" style="font-size:12px;padding:7px 13px;" onclick="toast('Viewing last 8 weeks')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M2 6h12"/><path d="M6 2v2M10 2v2"/></svg>
+      Last 8 weeks
+    </button>
+    <button class="btn btn-p" style="font-size:12px;padding:7px 14px;" onclick="toast('Opening Submit Report…')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v10M4 11l4 4 4-4"/></svg>
+      Submit Report
+    </button>
+  </div>
+
+  <div class="page-body">
+    <div class="page-inner">
+
+      <!-- hero banner -->
+      <div class="hero">
+        <div class="hero-av">SR</div>
+        <div class="hero-meta">
+          <div class="hero-greeting">Good morning 👋</div>
+          <div class="hero-name">Sofia Reyes</div>
+          <div class="hero-sub">Senior Engineer · Engineering Sprint Alpha</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <div class="hero-score-block">
+            <div class="hero-score-label">Current score</div>
+            <div><span class="hero-score">8.6</span><span class="hero-score-denom">/10</span></div>
+            <div class="hero-delta">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 12V4M4 8l4-4 4 4"/></svg>
+              +0.4 vs last week
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="kpi-row">
+        <div class="kpi" style="animation-delay:.04s">
+          <div class="kpi-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="1" width="12" height="14" rx="2"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>
+            Reports submitted
+          </div>
+          <div class="kpi-value" style="color:var(--ac)">16</div>
+          <div class="kpi-meta">This quarter</div>
+        </div>
+        <div class="kpi" style="animation-delay:.08s">
+          <div class="kpi-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg>
+            Active goals
+          </div>
+          <div class="kpi-value" style="color:var(--pu)">3</div>
+          <div class="kpi-meta">Across 2 projects</div>
+        </div>
+        <div class="kpi" style="animation-delay:.12s">
+          <div class="kpi-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1l1.5 4.5H14l-3.75 2.75 1.5 4.5L8 10l-3.75 2.75 1.5-4.5L2 5.5h4.5z"/></svg>
+            Best criterion
+          </div>
+          <div class="kpi-value" style="color:var(--gn)">9.1</div>
+          <div class="kpi-meta">Code Quality</div>
+        </div>
+        <div class="kpi" style="animation-delay:.16s">
+          <div class="kpi-label">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3v5l3 3"/><circle cx="8" cy="8" r="6"/></svg>
+            Next report due
+          </div>
+          <div class="kpi-value" style="color:var(--wn)">2d</div>
+          <div class="kpi-meta">Fri 14 Mar · Weekly</div>
+        </div>
+      </div>
+
+      <!-- main grid -->
+      <div class="grid-2">
+
+        <!-- LEFT COLUMN -->
+        <div class="grid-full">
+
+          <!-- Score trend -->
+          <div class="card" style="animation-delay:.1s">
+            <div class="card-hd">
+              <div class="card-dot blue"></div>
+              <span class="card-title">Score trend</span>
+              <span style="font-size:11px;color:var(--t3);margin-left:auto">8 weeks</span>
+            </div>
+            <div class="card-body">
+              <div id="sparkline" class="sparkline"></div>
+            </div>
+          </div>
+
+          <!-- Goals & criteria -->
+          <div class="card" style="animation-delay:.14s">
+            <div class="card-hd">
+              <div class="card-dot purple"></div>
+              <span class="card-title">Goals & criteria</span>
+              <span class="card-action" onclick="toast('Viewing all goals')">View all →</span>
+            </div>
+            <div class="card-body" id="goalsList"></div>
+          </div>
+
+          <!-- Report history -->
+          <div class="card" style="animation-delay:.18s">
+            <div class="card-hd">
+              <div class="card-dot green"></div>
+              <span class="card-title">Report history</span>
+              <span class="card-action" onclick="toast('Full history')">View all →</span>
+            </div>
+            <div class="card-body" id="reportList"></div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div style="display:flex;flex-direction:column;gap:12px;position:sticky;top:0;">
+
+          <!-- Due report -->
+          <div class="card" style="animation-delay:.1s">
+            <div class="card-hd">
+              <div class="card-dot amber"></div>
+              <span class="card-title">Upcoming reports</span>
+            </div>
+            <div class="card-body">
+              <div class="due-banner">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M2 6h12M6 2v2M10 2v2"/></svg>
+                <div>
+                  <div class="due-label">Due in 2 days</div>
+                  <div class="due-sub">Weekly report · Fri 14 Mar</div>
+                </div>
+              </div>
+              <div id="projList"></div>
+            </div>
+          </div>
+
+          <!-- Org metrics -->
+          <div class="card" style="animation-delay:.14s">
+            <div class="card-hd">
+              <div class="card-dot teal"></div>
+              <span class="card-title">Org metrics</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:var(--ag);color:var(--ac);border:1px solid var(--ab);margin-left:auto;">30% of score</span>
+            </div>
+            <div class="card-body" id="orgMetrics"></div>
+          </div>
+
+          <!-- Manager -->
+          <div class="card" style="animation-delay:.18s">
+            <div class="card-hd">
+              <div class="card-dot blue"></div>
+              <span class="card-title">Reports to</span>
+            </div>
+            <div class="card-body">
+              <div class="mgr-card">
+                <div class="mgr-av" style="background:linear-gradient(135deg,#5b7fff,#8b5cf6)">JM</div>
+                <div style="flex:1;min-width:0">
+                  <div class="mgr-name">James Mitchell</div>
+                  <div class="mgr-role">Engineering Manager · Owner</div>
+                </div>
+                <div class="mgr-actions">
+                  <button class="btn btn-s" style="padding:5px 10px;font-size:11px;" onclick="toast('Opening message thread…')">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 2h12v9H2z"/><path d="M5 14l3-3h2"/></svg>
+                    Message
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /grid -->
+    </div><!-- /page-inner -->
+  </div><!-- /page-body -->
+</div><!-- /content -->
+</div><!-- /shell -->
+
+<!-- toast -->
+<div id="toast" style="
+  position:fixed;bottom:22px;right:22px;z-index:999;
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:10px;
+  font-size:12.5px;font-weight:700;
+  background:var(--gn);color:#fff;
+  opacity:0;transform:translateY(8px);
+  transition:all .22s cubic-bezier(.4,0,.2,1);pointer-events:none;
+  box-shadow:0 6px 24px rgba(0,0,0,.3);
+">
+  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 8l3.5 3.5L13 4"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   DATA
+════════════════════════════════════════════ */
+const ME = {
+  name:'Sofia Reyes', initials:'SR',
+  scores:[7.2, 7.5, 7.9, 8.0, 8.1, 8.3, 8.5, 8.6],
+  weeks:['W1','W2','W3','W4','W5','W6','W7','W8'],
+};
+
+const GOALS = [
+  {
+    name:'Code Quality & Delivery', project:'Engineering Sprint Alpha',
+    icon:'⚡', score:8.8, reports:9,
+    criteria:[
+      {name:'Code Quality',     w:40, score:9.1},
+      {name:'On-time Delivery', w:35, score:8.5},
+      {name:'Documentation',    w:25, score:8.6},
+    ]
+  },
+  {
+    name:'Engineering Team Collaboration', project:'Engineering Sprint Alpha',
+    icon:'🤝', score:8.2, reports:7,
+    criteria:[
+      {name:'PR Review Speed',   w:40, score:8.7},
+      {name:'Cross-team Impact', w:35, score:7.9},
+      {name:'Mentorship',        w:25, score:7.8},
+    ]
+  },
+  {
+    name:'Backend Performance', project:'Q2 Platform Refactor',
+    icon:'🔧', score:7.6, reports:4,
+    criteria:[
+      {name:'Metric Improvement',    w:50, score:7.8},
+      {name:'Root Cause Analysis',   w:30, score:7.5},
+      {name:'Documentation',         w:20, score:7.4},
+    ]
+  },
+];
+
+const REPORTS = [
+  {date:'Mar 5, 2026',  goal:'Code Quality & Delivery',          score:8.8, status:'reviewed'},
+  {date:'Feb 26, 2026', goal:'Code Quality & Delivery',          score:8.5, status:'reviewed'},
+  {date:'Feb 19, 2026', goal:'Engineering Team Collaboration',   score:8.2, status:'reviewed'},
+  {date:'Feb 12, 2026', goal:'Backend Performance',              score:7.6, status:'reviewed'},
+  {date:'Feb 5, 2026',  goal:'Code Quality & Delivery',          score:8.1, status:'reviewed'},
+];
+
+const ORG_METRICS = [
+  {emo:'💬', name:'Communication',  score:8.4, cls:'gn', feedback:'Regular, clear updates. Blockers surfaced proactively before being asked.'},
+  {emo:'🎯', name:'Ownership',      score:7.8, cls:'gn', feedback:'Tasks tracked to completion. One open item noted with a clear follow-up plan.'},
+  {emo:'⚡', name:'Initiative',     score:7.1, cls:'wn', feedback:'One proactive improvement noted. More examples would strengthen this dimension.'},
+];
+
+const PROJECTS = [
+  {emoji:'⚡', name:'Engineering Sprint Alpha',  freq:'Weekly',   status:'due'},
+  {emoji:'🔧', name:'Q2 Platform Refactor',      freq:'Bi-weekly', status:'ok'},
+];
+
+/* ════════════════════════════════════════════
+   SCORE COLOR HELPERS
+════════════════════════════════════════════ */
+function sc(s){ return s>=7.5?'gn':s>=6?'wn':'dn'; }
+function sv(s){ return s>=7.5?'var(--gn)':s>=6?'var(--wn)':'var(--dn)'; }
+function sb(s){ return s>=7.5?'var(--gg)':s>=6?'var(--wg)':'var(--dg)'; }
+function sborder(s){ return s>=7.5?'var(--gb)':s>=6?'var(--wb)':'var(--db)'; }
+
+/* ════════════════════════════════════════════
+   SPARKLINE
+════════════════════════════════════════════ */
+function renderSparkline() {
+  const max = Math.max(...ME.scores);
+  const min = 5;
+  const range = max - min;
+  const el = document.getElementById('sparkline');
+  el.innerHTML = ME.scores.map((s, i) => {
+    const pct = ((s - min) / range) * 100;
+    const col = sv(s);
+    return `<div class="spark-col">
+      <div class="spark-val" style="color:${col}">${s.toFixed(1)}</div>
+      <div class="spark-bar" style="height:${Math.max(pct,6)}%;background:${col};opacity:.85"></div>
+      <div class="spark-label">${ME.weeks[i]}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════════
+   GOALS LIST
+════════════════════════════════════════════ */
+let openGoal = null;
+
+function renderGoals() {
+  const el = document.getElementById('goalsList');
+  el.innerHTML = GOALS.map((g, i) => {
+    const col = sv(g.score);
+    const isOpen = openGoal === i;
+    const critsHtml = isOpen ? `
+      <div style="margin-top:10px;padding:12px 14px;background:var(--s3);border-radius:8px;">
+        <div style="font-size:9.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:9px;">Criteria breakdown</div>
+        ${g.criteria.map(c => `
+          <div class="crit-row">
+            <span class="crit-name">${c.name} <span style="color:var(--t3);font-size:10px;">${c.w}%</span></span>
+            <div class="crit-bar-wrap"><div class="crit-bar-fill" style="width:${c.score*10}%;background:${sv(c.score)}"></div></div>
+            <span class="crit-score" style="color:${sv(c.score)}">${c.score.toFixed(1)}</span>
+          </div>`).join('')}
+      </div>` : '';
+    return `
+      <div class="goal-item" onclick="toggleGoal(${i})" style="${isOpen?'border-color:var(--bdh);':''}">
+        <div class="goal-icon">${g.icon}</div>
+        <div class="goal-info">
+          <div class="goal-name">${g.name}</div>
+          <div class="goal-proj">${g.project}</div>
+        </div>
+        <div class="goal-right">
+          <div class="goal-score" style="color:${col}">${g.score.toFixed(1)}</div>
+          <div class="goal-rpts">${g.reports} reports</div>
+          <div class="goal-bar"><div class="goal-bar-fill" style="width:${g.score*10}%;background:${col}"></div></div>
+        </div>
+      </div>
+      ${isOpen ? `<div style="margin-top:-2px;margin-bottom:6px;padding:0 2px;">${critsHtml}</div>` : ''}`;
+  }).join('');
+}
+
+function toggleGoal(i) {
+  openGoal = openGoal === i ? null : i;
+  renderGoals();
+}
+
+/* ════════════════════════════════════════════
+   REPORT HISTORY
+════════════════════════════════════════════ */
+function renderReports() {
+  document.getElementById('reportList').innerHTML = REPORTS.map(r => `
+    <div class="report-row" onclick="toast('Opening report: ${r.goal}')">
+      <span class="report-date">${r.date}</span>
+      <span class="report-goal">${r.goal}</span>
+      <span class="report-score" style="color:${sv(r.score)}">${r.score.toFixed(1)}</span>
+      <span class="report-status ${r.status}">${r.status}</span>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════
+   ORG METRICS
+════════════════════════════════════════════ */
+function renderOrgMetrics() {
+  document.getElementById('orgMetrics').innerHTML = ORG_METRICS.map((m, i) => `
+    <div class="org-row" id="or-${i}" onclick="toggleOrg(${i})" style="cursor:pointer;">
+      <span class="org-emo">${m.emo}</span>
+      <span class="org-name">${m.name}</span>
+      <div class="org-bar-wrap"><div class="org-bar-fill" style="width:${m.score*10}%;background:var(--${m.cls})"></div></div>
+      <span class="org-score" style="color:var(--${m.cls})">${m.score.toFixed(1)}</span>
+    </div>
+    <div class="org-feedback" id="of-${i}">${m.feedback}</div>`).join('');
+}
+
+function toggleOrg(i) {
+  const row = document.getElementById('or-'+i);
+  const fb  = document.getElementById('of-'+i);
+  const isOpen = row.classList.contains('open');
+  ORG_METRICS.forEach((_,j) => {
+    document.getElementById('or-'+j).classList.remove('open');
+    document.getElementById('of-'+j).style.display = 'none';
+  });
+  if (!isOpen) {
+    row.classList.add('open');
+    fb.style.display = 'block';
+  }
+}
+
+/* ════════════════════════════════════════════
+   PROJECTS DUE
+════════════════════════════════════════════ */
+function renderProjects() {
+  document.getElementById('projList').innerHTML = PROJECTS.map(p => `
+    <div class="proj-info-row">
+      <span class="proj-emoji">${p.emoji}</span>
+      <span class="proj-name">${p.name}</span>
+      <span class="proj-freq">${p.freq}</span>
+      <span class="proj-badge ${p.status}">${p.status === 'due' ? 'Due Fri' : 'Up to date'}</span>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════ */
+let _tt;
+function toast(msg) {
+  clearTimeout(_tt);
+  const el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  el.style.opacity = '1'; el.style.transform = 'translateY(0)';
+  _tt = setTimeout(() => { el.style.opacity='0'; el.style.transform='translateY(8px)'; }, 2500);
+}
+
+/* ════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════ */
+renderSparkline();
+renderGoals();
+renderReports();
+renderOrgMetrics();
+renderProjects();
+</script>
+</body>
+</html>

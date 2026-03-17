@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Zevian — Invite Member Modal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─── tokens ──────────────────────────────── */
+:root{
+  --bg:#0a0c10; --sf:#111318; --s2:#181c24; --s3:#1e2330; --s4:#252b3a;
+  --bd:rgba(255,255,255,.07); --bdh:rgba(255,255,255,.13); --bda:rgba(255,255,255,.22);
+  --tx:#f0f2f7; --t2:#8b93a8; --t3:#545d73;
+  --ac:#5b7fff; --ag:rgba(91,127,255,.12); --ab:rgba(91,127,255,.3); --ah:rgba(91,127,255,.5);
+  --te:#00d4aa; --tg:rgba(0,212,170,.08); --tb:rgba(0,212,170,.22);
+  --wn:#f59e0b; --wg:rgba(245,158,11,.1);
+  --dn:#f04438; --dg:rgba(240,68,56,.1);
+  --gn:#10b981; --gg:rgba(16,185,129,.1); --gb:rgba(16,185,129,.3);
+  --pu:#8b5cf6; --pg:rgba(139,92,246,.1);
+  --or:#f97316; --og:rgba(249,115,22,.1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'Syne',sans-serif;}
+body{background:var(--bg);color:var(--tx);display:flex;align-items:center;justify-content:center;min-height:100vh;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:4px;}
+
+/* ─── stage (demo backdrop) ───────────────── */
+.stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+.stage-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.stage-bg::before{content:'';position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(91,127,255,.07) 0%,transparent 70%);top:-100px;left:-100px;border-radius:50%;}
+.stage-bg::after{content:'';position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(0,212,170,.05) 0%,transparent 70%);bottom:-50px;right:100px;border-radius:50%;}
+
+/* ─── demo controls ───────────────────────── */
+.demo-bar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--sf);border:1px solid var(--bdh);border-radius:12px;z-index:10;}
+.demo-label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;}
+.demo-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;border:1px solid var(--bd);background:var(--s2);color:var(--t2);}
+.demo-btn:hover{border-color:var(--bdh);color:var(--tx);}
+.demo-btn.primary{background:var(--ac);color:#fff;border-color:var(--ac);box-shadow:0 0 14px rgba(91,127,255,.25);}
+.demo-btn.primary:hover{background:#7090ff;}
+.demo-btn svg{width:12px;height:12px;}
+
+/* ─── modal overlay ───────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;}
+.overlay.open{opacity:1;pointer-events:all;}
+
+/* ─── modal shell ─────────────────────────── */
+.modal{width:580px;max-width:calc(100vw - 32px);max-height:calc(100vh - 48px);background:var(--sf);border:1px solid var(--bdh);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;
+  transform:translateY(28px) scale(.96);opacity:0;
+  transition:transform .32s cubic-bezier(.22,.68,0,1.12),opacity .22s;}
+.overlay.open .modal{transform:translateY(0) scale(1);opacity:1;}
+
+/* ─── header ──────────────────────────────── */
+.mh{padding:24px 28px 0;flex-shrink:0;}
+.mh-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
+.mh-icon{width:40px;height:40px;border-radius:11px;background:var(--ag);border:1px solid var(--ab);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mh-icon svg{width:18px;height:18px;color:var(--ac);}
+.mh-close{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.05);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);transition:all .15s;}
+.mh-close:hover{background:var(--s3);color:var(--tx);}
+.mh-title{font-size:20px;font-weight:800;letter-spacing:-.4px;margin-bottom:4px;}
+.mh-sub{font-size:13px;color:var(--t3);line-height:1.5;}
+
+/* ─── progress track ──────────────────────── */
+.progress-track{display:flex;align-items:center;gap:0;padding:0 28px 20px;flex-shrink:0;border-bottom:1px solid var(--bd);}
+.prog-step{display:flex;align-items:center;gap:8px;flex:1;cursor:default;}
+.prog-step:last-child{flex:0;}
+.prog-dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--t3);flex-shrink:0;transition:all .28s;background:var(--s2);}
+.prog-step.active .prog-dot{background:var(--ac);border-color:var(--ac);color:#fff;box-shadow:0 0 0 5px rgba(91,127,255,.18);}
+.prog-step.done .prog-dot{background:var(--gn);border-color:var(--gn);color:#fff;}
+.prog-label{font-size:11.5px;font-weight:700;color:var(--t3);transition:color .2s;white-space:nowrap;}
+.prog-step.active .prog-label{color:var(--ac);}
+.prog-step.done .prog-label{color:var(--gn);}
+.prog-line{flex:1;height:2px;background:var(--bd);margin:0 10px;border-radius:1px;overflow:hidden;}
+.prog-line-fill{height:100%;width:0%;background:var(--gn);border-radius:1px;transition:width .4s ease;}
+.prog-line.done .prog-line-fill{width:100%;}
+
+/* ─── body ────────────────────────────────── */
+.mb{flex:1;overflow-y:auto;padding:24px 28px;}
+.mb-slide{animation:slideIn .28s cubic-bezier(.22,.68,0,1) both;}
+
+/* ─── footer ──────────────────────────────── */
+.mf{padding:16px 28px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(17,19,24,.8);backdrop-filter:blur(10px);}
+.mf-hint{font-size:12px;color:var(--t3);}
+
+/* ─── buttons ─────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;border:none;letter-spacing:-.1px;}
+.btn svg{width:13px;height:13px;flex-shrink:0;}
+.btn-p{background:var(--ac);color:#fff;box-shadow:0 0 16px rgba(91,127,255,.22);}
+.btn-p:hover{background:#6e8eff;box-shadow:0 0 22px rgba(91,127,255,.35);}
+.btn-p:disabled{opacity:.4;cursor:not-allowed;}
+.btn-s{background:var(--s2);color:var(--t2);border:1px solid var(--bd);}
+.btn-s:hover{border-color:var(--bdh);color:var(--tx);}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:8px;}
+.btn-te{background:var(--tg);color:var(--te);border:1px solid var(--tb);}
+.btn-te:hover{background:rgba(0,212,170,.14);}
+
+/* ─── section heading ─────────────────────── */
+.sec{font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.sec svg{width:11px;height:11px;color:var(--ac);}
+
+/* ─── fields ──────────────────────────────── */
+.field{margin-bottom:16px;}
+.field:last-child{margin-bottom:0;}
+.flabel{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+.flabel .req{color:var(--ac);}
+.finput{width:100%;padding:10px 13px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;font-size:13px;color:var(--tx);outline:none;font-family:'Syne',sans-serif;transition:border-color .15s,box-shadow .15s;}
+.finput:focus{border-color:var(--ab);box-shadow:0 0 0 3px rgba(91,127,255,.09);}
+.finput.err{border-color:rgba(240,68,56,.5);box-shadow:0 0 0 3px rgba(240,68,56,.08);}
+.finput.ok{border-color:rgba(16,185,129,.4);}
+.fhint{font-size:11.5px;color:var(--t3);margin-top:6px;line-height:1.5;}
+.ferr{font-size:11.5px;color:var(--dn);margin-top:5px;display:none;}
+.ferr.show{display:block;}
+
+/* ─── email chip strip ────────────────────── */
+.email-wrap{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;min-height:42px;align-items:center;transition:border-color .15s;}
+.email-wrap:focus-within{border-color:var(--ab);box-shadow:0 0 0 3px rgba(91,127,255,.09);}
+.email-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 5px 3px 9px;background:var(--ag);border:1px solid var(--ab);border-radius:20px;font-size:12px;font-weight:600;color:var(--ac);}
+.chip-del{width:16px;height:16px;border-radius:50%;background:rgba(91,127,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0;}
+.chip-del:hover{background:rgba(240,68,56,.3);color:var(--dn);}
+.chip-del svg{width:8px;height:8px;}
+.email-ghost{flex:1;min-width:160px;background:none;border:none;outline:none;font-size:13px;color:var(--tx);font-family:'Syne',sans-serif;padding:2px 4px;}
+.email-ghost::placeholder{color:var(--t3);}
+
+/* ─── role tiles ──────────────────────────── */
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.role-tile{padding:16px;background:var(--s2);border:1.5px solid var(--bd);border-radius:12px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden;}
+.role-tile::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(91,127,255,.0) 0%,transparent 60%);transition:opacity .2s;opacity:0;pointer-events:none;}
+.role-tile:hover{border-color:var(--bdh);}
+.role-tile:hover::before{opacity:1;}
+.role-tile.sel{background:var(--ag);border-color:var(--ab);}
+.role-tile.sel::before{opacity:1;background:linear-gradient(135deg,rgba(91,127,255,.06) 0%,transparent 60%);}
+.role-tile.sel-mgr{background:rgba(249,115,22,.06);border-color:rgba(249,115,22,.3);}
+.role-tile.sel-mgr::before{opacity:1;background:linear-gradient(135deg,rgba(249,115,22,.04) 0%,transparent 60%);}
+.rt-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.rt-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rt-icon svg{width:15px;height:15px;}
+.rt-name{font-size:13.5px;font-weight:800;margin-bottom:5px;letter-spacing:-.2px;}
+.rt-desc{font-size:12px;color:var(--t3);line-height:1.55;}
+.role-tile.sel .rt-name{color:var(--ac);}
+.role-tile.sel-mgr .rt-name{color:var(--or);}
+.role-tile.sel .rt-desc{color:var(--t2);}
+.role-tile.sel-mgr .rt-desc{color:var(--t2);}
+.rt-radio{width:17px;height:17px;border-radius:50%;border:2px solid var(--bd);position:absolute;top:14px;right:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.role-tile.sel .rt-radio,.role-tile.sel-mgr .rt-radio{border-color:var(--ac);}
+.role-tile.sel-mgr .rt-radio{border-color:var(--or);}
+.rt-radio-dot{width:7px;height:7px;border-radius:50%;background:var(--ac);transform:scale(0);transition:transform .15s;}
+.role-tile.sel .rt-radio-dot{transform:scale(1);}
+.role-tile.sel-mgr .rt-radio-dot{transform:scale(1);background:var(--or);}
+
+/* ─── manager dropdown ────────────────────── */
+.mgr-select-wrap{position:relative;}
+.mgr-select-wrap select{width:100%;padding:10px 36px 10px 13px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;font-size:13px;color:var(--tx);outline:none;font-family:'Syne',sans-serif;transition:border-color .15s,box-shadow .15s;cursor:pointer;appearance:none;-webkit-appearance:none;}
+.mgr-select-wrap select:focus{border-color:var(--ab);box-shadow:0 0 0 3px rgba(91,127,255,.09);}
+.mgr-select-wrap::after{content:'';position:absolute;right:12px;top:50%;transform:translateY(-50%);width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--t3);pointer-events:none;}
+/* multi-select overrides */
+
+/* ─── assignable list ─────────────────────── */
+.assign-emo{font-size:15px;flex-shrink:0;}
+.assign-name{font-size:13px;font-weight:600;flex:1;}
+.assign-meta{font-size:11px;color:var(--t3);}
+/* count badge */
+.sel-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:var(--ag);border:1px solid var(--ab);border-radius:20px;font-size:11px;font-weight:700;color:var(--ac);margin-left:8px;}
+/* section separator */
+
+/* ─── review card ─────────────────────────── */
+.review-hero{display:flex;align-items:center;gap:14px;padding:16px 18px;background:linear-gradient(135deg,rgba(91,127,255,.08),rgba(0,212,170,.04));border:1px solid var(--ab);border-radius:12px;margin-bottom:18px;}
+.review-av{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+.review-name{font-size:15px;font-weight:800;letter-spacing:-.2px;margin-bottom:2px;}
+.review-email{font-size:12px;color:var(--t2);}
+.review-table{width:100%;border-collapse:collapse;margin-bottom:14px;}
+.review-table td{padding:9px 0;border-bottom:1px solid var(--bd);vertical-align:top;}
+.review-table tr:last-child td{border-bottom:none;}
+.review-table td:first-child{font-size:12px;color:var(--t3);width:120px;padding-right:12px;}
+.review-table td:last-child{font-size:12.5px;font-weight:600;color:var(--tx);}
+.review-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;font-size:11px;font-weight:600;}
+.tag-proj{background:var(--ag);color:var(--ac);border:1px solid var(--ab);}
+.tag-goal{background:var(--tg);color:var(--te);border:1px solid var(--tb);}
+.tag-none{color:var(--t3);font-weight:400;font-style:italic;}
+.review-info{padding:12px 14px;background:rgba(91,127,255,.06);border:1px solid var(--ab);border-radius:10px;font-size:12.5px;color:var(--t2);line-height:1.65;display:flex;gap:9px;}
+.review-info svg{flex-shrink:0;margin-top:1px;}
+/* multi-invite summary */
+.multi-summary{display:flex;flex-direction:column;gap:6px;}
+.multi-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;}
+.multi-av{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;}
+.multi-email{font-size:12.5px;font-weight:600;flex:1;}
+.multi-badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:4px;}
+
+/* ─── success state ───────────────────────── */
+.success-wrap{text-align:center;padding:10px 0 4px;animation:fadeUp .3s ease both;}
+.success-ring{width:70px;height:70px;border-radius:50%;background:var(--gg);border:2px solid var(--gb);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 0 30px rgba(16,185,129,.2);}
+.success-ring svg{width:28px;height:28px;color:var(--gn);}
+.success-title{font-size:20px;font-weight:800;letter-spacing:-.4px;margin-bottom:6px;}
+.success-sub{font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:22px;}
+.success-inv-list{display:flex;flex-direction:column;gap:5px;margin-bottom:20px;text-align:left;}
+.success-inv-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;}
+.success-check{width:20px;height:20px;border-radius:50%;background:var(--gg);border:1px solid var(--gb);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.success-check svg{width:10px;height:10px;color:var(--gn);}
+
+/* ─── toast ───────────────────────────────── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--sf);border:1px solid var(--gn);color:var(--tx);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:999;pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast-dot{width:7px;height:7px;border-radius:50%;background:var(--gn);}
+
+/* ─── utils ───────────────────────────────── */
+.divider{height:1px;background:var(--bd);margin:16px 0;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideIn{from{opacity:0;transform:translateX(14px);}to{opacity:1;transform:translateX(0);}}
+/* ─── checkbox list ───────────────────────── */
+.check-list{display:flex;flex-direction:column;gap:5px;}
+.check-row{display:flex;align-items:center;gap:12px;padding:10px 13px;background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;cursor:pointer;transition:border-color .15s,background .15s;user-select:none;}
+.check-row:hover{border-color:var(--bdh);}
+.check-row.on{background:var(--ag);border-color:var(--ab);}
+.check-box{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--bd);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;background:var(--s3);}
+.check-row.on .check-box{background:var(--ac);border-color:var(--ac);}
+.check-row:hover:not(.on) .check-box{border-color:var(--bdh);}
+.check-emo{font-size:15px;flex-shrink:0;}
+.check-name{font-size:13px;font-weight:600;flex:1;color:var(--tx);}
+.check-row.on .check-name{color:var(--ac);}
+.check-meta{font-size:11.5px;color:var(--t3);}
+</style>
+</head>
+<body>
+
+<!-- backdrop -->
+<div class="stage">
+  <div class="stage-bg"></div>
+</div>
+
+<!-- demo controls -->
+<div class="demo-bar">
+  <span class="demo-label">Invite Modal Demo</span>
+  <button class="demo-btn" onclick="jumpTo(1)">Step 1 — Details</button>
+  <button class="demo-btn" onclick="jumpTo(2)">Step 2 — Assign</button>
+  <button class="demo-btn" onclick="jumpTo(3)">Step 3 — Review</button>
+  <button class="demo-btn" onclick="showSuccess()">Success</button>
+  <button class="demo-btn primary" onclick="openModal()">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3v10M3 8h10"/></svg>
+    Open Modal
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     INVITE MODAL
+══════════════════════════════════════════ -->
+<div class="overlay" id="overlay" onclick="bgClose(event)">
+<div class="modal" id="modal">
+
+  <!-- header -->
+  <div class="mh">
+    <div class="mh-top">
+      <div>
+        <div class="mh-icon" id="mhIcon">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><path d="M13 5v6M10 8h6"/></svg>
+        </div>
+      </div>
+      <div class="mh-close" onclick="closeModal()">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 3l10 10M13 3L3 13"/></svg>
+      </div>
+    </div>
+    <div class="mh-title" id="mhTitle">Invite Team Members</div>
+    <div class="mh-sub" id="mhSub">Send invitations to join Acme Inc on Zevian. They'll set their password on first login.</div>
+  </div>
+
+  <!-- progress -->
+  <div class="progress-track" id="progressTrack">
+    <div class="prog-step active" id="ps1">
+      <div class="prog-dot" id="pd1">1</div>
+      <span class="prog-label">Details</span>
+      <div class="prog-line" id="pl1"><div class="prog-line-fill"></div></div>
+    </div>
+    <div class="prog-step" id="ps2">
+      <div class="prog-dot" id="pd2">2</div>
+      <span class="prog-label">Assign</span>
+      <div class="prog-line" id="pl2"><div class="prog-line-fill"></div></div>
+    </div>
+    <div class="prog-step" id="ps3">
+      <div class="prog-dot" id="pd3">3</div>
+      <span class="prog-label">Review</span>
+    </div>
+  </div>
+
+  <!-- body -->
+  <div class="mb" id="modalBody">
+
+    <!-- ── STEP 1 ── -->
+    <div id="step1">
+
+      <!-- email input with chip strip -->
+      <div class="field">
+        <div class="flabel"><span class="req">*</span> Email Address(es)</div>
+        <div class="email-wrap" id="emailWrap" onclick="focusGhost()">
+          <input class="email-ghost" id="emailGhost"
+            placeholder="name@company.com"
+            onkeydown="ghostKeydown(event)"
+            oninput="ghostInput(event)">
+        </div>
+        <div class="ferr" id="emailErr">Please enter a valid email address.</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- role selection -->
+      <div class="field">
+        <div class="flabel"><span class="req">*</span> Role</div>
+        <div class="role-grid">
+
+          <div class="role-tile sel" id="tileEmployee" onclick="selectRole('employee')">
+            <div class="rt-radio"><div class="rt-radio-dot"></div></div>
+            <div class="rt-head">
+              <div class="rt-icon" style="background:var(--ag)">
+                <svg viewBox="0 0 16 16" fill="none" stroke="var(--ac)" stroke-width="1.6"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-4 2-6 6-6s6 2 6 6"/></svg>
+              </div>
+            </div>
+            <div class="rt-name">Employee</div>
+            <div class="rt-desc">Submits reports. Views own scores only.</div>
+          </div>
+
+          <div class="role-tile" id="tileManager" onclick="selectRole('manager')">
+            <div class="rt-radio"><div class="rt-radio-dot"></div></div>
+            <div class="rt-head">
+              <div class="rt-icon" style="background:var(--og)">
+                <svg viewBox="0 0 16 16" fill="none" stroke="var(--or)" stroke-width="1.6"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M14 14c0-2-1-3.5-2-4"/></svg>
+              </div>
+            </div>
+            <div class="rt-name">Manager</div>
+            <div class="rt-desc">Reviews team reports. Can score, override AI, and invite members.</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- reports-to -->
+      <div class="field">
+        <div class="flabel">
+          Reports To
+          <span style="font-weight:400;color:var(--t3);font-size:10.5px;text-transform:none;letter-spacing:0">optional</span>
+        </div>
+        <div class="mgr-select-wrap">
+          <select id="mgrSelect" onchange="selectMgr(this.value)">
+            <option value="">No manager assigned</option>
+          </select>
+        </div>
+      </div>
+
+    </div><!-- /step1 -->
+
+    <!-- ── STEP 2 ── -->
+    <div id="step2" style="display:none">
+
+      <!-- invitee preview strip -->
+      <div id="step2Preview" style="margin-bottom:20px"></div>
+
+      <!-- manager: assign projects -->
+      <div id="assignProjects">
+        <div class="flabel" style="margin-bottom:8px">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 3V1h6v2"/></svg>
+          Assign to Projects
+        </div>
+        <div id="projectCheckList"></div>
+      </div>
+
+      <!-- employee: assign goals -->
+      <div id="assignGoals" style="display:none">
+        <div class="flabel" style="margin-bottom:8px">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg>
+          Assign to Goals
+        </div>
+        <div id="goalCheckList"></div>
+      </div>
+
+    </div><!-- /step2 -->
+
+    <!-- ── STEP 3 ── -->
+    <div id="step3" style="display:none">
+      <div id="step3Content"></div>
+    </div>
+
+    <!-- ── SUCCESS ── -->
+    <div id="stepSuccess" style="display:none">
+      <div class="success-wrap">
+        <div class="success-ring">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 8l3.5 3.5L13 4"/></svg>
+        </div>
+        <div class="success-title" id="successTitle">Invitation Sent!</div>
+        <div class="success-sub" id="successSub">The invite link expires in 7 days.</div>
+        <div class="success-inv-list" id="successList"></div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button class="btn btn-s" onclick="closeModal()">Close</button>
+          <button class="btn btn-p" onclick="resetAndInviteAnother()">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3v10M3 8h10"/></svg>
+            Invite Another
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /modal-body -->
+
+  <!-- footer -->
+  <div class="mf" id="modalFooter">
+    <div class="mf-hint" id="footerHint">Step 1 of 3</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-s" id="btnBack" style="display:none" onclick="goBack()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 3L5 8l6 5"/></svg>
+        Back
+      </button>
+      <button class="btn btn-p" id="btnNext" onclick="goNext()">
+        Continue
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l6 5-6 5"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div><!-- /modal -->
+</div><!-- /overlay -->
+
+<div class="toast" id="toast">
+  <div class="toast-dot"></div>
+  <span id="toastMsg">Saved</span>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════════ */
+var MANAGERS = [
+  {id:'m1', name:'James Mitchell', title:'Engineering Manager',  initials:'JM', grad:'linear-gradient(135deg,#5b7fff,#00d4aa)', you:true},
+  {id:'m4', name:'Riya Ahmed',     title:'Marketing Manager',    initials:'RA', grad:'linear-gradient(135deg,#f59e0b,#fb923c)'},
+  {id:'m6', name:'Amara Osei',     title:'Customer Success Lead',initials:'AO', grad:'linear-gradient(135deg,#10b981,#0ea5e9)'},
+  {id:'m7', name:'David Kim',      title:'Product Manager',      initials:'DK', grad:'linear-gradient(135deg,#8b5cf6,#5b7fff)'},
+];
+
+var PROJECTS = [
+  {id:'p1', name:'Sprint Alpha v2',    emo:'⚡', desc:'3 active goals'},
+  {id:'p2', name:'Backend Refactor',   emo:'🔧', desc:'2 active goals'},
+  {id:'p3', name:'Design Sprint Q1',   emo:'🎨', desc:'2 active goals'},
+  {id:'p4', name:'Q1 Campaign Launch', emo:'📢', desc:'2 active goals'},
+  {id:'p5', name:'CS Operations',      emo:'💬', desc:'2 active goals'},
+  {id:'p6', name:'Product Roadmap Q1', emo:'🚀', desc:'2 active goals'},
+];
+
+var GOALS = [
+  {id:'g1', name:'Code Quality & Delivery',      proj:'Sprint Alpha v2',     emo:'⚡'},
+  {id:'g2', name:'Eng Team Leadership',           proj:'Sprint Alpha v2',     emo:'⚡'},
+  {id:'g3', name:'Design Execution & Handoff',    proj:'Design Sprint Q1',    emo:'🎨'},
+  {id:'g4', name:'Campaign Execution Q1',         proj:'Q1 Campaign Launch',  emo:'📢'},
+  {id:'g5', name:'Support Excellence',            proj:'CS Operations',       emo:'💬'},
+  {id:'g6', name:'Roadmap Delivery Q1',           proj:'Product Roadmap Q1',  emo:'🚀'},
+  {id:'g7', name:'Backend Performance',           proj:'Backend Refactor',    emo:'🔧'},
+];
+
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+var state = {
+  step: 1,
+  emails: [],
+  role: 'employee',
+  managerId: 'm1',
+  projects: [],
+  goals: [],
+};
+
+/* ═══════════════════════════════════════════════
+   MODAL OPEN / CLOSE
+═══════════════════════════════════════════════ */
+function openModal() {
+  resetState();
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(function(){ document.getElementById('emailGhost').focus(); }, 350);
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function bgClose(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+function resetState() {
+  state = { step:1, emails:[], role:'employee', managerId:'m1', projects:[], goals:[] };
+  showStep(1);
+  renderEmailChips();
+  renderMgrList();
+  document.getElementById('tileEmployee').className = 'role-tile sel';
+  document.getElementById('tileManager').className  = 'role-tile';
+  document.getElementById('emailGhost').value = '';
+  document.getElementById('emailErr').classList.remove('show');
+  document.getElementById('stepSuccess').style.display = 'none';
+  document.getElementById('modalFooter').style.display = 'flex';
+}
+
+/* ═══════════════════════════════════════════════
+   STEP LOGIC
+═══════════════════════════════════════════════ */
+function showStep(n) {
+  state.step = n;
+  ['step1','step2','step3','stepSuccess'].forEach(function(id,i){
+    document.getElementById(id).style.display = (i+1 === n) ? 'block' : 'none';
+  });
+  // progress
+  for (var i = 1; i <= 3; i++) {
+    var ps = document.getElementById('ps'+i);
+    var pl = document.getElementById('pl'+i);
+    if (!ps) continue;
+    ps.className = 'prog-step' + (i < n ? ' done' : i === n ? ' active' : '');
+    if (pl) pl.className = 'prog-line' + (i < n ? ' done' : '');
+  }
+  document.getElementById('progressTrack').style.display = n < 4 ? 'flex' : 'none';
+  // header
+  var titles = ['Invite Team Members','Assign Projects & Goals','Review & Send'];
+  var subs   = [
+    'Send invitations to join Acme Inc on Zevian.',
+    'Optionally add '+(state.emails.length > 1 ? state.emails.length+' invitees' : 'the invitee')+' to projects and goals right away.',
+    'Confirm the details before sending.'
+  ];
+  document.getElementById('mhTitle').textContent = n <= 3 ? titles[n-1] : (n===4?'Invite Sent':'');
+  document.getElementById('mhSub').textContent   = n <= 3 ? subs[n-1] : '';
+  // footer
+  document.getElementById('footerHint').textContent = n <= 3 ? ('Step '+n+' of 3') : '';
+  document.getElementById('btnBack').style.display  = n > 1 && n <= 3 ? 'flex' : 'none';
+  if (n === 3) {
+    document.getElementById('btnNext').innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M1 8l14-6-6 14-2-6z"/></svg> Send Invitation'+(state.emails.length>1?'s':'');
+  } else if (n < 3) {
+    document.getElementById('btnNext').innerHTML = 'Continue <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M5 3l6 5-6 5"/></svg>';
+  }
+  // step-specific
+  if (n === 2) {
+    var isManager = state.role === 'manager';
+    document.getElementById('assignProjects').style.display = isManager ? 'block' : 'none';
+    document.getElementById('assignGoals').style.display    = isManager ? 'none' : 'block';
+    if (isManager) renderProjectList(); else renderGoalList();
+    renderStep2Preview();
+  }
+  if (n === 3) { renderReview(); }
+}
+
+function goNext() {
+  if (state.step === 1) {
+    if (state.emails.length === 0) {
+      var ghost = document.getElementById('emailGhost').value.trim();
+      if (ghost) { addEmail(ghost); document.getElementById('emailGhost').value=''; }
+      if (state.emails.length === 0) { showErr('emailErr','Please add at least one email address.'); return; }
+    }
+    showStep(2);
+  } else if (state.step === 2) {
+    showStep(3);
+  } else if (state.step === 3) {
+    sendInvites();
+  }
+}
+
+function goBack() {
+  if (state.step > 1) showStep(state.step - 1);
+}
+
+function jumpTo(n) {
+  // pre-fill state for demo
+  if (state.emails.length === 0) {
+    state.emails = ['alex.turner@company.io','sana.javed@example.com'];
+    renderEmailChips();
+  }
+  showStep(n);
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function showSuccess() {
+  state.emails = state.emails.length ? state.emails : ['alex.turner@company.io'];
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('progressTrack').style.display = 'none';
+  document.getElementById('btnBack').style.display = 'none';
+  document.getElementById('btnNext').style.display = 'none';
+  document.getElementById('footerHint').textContent = '';
+  document.getElementById('mhTitle').textContent = 'Invitations Sent';
+  document.getElementById('mhSub').textContent   = '';
+  ['step1','step2','step3'].forEach(function(id){ document.getElementById(id).style.display='none'; });
+  renderSuccessState();
+  document.getElementById('stepSuccess').style.display = 'block';
+}
+
+/* ═══════════════════════════════════════════════
+   EMAIL CHIPS
+═══════════════════════════════════════════════ */
+function focusGhost() { document.getElementById('emailGhost').focus(); }
+
+function ghostKeydown(e) {
+  var v = e.target.value.trim();
+  if ((e.key === 'Enter' || e.key === 'Tab') && v) {
+    e.preventDefault();
+    addEmail(v);
+    e.target.value = '';
+  } else if (e.key === 'Backspace' && !v && state.emails.length > 0) {
+    state.emails.pop();
+    renderEmailChips();
+  }
+}
+
+function ghostInput(e) {
+  var v = e.target.value;
+  // handle pasted comma/space lists
+  if (v.indexOf(',') >= 0 || v.indexOf(';') >= 0) {
+    var parts = v.split(/[,;\s]+/).filter(Boolean);
+    parts.forEach(function(p){ if (p.indexOf('@')>0) addEmail(p); });
+    e.target.value = '';
+  }
+  document.getElementById('emailErr').classList.remove('show');
+}
+
+function addEmail(email) {
+  if (!email || email.indexOf('@') < 1 || email.indexOf('.') < 0) {
+    showErr('emailErr', '"'+email+'" doesn\'t look like a valid email.');
+    return;
+  }
+  if (state.emails.indexOf(email) >= 0) {
+    showErr('emailErr', email+' is already in the list.');
+    return;
+  }
+  state.emails.push(email);
+  renderEmailChips();
+}
+
+function removeEmail(email) {
+  state.emails = state.emails.filter(function(e){ return e !== email; });
+  renderEmailChips();
+}
+
+function renderEmailChips() {
+  var wrap = document.getElementById('emailWrap');
+  // remove existing chips
+  var chips = wrap.querySelectorAll('.email-chip');
+  chips.forEach(function(c){ c.remove(); });
+  var ghost = document.getElementById('emailGhost');
+  state.emails.forEach(function(email) {
+    var chip = document.createElement('div');
+    chip.className = 'email-chip';
+    chip.innerHTML = email +
+      '<span class="chip-del" onclick="removeEmail(\''+email+'\')">'+
+      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3l10 10M13 3L3 13"/></svg></span>';
+    wrap.insertBefore(chip, ghost);
+  });
+  ghost.placeholder = state.emails.length ? '' : 'name@company.com';
+}
+
+/* ═══════════════════════════════════════════════
+   ROLE SELECTION
+═══════════════════════════════════════════════ */
+function selectRole(role) {
+  state.role = role;
+  document.getElementById('tileEmployee').className = 'role-tile' + (role==='employee' ? ' sel' : '');
+  document.getElementById('tileManager').className  = 'role-tile' + (role==='manager'  ? ' sel-mgr' : '');
+}
+
+/* ═══════════════════════════════════════════════
+   MANAGER LIST
+═══════════════════════════════════════════════ */
+function renderMgrList() {
+  var sel = document.getElementById('mgrSelect');
+  sel.innerHTML = '<option value="">No manager assigned</option>';
+  MANAGERS.forEach(function(m) {
+    var opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.name + (m.you ? ' (You)' : '') + ' — ' + m.title;
+    if (m.id === state.managerId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function selectMgr(id) {
+  state.managerId = id;
+}
+
+/* ═══════════════════════════════════════════════
+   STEP 2: PROJECTS & GOALS
+═══════════════════════════════════════════════ */
+function renderStep2Preview() {
+  var mgr = state.managerId ? MANAGERS.find(function(m){ return m.id === state.managerId; }) : null;
+  var roleLabel = state.role === 'manager' ? 'Manager' : 'Employee';
+  var roleColor = state.role === 'manager' ? 'var(--or)' : 'var(--ac)';
+  var n = state.emails.length;
+  var html = '';
+  if (n === 1) {
+    var initials = state.emails[0].slice(0,2).toUpperCase();
+    html = '<div class="review-hero">';
+    html += '<div class="review-av" style="background:linear-gradient(135deg,#5b7fff,#8b5cf6)">'+initials+'</div>';
+    html += '<div><div class="review-name">'+state.emails[0]+'</div>';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">';
+    html += '<span style="font-size:12px;font-weight:700;color:'+roleColor+'">'+roleLabel+'</span>';
+    html += '<span style="color:var(--t3)">·</span>';
+    html += '<span style="font-size:12px;color:var(--t2)">Reports to '+( mgr?mgr.name:'No manager')+'</span>';
+    html += '</div></div></div>';
+  } else {
+    html = '<div style="padding:12px 14px;background:var(--ag);border:1px solid var(--ab);border-radius:11px;display:flex;align-items:center;gap:10px">';
+    html += '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--ac)" stroke-width="1.6"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M14 14c0-2-1-3.5-2-4"/></svg>';
+    html += '<div><div style="font-size:13px;font-weight:700;color:var(--ac)">'+n+' invitations</div>';
+    html += '<div style="font-size:12px;color:var(--t2)">Assignments will apply to all '+n+' invitees equally.</div></div></div>';
+  }
+  document.getElementById('step2Preview').innerHTML = html;
+}
+
+function renderProjectList() {
+  var html = '';
+  PROJECTS.forEach(function(p) {
+    var on = state.projects.indexOf(p.id) >= 0;
+    var chk = on ? '<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2"><path d="M2 6l3 3 5-5"/></svg>' : '';
+    html += '<div class="check-row'+(on?' on':'')+'" onclick="toggleProj(\''+p.id+'\')">';
+    html += '<div class="check-box">'+chk+'</div>';
+    html += '<div class="check-emo">'+p.emo+'</div>';
+    html += '<div class="check-name">'+p.name+'</div>';
+    html += '<div class="check-meta">'+p.desc+'</div>';
+    html += '</div>';
+  });
+  document.getElementById('projectCheckList').innerHTML = '<div class="check-list">'+html+'</div>';
+}
+
+function renderGoalList() {
+  var html = '';
+  GOALS.forEach(function(g) {
+    var on = state.goals.indexOf(g.id) >= 0;
+    var chk = on ? '<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2"><path d="M2 6l3 3 5-5"/></svg>' : '';
+    html += '<div class="check-row'+(on?' on':'')+'" onclick="toggleGoal(\''+g.id+'\')">';
+    html += '<div class="check-box">'+chk+'</div>';
+    html += '<div class="check-emo">'+g.emo+'</div>';
+    html += '<div style="flex:1"><div class="check-name">'+g.name+'</div><div class="check-meta">'+g.proj+'</div></div>';
+    html += '</div>';
+  });
+  document.getElementById('goalCheckList').innerHTML = '<div class="check-list">'+html+'</div>';
+}
+
+function syncFromProjectSelect() {}
+function syncFromGoalSelect() {}
+
+function toggleProj(id) {
+  var idx = state.projects.indexOf(id);
+  if (idx >= 0) state.projects.splice(idx,1); else state.projects.push(id);
+  renderProjectList();
+}
+
+function toggleGoal(id) {
+  var idx = state.goals.indexOf(id);
+  if (idx >= 0) state.goals.splice(idx,1); else state.goals.push(id);
+  renderGoalList();
+}
+
+/* ═══════════════════════════════════════════════
+   STEP 3: REVIEW
+═══════════════════════════════════════════════ */
+function renderReview() {
+  var mgr = state.managerId ? MANAGERS.find(function(m){ return m.id === state.managerId; }) : null;
+  var projNames = state.projects.map(function(id){ return PROJECTS.find(function(p){return p.id===id;}).name; });
+  var goalNames = state.goals.map(function(id){ return GOALS.find(function(g){return g.id===id;}).name; });
+  var roleColor = state.role==='manager' ? 'var(--or)' : 'var(--ac)';
+  var roleLabel = state.role==='manager' ? 'Manager' : 'Employee';
+  var n = state.emails.length;
+
+  var html = '';
+
+  // single or multi invite list
+  if (n === 1) {
+    var initials = state.emails[0].slice(0,2).toUpperCase();
+    html += '<div class="review-hero">';
+    html += '<div class="review-av" style="background:linear-gradient(135deg,#5b7fff,#8b5cf6)">'+initials+'</div>';
+    html += '<div><div class="review-name">'+state.emails[0]+'</div>';
+    html += '<div class="review-email" style="margin-top:3px">Invitation will be sent to this address</div></div></div>';
+  } else {
+    html += '<div style="margin-bottom:14px"><div class="sec" style="margin-bottom:8px"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M14 14c0-2-1-3.5-2-4"/></svg>'+n+' Recipients</div>';
+    html += '<div class="multi-summary">';
+    state.emails.forEach(function(e) {
+      var ini = e.slice(0,2).toUpperCase();
+      html += '<div class="multi-row">';
+      html += '<div class="multi-av" style="background:linear-gradient(135deg,#5b7fff,#8b5cf6)">'+ini+'</div>';
+      html += '<div class="multi-email">'+e+'</div>';
+      html += '<span class="multi-badge" style="background:'+(state.role==='manager'?'var(--og)':'var(--ag)')+';color:'+roleColor+'">'+roleLabel+'</span>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // detail table
+  html += '<table class="review-table"><tbody>';
+  html += '<tr><td>Role</td><td><span style="font-weight:700;color:'+roleColor+'">'+roleLabel+'</span></td></tr>';
+  html += '<tr><td>Reports To</td><td>'+(mgr?mgr.name:'No manager assigned')+'</td></tr>';
+  html += '<tr><td>Projects</td><td>';
+  if (projNames.length) {
+    html += '<div class="review-tags">';
+    projNames.forEach(function(n){ html += '<span class="tag tag-proj">'+n+'</span>'; });
+    html += '</div>';
+  } else html += '<span class="tag-none">None assigned</span>';
+  html += '</td></tr>';
+  html += '<tr><td>Goals</td><td>';
+  if (goalNames.length) {
+    html += '<div class="review-tags">';
+    goalNames.forEach(function(n){ html += '<span class="tag tag-goal">'+n+'</span>'; });
+    html += '</div>';
+  } else html += '<span class="tag-none">None assigned</span>';
+  html += '</td></tr>';
+  html += '</tbody></table>';
+
+  html += '<div class="review-info"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ac)" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 7v4M8 5v1"/></svg>';
+  html += 'Each invitee will receive a secure activation link. They won\'t appear on team dashboards until they accept and set a password. The link expires in <strong>7 days</strong>.';
+  html += '</div>';
+
+  document.getElementById('step3Content').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════
+   SEND + SUCCESS
+═══════════════════════════════════════════════ */
+function sendInvites() {
+  // hide footer nav
+  document.getElementById('btnBack').style.display = 'none';
+  document.getElementById('btnNext').style.display = 'none';
+  document.getElementById('footerHint').textContent = '';
+  document.getElementById('progressTrack').style.display = 'none';
+  document.getElementById('mhTitle').textContent = 'Invitations Sent';
+  document.getElementById('mhSub').textContent = '';
+  ['step1','step2','step3'].forEach(function(id){ document.getElementById(id).style.display='none'; });
+  renderSuccessState();
+  document.getElementById('stepSuccess').style.display = 'block';
+}
+
+function renderSuccessState() {
+  var n = state.emails.length;
+  document.getElementById('successTitle').textContent = n > 1 ? n+' Invitations Sent!' : 'Invitation Sent!';
+  document.getElementById('successSub').innerHTML = n > 1
+    ? 'Each invitee will receive a secure activation link. The links expire in 7 days.'
+    : 'A secure activation link was sent to <strong>'+state.emails[0]+'</strong>. It expires in 7 days.';
+  var listHtml = '';
+  state.emails.forEach(function(e) {
+    listHtml += '<div class="success-inv-row">';
+    listHtml += '<div class="success-check"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 8l3.5 3.5L13 4"/></svg></div>';
+    listHtml += '<span style="font-size:13px;font-weight:600">'+e+'</span>';
+    listHtml += '<span style="font-size:11px;color:var(--t3);margin-left:auto">Sent ✓</span>';
+    listHtml += '</div>';
+  });
+  document.getElementById('successList').innerHTML = listHtml;
+}
+
+function resetAndInviteAnother() {
+  resetState();
+  openModal();
+  setTimeout(function(){ document.getElementById('emailGhost').focus(); }, 100);
+}
+
+/* ═══════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════ */
+function showErr(id, msg) {
+  var el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+renderMgrList();
+// auto-open for demo
+openModal();
+</script>
+</body>
+</html>

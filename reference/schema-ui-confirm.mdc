@@ -1,0 +1,39 @@
+---
+description: Always confirm schema-UI discrepancies before writing backend code
+globs: **/*.ts, **/*.tsx, **/schema.sql, **/migrations/**, **/services/**, **/api/**
+alwaysApply: true
+---
+
+# Always Confirm Schema ↔ UI Discrepancies Before Implementing
+
+This project has known and ongoing discrepancies between the database schema and the UI implementation. Neither is a complete source of truth.
+
+## The Rule
+
+Before writing any Supabase query, service function, API route, TypeScript type, or migration — check: does what I'm about to implement match both the schema AND the UI?
+
+If there is ANY mismatch, do not guess or pick a side. Ask the developer:
+
+> "I noticed a discrepancy — [one sentence: what the schema says vs what the UI expects]. Which should I follow?"
+
+## What counts as a discrepancy
+
+- A field used in the UI that has no column in the schema
+- A schema column the UI ignores or has removed
+- A table listed in the schema with no defined columns
+- camelCase in UI vs snake_case in schema with no confirmed mapping layer
+- A type mismatch (e.g. single value in schema vs array in UI)
+- A CHECK constraint that doesn't cover all values the UI sends
+- A join or supporting table implied by the UI but not defined in the schema
+
+## What NOT to do
+
+- Do not silently add columns to make the UI work
+- Do not silently drop schema fields because the UI doesn't use them
+- Do not assume camelCase ↔ snake_case is handled automatically
+- Do not implement any table listed by name but with no defined columns without first confirming its full shape
+- Do not choose the schema over the UI, or the UI over the schema, without asking
+
+## Keep it focused
+
+Only ask about fields relevant to the current task. Do not surface all possible discrepancies at once. One confirmation, one task.

@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Zevian — Account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c10; --sf:#111318; --s2:#181c24; --s3:#1e2330;
+  --bd:rgba(255,255,255,.07); --bdh:rgba(255,255,255,.13); --bda:rgba(255,255,255,.22);
+  --tx:#f0f2f7; --t2:#8b93a8; --t3:#545d73;
+  --ac:#5b7fff; --ag:rgba(91,127,255,.14); --ab:rgba(91,127,255,.32);
+  --te:#00d4aa; --tg:rgba(0,212,170,.1);  --tb:rgba(0,212,170,.24);
+  --wn:#f59e0b; --wg:rgba(245,158,11,.1);
+  --dn:#f04438; --dg:rgba(240,68,56,.12);
+  --gn:#10b981; --gg:rgba(16,185,129,.1);
+  --pu:#8b5cf6; --pg:rgba(139,92,246,.1);
+  --sw:220px; --hh:56px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--tx);font-family:'Syne',sans-serif;font-size:14px;line-height:1.5;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:4px;}
+
+/* ─── sidebar ─────────────────────────────── */
+.sb{position:fixed;inset:0 auto 0 0;width:var(--sw);background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;z-index:100;}
+.logo{padding:18px 20px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bd);}
+.logo-mark{width:30px;height:30px;background:var(--ac);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;box-shadow:0 0 20px rgba(91,127,255,.35);}
+.logo-text{font-weight:700;font-size:17px;letter-spacing:-.3px;}
+.nav{padding:12px 10px;flex:1;}
+.nav-label{font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;padding:8px 10px 4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--t2);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:1px;}
+.nav-item:hover{background:var(--s2);color:var(--tx);}
+.nav-item.active{background:var(--ag);color:var(--ac);border:1px solid var(--ab);}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;}
+.nav-bottom{padding:12px 10px;border-top:1px solid var(--bd);}
+.nav-user{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:all .15s;}
+.nav-user:hover{background:var(--s2);}
+.nav-user-av{width:30px;height:30px;background:linear-gradient(135deg,#5b7fff,#00d4aa);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+.nav-user-name{font-size:12.5px;font-weight:600;color:var(--tx);}
+.nav-user-role{font-size:10.5px;color:var(--t3);}
+
+/* ─── header ──────────────────────────────── */
+.hd{position:fixed;left:var(--sw);right:0;top:0;height:var(--hh);background:rgba(10,12,16,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 28px;gap:12px;z-index:90;}
+.hd-spacer{flex:1;}
+.hd-btn-ghost{display:flex;align-items:center;gap:7px;padding:7px 14px;border:1px solid var(--bd);border-radius:8px;font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;background:none;}
+.hd-btn-ghost:hover{border-color:var(--bdh);color:var(--tx);}
+.hd-btn-ghost svg{width:13px;height:13px;}
+.hd-btn-primary{display:flex;align-items:center;gap:7px;padding:7px 14px;background:var(--ac);border:none;border-radius:8px;font-size:12.5px;font-weight:600;color:#fff;cursor:pointer;font-family:'Syne',sans-serif;box-shadow:0 0 16px rgba(91,127,255,.25);transition:all .15s;}
+.hd-btn-primary:hover{background:#7090ff;}
+.hd-btn-primary svg{width:13px;height:13px;}
+
+/* ─── layout ──────────────────────────────── */
+.main{margin-left:var(--sw);padding-top:var(--hh);min-height:100vh;}
+.page{display:flex;height:calc(100vh - var(--hh));}
+
+/* left rail */
+.rail{width:196px;flex-shrink:0;border-right:1px solid var(--bd);padding:20px 12px;overflow-y:auto;}
+.rail-tab{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--t2);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px;}
+.rail-tab:hover{background:var(--s2);color:var(--tx);}
+.rail-tab.on{background:var(--ag);color:var(--ac);}
+.rail-tab svg{width:15px;height:15px;flex-shrink:0;}
+.rail-divider{height:1px;background:var(--bd);margin:12px 4px;}
+.rail-tab.danger-tab:hover{background:var(--dg);color:var(--dn);}
+.rail-tab.danger-tab.on{background:var(--dg);color:var(--dn);}
+
+/* content */
+.content{flex:1;overflow-y:auto;padding:32px 36px 80px;}
+
+/* ─── cards ───────────────────────────────── */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;margin-bottom:20px;overflow:hidden;}
+.card.anim{animation:fadeUp .35s ease both;}
+.card-head{padding:18px 22px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.card-title{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:700;}
+.card-title svg{width:16px;height:16px;color:var(--ac);}
+.card-title.danger-title svg{color:var(--dn);}
+.card-title.danger-title{color:var(--dn);}
+.card-body{padding:22px 24px;}
+.card-danger{border-color:rgba(240,68,56,.18);}
+
+/* ─── avatar hero ─────────────────────────── */
+.av-hero{display:flex;align-items:center;gap:24px;padding:24px;background:linear-gradient(135deg,rgba(91,127,255,.07),rgba(0,212,170,.04));border-bottom:1px solid var(--bd);}
+.av-ring{position:relative;width:80px;height:80px;flex-shrink:0;}
+.av-main{width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,#5b7fff,#00d4aa);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;box-shadow:0 4px 24px rgba(91,127,255,.3);}
+.av-change{position:absolute;bottom:-4px;right:-4px;width:26px;height:26px;border-radius:50%;background:var(--ac);border:3px solid var(--sf);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s;}
+.av-change:hover{transform:scale(1.1);}
+.av-change svg{width:11px;height:11px;color:#fff;}
+.av-info-name{font-size:20px;font-weight:800;letter-spacing:-.4px;margin-bottom:3px;}
+.av-info-sub{font-size:13px;color:var(--t2);margin-bottom:10px;}
+.av-badges{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* ─── fields ──────────────────────────────── */
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.field-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.field{margin-bottom:18px;}
+.field:last-child{margin-bottom:0;}
+.field-label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;}
+.field-input{width:100%;padding:10px 13px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;font-size:13px;color:var(--tx);outline:none;font-family:'Syne',sans-serif;transition:border-color .15s,box-shadow .15s;}
+.field-input:focus{border-color:var(--ab);box-shadow:0 0 0 3px rgba(91,127,255,.09);}
+.field-input:disabled{opacity:.5;cursor:not-allowed;}
+.field-input.verified{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.04);}
+.field-hint{font-size:11.5px;color:var(--t3);margin-top:6px;line-height:1.5;}
+.field-row-inline{display:flex;align-items:center;gap:10px;}
+.field-row-inline .field-input{flex:1;}
+
+/* ─── verified badge ──────────────────────── */
+.verified-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--gn);background:var(--gg);padding:3px 8px;border-radius:20px;}
+.unverified-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--wn);background:var(--wg);padding:3px 8px;border-radius:20px;cursor:pointer;}
+
+/* ─── password strength ───────────────────── */
+.pw-wrap{position:relative;}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--t3);transition:color .15s;}
+.pw-toggle:hover{color:var(--t2);}
+.strength-bar{display:flex;gap:3px;margin-top:8px;}
+.strength-seg{height:3px;flex:1;border-radius:2px;background:var(--s3);transition:background .3s;}
+.strength-seg.s1{background:var(--dn);}
+.strength-seg.s2{background:var(--wn);}
+.strength-seg.s3{background:var(--gn);}
+.strength-label{font-size:10.5px;margin-top:5px;}
+.strength-label.w{color:var(--dn);}
+.strength-label.m{color:var(--wn);}
+.strength-label.s{color:var(--gn);}
+
+/* ─── toggle rows ─────────────────────────── */
+.toggle-list{display:flex;flex-direction:column;gap:8px;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;transition:border-color .15s;}
+.toggle-row:hover{border-color:var(--bdh);}
+.tg-label{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:2px;}
+.tg-desc{font-size:11.5px;color:var(--t3);}
+.toggle{width:38px;height:21px;border-radius:11px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--ac);}
+.toggle.off{background:var(--s3);}
+.toggle-dot{position:absolute;top:3px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transition:left .2s;}
+.toggle.on .toggle-dot{left:20px;}
+.toggle.off .toggle-dot{left:3px;}
+
+/* ─── buttons ─────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;border:none;}
+.btn svg{width:13px;height:13px;}
+.btn-p{background:var(--ac);color:#fff;box-shadow:0 0 14px rgba(91,127,255,.18);}
+.btn-p:hover{background:#7090ff;}
+.btn-s{background:var(--s2);color:var(--t2);border:1px solid var(--bd);}
+.btn-s:hover{border-color:var(--bdh);color:var(--tx);}
+.btn-d{background:var(--dg);color:var(--dn);border:1px solid rgba(240,68,56,.18);}
+.btn-d:hover{background:rgba(240,68,56,.22);}
+.btn-te{background:var(--tg);color:var(--te);border:1px solid var(--tb);}
+.btn-te:hover{background:rgba(0,212,170,.16);}
+.btn-sm{padding:6px 13px;font-size:12px;border-radius:7px;}
+.save-bar{display:flex;justify-content:flex-end;padding-top:20px;border-top:1px solid var(--bd);}
+
+/* ─── chips ───────────────────────────────── */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.ch-ac{background:var(--ag);color:var(--ac);border:1px solid var(--ab);}
+.ch-pu{background:var(--pg);color:var(--pu);}
+.ch-gr{background:var(--gg);color:var(--gn);}
+.ch-mu{background:var(--s3);color:var(--t2);}
+.ch-am{background:var(--wg);color:var(--wn);}
+
+/* ─── sessions table ──────────────────────── */
+.sess-item{display:flex;align-items:center;gap:14px;padding:13px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;transition:border-color .15s;}
+.sess-item:hover{border-color:var(--bdh);}
+.sess-item:last-child{margin-bottom:0;}
+.sess-icon{width:38px;height:38px;border-radius:10px;background:var(--s3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sess-icon svg{width:18px;height:18px;color:var(--t2);}
+.sess-name{font-size:13px;font-weight:600;margin-bottom:2px;}
+.sess-meta{font-size:11.5px;color:var(--t3);}
+.sess-current{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--gn);background:var(--gg);padding:2px 8px;border-radius:20px;}
+.sess-current::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--gn);display:inline-block;}
+
+/* ─── activity log ────────────────────────── */
+.log-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--bd);}
+.log-item:last-child{border-bottom:none;}
+.log-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.log-text{flex:1;font-size:12.5px;color:var(--t2);line-height:1.5;}
+.log-text strong{color:var(--tx);}
+.log-time{font-size:11px;color:var(--t3);white-space:nowrap;padding-top:2px;}
+
+/* ─── plan card ───────────────────────────── */
+.plan-card{padding:20px;background:linear-gradient(135deg,rgba(91,127,255,.1),rgba(0,212,170,.06));border:1px solid var(--ab);border-radius:12px;margin-bottom:16px;}
+.plan-name{font-size:18px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px;color:var(--ac);}
+.plan-meta{font-size:12.5px;color:var(--t2);margin-bottom:14px;}
+.usage-bar{height:6px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:5px;}
+.usage-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--ac),var(--te));}
+.usage-label{font-size:11.5px;color:var(--t3);}
+.invoice-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;margin-bottom:8px;}
+.invoice-row:last-child{margin-bottom:0;}
+
+/* ─── danger items ────────────────────────── */
+.danger-item{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:16px;background:var(--s2);border:1px solid rgba(240,68,56,.1);border-radius:11px;margin-bottom:10px;}
+.danger-item:last-child{margin-bottom:0;}
+.danger-title{font-size:13px;font-weight:700;margin-bottom:3px;}
+.danger-desc{font-size:12px;color:var(--t3);line-height:1.55;max-width:360px;}
+.confirm-strip{display:none;margin-top:10px;padding:12px 14px;background:var(--dg);border:1px solid rgba(240,68,56,.22);border-radius:9px;align-items:center;gap:10px;}
+.confirm-strip.show{display:flex;}
+
+/* ─── 2FA setup ───────────────────────────── */
+.qr-box{width:120px;height:120px;background:var(--s3);border:1px solid var(--bd);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--t3);text-align:center;padding:10px;}
+
+/* ══════════════════════════════════════════
+   INVITE MODAL
+══════════════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .22s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-box{width:540px;max-height:90vh;background:var(--sf);border:1px solid var(--bdh);border-radius:16px;display:flex;flex-direction:column;transform:translateY(20px) scale(.97);transition:transform .28s cubic-bezier(.22,.68,0,1.15),opacity .22s;overflow:hidden;}
+.modal-overlay.open .modal-box{transform:translateY(0) scale(1);}
+.modal-head{padding:22px 26px 18px;border-bottom:1px solid var(--bd);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;}
+.modal-title{font-size:18px;font-weight:800;letter-spacing:-.35px;margin-bottom:3px;}
+.modal-sub{font-size:13px;color:var(--t3);}
+.modal-close{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);transition:all .15s;flex-shrink:0;}
+.modal-close:hover{background:var(--s3);color:var(--tx);}
+.modal-body{flex:1;overflow-y:auto;padding:22px 26px;}
+.modal-footer{padding:16px 26px;border-top:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+
+/* role tiles in modal */
+.role-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;}
+.role-tile{padding:14px 16px;background:var(--s2);border:1.5px solid var(--bd);border-radius:11px;cursor:pointer;transition:all .18s;}
+.role-tile:hover{border-color:var(--bdh);}
+.role-tile.sel{background:var(--ag);border-color:var(--ab);}
+.role-tile-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.role-tile-name{font-size:13px;font-weight:700;}
+.role-tile.sel .role-tile-name{color:var(--ac);}
+.role-tile-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;}
+.role-tile-desc{font-size:12px;color:var(--t3);line-height:1.5;}
+.role-tile.sel .role-tile-desc{color:var(--t2);}
+
+/* step indicator */
+.steps{display:flex;align-items:center;gap:0;margin-bottom:20px;}
+.step{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--t3);flex:1;}
+.step-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;transition:all .2s;}
+.step.done .step-dot{background:var(--gn);border-color:var(--gn);color:#fff;}
+.step.active .step-dot{background:var(--ac);border-color:var(--ac);color:#fff;box-shadow:0 0 0 4px rgba(91,127,255,.2);}
+.step.active{color:var(--ac);}
+.step-line{flex:1;height:1px;background:var(--bd);margin:0 -2px;}
+.step.done .step-line{background:var(--gn);}
+
+/* project/goal multi-select inside modal */
+.assignable-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;}
+.assignable-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;cursor:pointer;transition:all .15s;}
+.assignable-item:hover{border-color:var(--bdh);}
+.assignable-item.sel{background:var(--ag);border-color:var(--ab);}
+.assignable-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--bd);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.assignable-item.sel .assignable-check{background:var(--ac);border-color:var(--ac);}
+.assignable-icon{font-size:14px;flex-shrink:0;}
+.assignable-name{font-size:13px;font-weight:600;flex:1;}
+.assignable-item.sel .assignable-name{color:var(--ac);}
+.assignable-meta{font-size:11px;color:var(--t3);}
+
+/* invite success */
+.invite-success{display:none;text-align:center;padding:12px 0 4px;}
+.invite-success.show{display:block;}
+.success-icon{width:56px;height:56px;border-radius:50%;background:var(--gg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+
+/* ─── toast ───────────────────────────────── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--gn);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:999;pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(16,185,129,.3);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(9px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════ -->
+<aside class="sb">
+  <div class="logo">
+    <div class="logo-mark">Z</div>
+    <span class="logo-text">Zevian</span>
+  </div>
+  <nav class="nav">
+    <div class="nav-label">Workspace</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>Dashboard</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 3V1h6v2"/></svg>Projects</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg>Goals</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="1" width="12" height="14" rx="2"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>Reports</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M14 14c0-2-1-3.5-2-4"/></svg>Employees</div>
+    <div class="nav-label" style="margin-top:8px">Settings</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="12" height="12" rx="3"/><path d="M5 8h6M8 5v6"/></svg>Knowledge Base</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="6" cy="8" r="2"/><path d="M10 6h3M10 10h3"/></svg>Organization</div>
+    <div class="nav-item active"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-4 2-6 6-6s6 2 6 6"/></svg>Account</div>
+  </nav>
+  <div class="nav-bottom">
+    <div class="nav-user">
+      <div class="nav-user-av">JM</div>
+      <div>
+        <div class="nav-user-name">James Mitchell</div>
+        <div class="nav-user-role">Account Owner</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ══ HEADER ═══════════════════════════════════ -->
+<header class="hd">
+  <div style="font-weight:700;font-size:16px;letter-spacing:-.2px">Account</div>
+  <div class="hd-spacer"></div>
+  <button class="hd-btn-ghost" onclick="openInvite()">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3v10M3 8h10"/></svg>
+    Invite Team Member
+  </button>
+  <button class="hd-btn-primary" onclick="saveAll()">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 10v3h3l7-7L9 3l-7 7zM12 2l2 2-1 1-2-2 1-1z"/></svg>
+    Save Changes
+  </button>
+</header>
+
+<!-- ══ MAIN ══════════════════════════════════════ -->
+<main class="main">
+<div class="page">
+
+  <!-- rail nav -->
+  <nav class="rail">
+    <div class="rail-tab on" data-t="profile"    onclick="switchTab('profile',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-4 2-6 6-6s6 2 6 6"/></svg>
+      Profile
+    </div>
+    <div class="rail-tab" data-t="security"  onclick="switchTab('security',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1l6 3v5c0 3-3 5-6 6C5 14 2 12 2 9V4l6-3z"/></svg>
+      Security
+    </div>
+    <div class="rail-tab" data-t="notifs"    onclick="switchTab('notifs',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1a5 5 0 015 5v3l1 2H2l1-2V6a5 5 0 015-5z"/><path d="M6 13a2 2 0 004 0"/></svg>
+      Notifications
+    </div>
+    <div class="rail-tab" data-t="sessions"  onclick="switchTab('sessions',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 7h6M5 10h4"/></svg>
+      Sessions
+    </div>
+    <div class="rail-tab" data-t="billing"   onclick="switchTab('billing',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="4" width="14" height="9" rx="2"/><path d="M1 7h14"/></svg>
+      Billing
+    </div>
+    <div class="rail-divider"></div>
+    <div class="rail-tab danger-tab" data-t="danger" onclick="switchTab('danger',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 11v1"/></svg>
+      Account
+    </div>
+  </nav>
+
+  <!-- ══ CONTENT ════════════════════════════════ -->
+  <div class="content">
+
+    <!-- ── PROFILE TAB ──────────────────────── -->
+    <div id="tab-profile">
+
+      <div class="card anim">
+        <div class="av-hero">
+          <div class="av-ring">
+            <div class="av-main">JM</div>
+            <div class="av-change" onclick="showToast('Photo upload coming soon')">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12V5a1 1 0 011-1h2l2-2h4l2 2h2a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1z"/><circle cx="8" cy="8.5" r="2"/></svg>
+            </div>
+          </div>
+          <div style="flex:1">
+            <div class="av-info-name">James Mitchell</div>
+            <div class="av-info-sub">Engineering Manager &nbsp;&middot;&nbsp; Acme Inc</div>
+            <div class="av-badges">
+              <span class="chip ch-pu">Account Owner</span>
+              <span class="chip ch-ac">Pro Plan</span>
+              <span class="chip ch-gr"><span style="width:5px;height:5px;border-radius:50%;background:var(--gn);display:inline-block"></span> Active</span>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--t3);margin-bottom:3px">Member since</div>
+            <div style="font-size:13px;font-weight:600">January 2023</div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div style="font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;gap:7px">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--ac)" stroke-width="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-4 2-6 6-6s6 2 6 6"/></svg>
+            Personal Information
+          </div>
+          <div class="field-grid" style="margin-bottom:18px">
+            <div>
+              <div class="field-label">First Name</div>
+              <input class="field-input" value="James" id="fname">
+            </div>
+            <div>
+              <div class="field-label">Last Name</div>
+              <input class="field-input" value="Mitchell" id="lname">
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:18px">
+            <div class="field-label">Job Title</div>
+            <input class="field-input" value="Engineering Manager" id="jobTitle">
+            <div class="field-hint">Shown on report PDFs and your profile. Visible to your team.</div>
+          </div>
+          <div class="field-grid">
+            <div>
+              <div class="field-label">Department</div>
+              <input class="field-input" value="Engineering" id="dept">
+            </div>
+            <div>
+              <div class="field-label">Timezone</div>
+              <select class="field-input" style="cursor:pointer">
+                <option selected>UTC+6 (Dhaka)</option>
+                <option>UTC+0 (London)</option>
+                <option>UTC-5 (New York)</option>
+                <option>UTC-8 (San Francisco)</option>
+                <option>UTC+1 (Paris)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card anim" style="animation-delay:.06s">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 4h14v9a1 1 0 01-1 1H2a1 1 0 01-1-1V4z"/><path d="M1 4l7 6 7-6"/></svg>
+            Contact &amp; Email
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="field" style="margin-bottom:18px">
+            <div class="field-label">Primary Email</div>
+            <div class="field-row-inline">
+              <input class="field-input verified" value="james@acme.io" id="email">
+              <span class="verified-badge">
+                <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 8l3.5 3.5L13 4"/></svg>
+                Verified
+              </span>
+            </div>
+            <div class="field-hint">Used for login, password reset, and report notifications.</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Secondary Email <span style="font-weight:400;color:var(--t3)">(optional)</span></div>
+            <div class="field-row-inline">
+              <input class="field-input" placeholder="backup@example.com" id="email2">
+              <span class="unverified-badge" onclick="showToast('Verification email sent')">
+                <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+                Verify
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="save-bar">
+        <button class="btn btn-p" onclick="saveAll()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 10v3h3l7-7L9 3l-7 7zM12 2l2 2-1 1-2-2 1-1z"/></svg>
+          Save Profile
+        </button>
+      </div>
+    </div><!-- /profile -->
+
+    <!-- ── SECURITY TAB ──────────────────────── -->
+    <div id="tab-security" style="display:none">
+
+      <div class="card anim">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="10" height="8" rx="2"/><path d="M5 6V4a3 3 0 016 0v2"/></svg>
+            Change Password
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="field" style="margin-bottom:16px">
+            <div class="field-label">Current Password</div>
+            <div class="pw-wrap">
+              <input class="field-input" type="password" value="••••••••••" id="pwCurr">
+              <span class="pw-toggle" onclick="togglePw('pwCurr',this)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg></span>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:16px">
+            <div class="field-label">New Password</div>
+            <div class="pw-wrap">
+              <input class="field-input" type="password" id="pwNew" placeholder="Min 12 characters" oninput="checkStrength(this.value)">
+              <span class="pw-toggle" onclick="togglePw('pwNew',this)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg></span>
+            </div>
+            <div class="strength-bar" id="strengthBar">
+              <div class="strength-seg" id="s1"></div>
+              <div class="strength-seg" id="s2"></div>
+              <div class="strength-seg" id="s3"></div>
+            </div>
+            <div class="strength-label" id="strengthLabel" style="color:var(--t3)">Enter a new password</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Confirm New Password</div>
+            <div class="pw-wrap">
+              <input class="field-input" type="password" id="pwConf" placeholder="Repeat new password">
+              <span class="pw-toggle" onclick="togglePw('pwConf',this)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2"/></svg></span>
+            </div>
+          </div>
+          <div class="save-bar" style="margin-top:18px">
+            <button class="btn btn-p" onclick="saveAll()">Update Password</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card anim" style="animation-delay:.06s">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1l6 3v5c0 3-3 5-6 6C5 14 2 12 2 9V4l6-3z"/><path d="M6 8l1.5 1.5L10 6"/></svg>
+            Two-Factor Authentication
+          </div>
+          <span class="chip ch-am">Not Enabled</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:20px">
+            Two-factor authentication adds a second layer of protection to your account. After enabling, you'll need a code from your authenticator app to sign in.
+          </p>
+          <div style="display:flex;align-items:flex-start;gap:20px">
+            <div class="qr-box" id="qrBox">
+              <div style="font-size:11px;color:var(--t3);text-align:center;line-height:1.5">Click "Enable 2FA" to generate a QR code</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:12px;color:var(--t3);margin-bottom:14px;line-height:1.6">
+                1. Install an authenticator app (Google Authenticator, Authy)<br>
+                2. Scan the QR code or enter the key manually<br>
+                3. Enter the 6-digit code below to confirm
+              </div>
+              <div class="field-label" style="margin-bottom:6px">Verification Code</div>
+              <div style="display:flex;gap:8px">
+                <input class="field-input" id="tfaCode" placeholder="000000" style="width:120px;text-align:center;letter-spacing:.2em;font-size:16px;font-weight:700" maxlength="6">
+                <button class="btn btn-te" onclick="enable2FA()">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1l6 3v5c0 3-3 5-6 6C5 14 2 12 2 9V4l6-3z"/></svg>
+                  Enable 2FA
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /security -->
+
+    <!-- ── NOTIFICATIONS TAB ─────────────────── -->
+    <div id="tab-notifs" style="display:none">
+
+      <div class="card anim">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 4h14v9a1 1 0 01-1 1H2a1 1 0 01-1-1V4z"/><path d="M1 4l7 6 7-6"/></svg>
+            Email Notifications
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="toggle-list" id="emailNotifs"></div>
+        </div>
+      </div>
+
+      <div class="card anim" style="animation-delay:.06s">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1a5 5 0 015 5v3l1 2H2l1-2V6a5 5 0 015-5z"/><path d="M6 13a2 2 0 004 0"/></svg>
+            In-App &amp; Push
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="toggle-list" id="pushNotifs"></div>
+        </div>
+      </div>
+
+      <div class="save-bar">
+        <button class="btn btn-p" onclick="saveAll()">Save Notification Preferences</button>
+      </div>
+    </div><!-- /notifs -->
+
+    <!-- ── SESSIONS TAB ───────────────────────── -->
+    <div id="tab-sessions" style="display:none">
+
+      <div class="card anim">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 7h6M5 10h4"/></svg>
+            Active Sessions
+          </div>
+          <button class="btn btn-d btn-sm" onclick="showToast('All other sessions revoked')">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3l10 10M13 3L3 13"/></svg>
+            Revoke All Others
+          </button>
+        </div>
+        <div class="card-body" id="sessionsBody"></div>
+      </div>
+
+      <div class="card anim" style="animation-delay:.06s">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+            Login History
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="loginHistory"></div>
+        </div>
+      </div>
+
+    </div><!-- /sessions -->
+
+    <!-- ── BILLING TAB ───────────────────────── -->
+    <div id="tab-billing" style="display:none">
+
+      <div class="card anim">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="4" width="14" height="9" rx="2"/><path d="M1 7h14"/></svg>
+            Current Plan
+          </div>
+          <button class="btn btn-p btn-sm" onclick="showToast('Opening billing portal')">Manage Plan</button>
+        </div>
+        <div class="card-body">
+          <div class="plan-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div>
+                <div class="plan-name">Pro Plan</div>
+                <div class="plan-meta">$8.00 / user / month &nbsp;&middot;&nbsp; Billed monthly &nbsp;&middot;&nbsp; Renews Apr 1, 2026</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:22px;font-weight:800;letter-spacing:-.4px;color:var(--ac)">$56<span style="font-size:13px;font-weight:500;color:var(--t2)">/mo</span></div>
+                <div style="font-size:11.5px;color:var(--t3)">7 seats</div>
+              </div>
+            </div>
+            <div class="usage-bar"><div class="usage-fill" style="width:14%"></div></div>
+            <div class="usage-label">7 of 50 seats used &nbsp;&middot;&nbsp; 43 seats available</div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
+            <div style="padding:14px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;text-align:center">
+              <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Reports Scored</div>
+              <div style="font-size:22px;font-weight:800;color:var(--ac)">247</div>
+              <div style="font-size:11px;color:var(--t3)">this billing period</div>
+            </div>
+            <div style="padding:14px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;text-align:center">
+              <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">API Credits Used</div>
+              <div style="font-size:22px;font-weight:800;color:var(--te)">1.2M</div>
+              <div style="font-size:11px;color:var(--t3)">tokens</div>
+            </div>
+            <div style="padding:14px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;text-align:center">
+              <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Next Invoice</div>
+              <div style="font-size:22px;font-weight:800;color:var(--gn)">$56</div>
+              <div style="font-size:11px;color:var(--t3)">Apr 1, 2026</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em">Payment Method</div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;margin-bottom:20px">
+            <div style="padding:5px 10px;background:var(--s3);border-radius:6px;font-size:12px;font-weight:700;color:var(--t2)">VISA</div>
+            <div style="flex:1"><div style="font-size:13px;font-weight:600">•••• •••• •••• 4242</div><div style="font-size:11.5px;color:var(--t3)">Expires 09/27</div></div>
+            <button class="btn btn-s btn-sm" onclick="showToast('Opening payment method editor')">Update Card</button>
+          </div>
+
+          <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Recent Invoices</div>
+          <div id="invoicesBody"></div>
+        </div>
+      </div>
+
+    </div><!-- /billing -->
+
+    <!-- ── DANGER TAB ─────────────────────────── -->
+    <div id="tab-danger" style="display:none">
+
+      <div class="card card-danger anim">
+        <div class="card-head">
+          <div class="card-title danger-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 11v1"/></svg>
+            Account Actions
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--t3);line-height:1.65;margin-bottom:20px">
+            These actions affect your personal account. Deleting your account while you are the Organization Owner will also delete the entire organization and all associated data.
+          </p>
+
+          <div class="danger-item">
+            <div>
+              <div class="danger-title">Sign Out of All Devices</div>
+              <div class="danger-desc">Immediately invalidate all active sessions across every browser and device. You will need to sign in again on this device.</div>
+            </div>
+            <button class="btn btn-s btn-sm" onclick="showToast('Signed out of all devices')">Sign Out All</button>
+          </div>
+
+          <div class="danger-item" style="margin-top:10px">
+            <div>
+              <div class="danger-title">Export My Data</div>
+              <div class="danger-desc">Download a complete export of your personal data including reports, scores, goals, and activity history. Delivered by email within 24 hours.</div>
+            </div>
+            <button class="btn btn-s btn-sm" onclick="showToast('Export queued — check your email')">Export Data</button>
+          </div>
+
+          <div class="danger-item" style="margin-top:10px">
+            <div>
+              <div class="danger-title">Delete Account</div>
+              <div class="danger-desc">Permanently delete your account. As Organization Owner, this will also delete Acme Inc and remove all 7 members. This cannot be undone.</div>
+            </div>
+            <button class="btn btn-d btn-sm" onclick="showConfirm('conf-delete')">Delete Account</button>
+          </div>
+          <div class="confirm-strip" id="conf-delete">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--dn)" stroke-width="1.6"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 11v1"/></svg>
+            <span style="flex:1;font-size:12.5px;color:var(--dn)">This deletes your account and all org data. Type <strong>DELETE</strong> to confirm.</span>
+            <input class="field-input" id="delInput" placeholder="DELETE" style="width:100px;margin-bottom:0;padding:6px 10px;font-size:12px;text-align:center">
+            <button class="btn btn-d btn-sm" onclick="confirmDelete()">Delete Forever</button>
+            <button class="btn btn-s btn-sm" onclick="hideConfirm('conf-delete')">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /danger -->
+
+  </div><!-- /content -->
+</div><!-- /page -->
+</main>
+
+<!-- ══ INVITE MODAL ═══════════════════════════════════ -->
+<div class="modal-overlay" id="inviteModal" onclick="bgClose(event)">
+  <div class="modal-box">
+
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Invite a Team Member</div>
+        <div class="modal-sub" id="inviteSubtitle">They'll receive an email to join Acme Inc on Zevian.</div>
+      </div>
+      <div class="modal-close" onclick="closeInvite()">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3l10 10M13 3L3 13"/></svg>
+      </div>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- step indicator -->
+      <div class="steps" id="stepIndicator">
+        <div class="step active" id="step1">
+          <div class="step-dot">1</div>
+          <span>Details</span>
+          <div class="step-line"></div>
+        </div>
+        <div class="step" id="step2">
+          <div class="step-dot">2</div>
+          <span>Assign</span>
+          <div class="step-line"></div>
+        </div>
+        <div class="step" id="step3">
+          <div class="step-dot">3</div>
+          <span>Review</span>
+        </div>
+      </div>
+
+      <!-- STEP 1: Details -->
+      <div id="inviteStep1">
+        <div class="field" style="margin-bottom:16px">
+          <div class="field-label">Email Address</div>
+          <input class="field-input" id="invEmail" type="email" placeholder="colleague@company.com">
+          <div class="field-hint">An invitation link will be sent to this address. Expires in 7 days.</div>
+        </div>
+
+        <div class="field" style="margin-bottom:6px">
+          <div class="field-label">Role</div>
+        </div>
+        <div class="role-tiles">
+          <div class="role-tile sel" onclick="selectRole(this,'employee')" id="roleEmployee">
+            <div class="role-tile-header">
+              <div class="role-tile-name">Employee</div>
+              <span class="role-tile-badge" style="background:var(--s3);color:var(--t3)">Default</span>
+            </div>
+            <div class="role-tile-desc">Submits weekly reports. Sees their own scores and feedback only. Cannot view other team members.</div>
+          </div>
+          <div class="role-tile" onclick="selectRole(this,'manager')" id="roleManager">
+            <div class="role-tile-header">
+              <div class="role-tile-name">Manager</div>
+              <span class="role-tile-badge" style="background:var(--ag);color:var(--ac)">Elevated</span>
+            </div>
+            <div class="role-tile-desc">Reviews team reports and scores. Can override AI scores, manage goals, and invite members.</div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:16px;margin-bottom:0">
+          <div class="field-label">Reports To <span style="font-weight:400;color:var(--t3)">(optional)</span></div>
+          <select class="field-input" id="invManager" style="cursor:pointer">
+            <option value="">No manager assigned</option>
+            <option value="e1" selected>James Mitchell (You)</option>
+            <option value="e4">Riya Ahmed</option>
+            <option value="e6">Amara Osei</option>
+            <option value="e7">David Kim</option>
+          </select>
+          <div class="field-hint">Sets the reporting line. The manager will see this employee's reports in their dashboard.</div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Assign Projects & Goals -->
+      <div id="inviteStep2" style="display:none">
+        <div style="padding:12px 14px;background:rgba(91,127,255,.06);border:1px solid var(--ab);border-radius:10px;margin-bottom:18px;display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#5b7fff,#00d4aa);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0" id="previewInitials">--</div>
+          <div>
+            <div style="font-size:13px;font-weight:700" id="previewEmail">--</div>
+            <div style="font-size:11.5px;color:var(--t3)" id="previewRole">Employee</div>
+          </div>
+        </div>
+
+        <div class="field-label" style="margin-bottom:8px">Assign to Projects <span style="font-weight:400;color:var(--t3)">(optional)</span></div>
+        <div class="assignable-list" id="projectList" style="margin-bottom:16px"></div>
+
+        <div class="field-label" style="margin-top:16px;margin-bottom:8px">Assign to Goals <span style="font-weight:400;color:var(--t3)">(optional)</span></div>
+        <div class="assignable-list" id="goalList"></div>
+      </div>
+
+      <!-- STEP 3: Review -->
+      <div id="inviteStep3" style="display:none">
+        <div id="reviewContent"></div>
+      </div>
+
+      <!-- Success state -->
+      <div class="invite-success" id="inviteSuccess">
+        <div class="success-icon">
+          <svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="var(--gn)" stroke-width="2"><path d="M3 8l3.5 3.5L13 4"/></svg>
+        </div>
+        <div style="font-size:16px;font-weight:800;margin-bottom:6px">Invitation Sent!</div>
+        <div style="font-size:13px;color:var(--t3);line-height:1.65;margin-bottom:18px" id="successMsg">The invite was sent successfully.</div>
+        <button class="btn btn-s" onclick="closeInvite()">Close</button>
+      </div>
+
+    </div><!-- /modal-body -->
+
+    <div class="modal-footer" id="inviteFooter">
+      <div style="font-size:12px;color:var(--t3)" id="inviteFooterMeta">Step 1 of 3</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-s" id="invBack" style="display:none" onclick="inviteBack()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 3L5 8l6 5"/></svg>
+          Back
+        </button>
+        <button class="btn btn-p" id="invNext" onclick="inviteNext()">
+          Next
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l6 5-6 5"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 8l3.5 3.5L13 4"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   DATA
+═══════════════════════════════════════ */
+var PROJECTS = [
+  {id:'p1', name:'Sprint Alpha v2',    icon:'&#9889;', members:3},
+  {id:'p2', name:'Backend Refactor',   icon:'&#128295;', members:2},
+  {id:'p3', name:'Design Sprint Q1',   icon:'&#127912;', members:2},
+  {id:'p4', name:'Q1 Campaign Launch', icon:'&#128226;', members:2},
+  {id:'p5', name:'CS Operations',      icon:'&#128172;', members:2},
+  {id:'p6', name:'Product Q1',         icon:'&#128640;', members:2},
+];
+
+var GOALS = [
+  {id:'g1', name:'Code Quality & Delivery',     project:'Sprint Alpha v2',    icon:'&#9889;'},
+  {id:'g2', name:'Eng Team Leadership',         project:'Sprint Alpha v2',    icon:'&#9889;'},
+  {id:'g3', name:'Design Execution & Handoff',  project:'Design Sprint Q1',   icon:'&#127912;'},
+  {id:'g4', name:'Campaign Execution',          project:'Q1 Campaign',        icon:'&#128226;'},
+  {id:'g5', name:'Support Excellence',          project:'CS Operations',      icon:'&#128172;'},
+  {id:'g6', name:'Roadmap Delivery',            project:'Product Q1',         icon:'&#128640;'},
+];
+
+var NOTIFS_EMAIL = [
+  {key:'ne1', label:'Report Submitted',        desc:'When a direct report submits a new weekly report.',              on:true},
+  {key:'ne2', label:'AI Score Ready',          desc:'When Zevian AI finishes scoring a submitted report.',            on:true},
+  {key:'ne3', label:'Score Override',          desc:'When a manager manually overrides an AI-generated score.',       on:false},
+  {key:'ne4', label:'At-Risk Alert',           desc:'When an employee\'s score drops below 6.0 for two weeks.',      on:true},
+  {key:'ne5', label:'Weekly Digest',           desc:'Sunday summary email of team performance for the past week.',   on:true},
+  {key:'ne6', label:'New Invitation Accepted', desc:'When an invited team member creates their Zevian account.',     on:false},
+];
+
+var NOTIFS_PUSH = [
+  {key:'np1', label:'Late Submission Warning', desc:'In-app alert when a report is overdue.',                        on:true},
+  {key:'np2', label:'Mention in Feedback',     desc:'Notify me when I am referenced in an AI feedback comment.',    on:false},
+  {key:'np3', label:'Goal Deadline Reminder',  desc:'48-hour and 24-hour reminders before a goal deadline.',        on:true},
+];
+
+var SESSIONS = [
+  {device:'Chrome on macOS',       location:'Dhaka, Bangladesh',  ip:'103.56.xx.xx', last:'Active now',    current:true},
+  {device:'Safari on iPhone 16',   location:'Dhaka, Bangladesh',  ip:'103.56.xx.xx', last:'2 hours ago',   current:false},
+  {device:'Chrome on Windows 11',  location:'Dhaka, Bangladesh',  ip:'103.56.xx.xx', last:'Yesterday',     current:false},
+  {device:'Zevian API Client',     location:'Remote (API)',        ip:'34.102.xx.xx', last:'3 days ago',    current:false},
+];
+
+var LOGIN_LOG = [
+  {dot:'#10b981', text:'Successful login via <strong>Chrome / macOS</strong> &mdash; Dhaka, Bangladesh', time:'Just now'},
+  {dot:'#10b981', text:'Successful login via <strong>iPhone 16 Safari</strong> &mdash; Dhaka, Bangladesh', time:'2h ago'},
+  {dot:'#f04438', text:'Failed login attempt &mdash; incorrect password &mdash; <strong>Unknown device</strong>', time:'4d ago'},
+  {dot:'#10b981', text:'Successful login via <strong>Chrome / Windows</strong> &mdash; Dhaka, Bangladesh', time:'5d ago'},
+  {dot:'#f59e0b', text:'Password changed successfully', time:'1w ago'},
+];
+
+var INVOICES = [
+  {date:'Mar 1, 2026',  amount:'$56.00', status:'paid',    id:'INV-0042'},
+  {date:'Feb 1, 2026',  amount:'$56.00', status:'paid',    id:'INV-0041'},
+  {date:'Jan 1, 2026',  amount:'$48.00', status:'paid',    id:'INV-0040'},
+  {date:'Dec 1, 2025',  amount:'$40.00', status:'paid',    id:'INV-0039'},
+];
+
+var NOTIF_STATE = {};
+NOTIFS_EMAIL.forEach(function(n){NOTIF_STATE[n.key]=n.on;});
+NOTIFS_PUSH.forEach(function(n){NOTIF_STATE[n.key]=n.on;});
+
+/* ═══════════════════════════════════════
+   TAB SWITCHING
+═══════════════════════════════════════ */
+var TABS = ['profile','security','notifs','sessions','billing','danger'];
+
+function switchTab(name, el) {
+  document.querySelectorAll('.rail-tab').forEach(function(t){t.classList.remove('on');});
+  el.classList.add('on');
+  TABS.forEach(function(t){
+    document.getElementById('tab-'+t).style.display = (t===name)?'block':'none';
+  });
+}
+
+/* ═══════════════════════════════════════
+   NOTIFICATIONS RENDER
+═══════════════════════════════════════ */
+function renderNotifs() {
+  function buildList(arr, containerId) {
+    var html = '';
+    arr.forEach(function(n) {
+      var on = NOTIF_STATE[n.key];
+      html += '<div class="toggle-row">';
+      html += '<div><div class="tg-label">'+n.label+'</div><div class="tg-desc">'+n.desc+'</div></div>';
+      html += '<div class="toggle '+(on?'on':'off')+'" onclick="toggleNotif(this,\''+n.key+'\')"><div class="toggle-dot"></div></div>';
+      html += '</div>';
+    });
+    document.getElementById(containerId).innerHTML = html;
+  }
+  buildList(NOTIFS_EMAIL, 'emailNotifs');
+  buildList(NOTIFS_PUSH,  'pushNotifs');
+}
+
+function toggleNotif(el, key) {
+  NOTIF_STATE[key] = !NOTIF_STATE[key];
+  el.className = 'toggle '+(NOTIF_STATE[key]?'on':'off');
+}
+
+/* ═══════════════════════════════════════
+   SESSIONS RENDER
+═══════════════════════════════════════ */
+function renderSessions() {
+  var html = '';
+  SESSIONS.forEach(function(s, i) {
+    html += '<div class="sess-item">';
+    var isMobile = s.device.indexOf('iPhone')>=0||s.device.indexOf('Android')>=0;
+    var isAPI = s.device.indexOf('API')>=0;
+    html += '<div class="sess-icon">';
+    if(isAPI) html += '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 8h6M8 6v4"/></svg>';
+    else if(isMobile) html += '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="4" y="1" width="8" height="14" rx="2"/><circle cx="8" cy="12" r="1"/></svg>';
+    else html += '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="2" width="14" height="10" rx="2"/><path d="M5 15h6M8 12v3"/></svg>';
+    html += '</div>';
+    html += '<div style="flex:1"><div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">';
+    html += '<div class="sess-name">'+s.device+'</div>';
+    if(s.current) html += '<span class="sess-current">Current</span>';
+    html += '</div>';
+    html += '<div class="sess-meta">'+s.location+' &nbsp;&middot;&nbsp; '+s.ip+' &nbsp;&middot;&nbsp; '+s.last+'</div>';
+    html += '</div>';
+    if(!s.current) html += '<button class="btn btn-s btn-sm" onclick="revokeSession('+i+')">Revoke</button>';
+    html += '</div>';
+  });
+  document.getElementById('sessionsBody').innerHTML = html;
+
+  // login history
+  var lhtml = '';
+  LOGIN_LOG.forEach(function(l) {
+    lhtml += '<div class="log-item">';
+    lhtml += '<div class="log-dot" style="background:'+l.dot+'"></div>';
+    lhtml += '<div class="log-text">'+l.text+'</div>';
+    lhtml += '<div class="log-time">'+l.time+'</div>';
+    lhtml += '</div>';
+  });
+  document.getElementById('loginHistory').innerHTML = lhtml;
+}
+
+function revokeSession(i) {
+  showToast('Session revoked: '+SESSIONS[i].device);
+  SESSIONS.splice(i,1);
+  renderSessions();
+}
+
+/* ═══════════════════════════════════════
+   BILLING RENDER
+═══════════════════════════════════════ */
+function renderBilling() {
+  var html = '';
+  INVOICES.forEach(function(inv) {
+    html += '<div class="invoice-row">';
+    html += '<div style="font-size:13px;font-weight:600">'+inv.date+'</div>';
+    html += '<div style="font-size:12px;color:var(--t3);flex:1;padding:0 12px">'+inv.id+'</div>';
+    html += '<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--gg);color:var(--gn)">Paid</span>';
+    html += '<div style="font-size:13px;font-weight:700;min-width:52px;text-align:right">'+inv.amount+'</div>';
+    html += '<button class="btn btn-s btn-sm" style="margin-left:10px" onclick="showToast(\'Downloading '+inv.id+'\')" >PDF</button>';
+    html += '</div>';
+  });
+  document.getElementById('invoicesBody').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════
+   SECURITY HELPERS
+═══════════════════════════════════════ */
+function togglePw(id, iconEl) {
+  var el = document.getElementById(id);
+  var isText = el.type === 'text';
+  el.type = isText ? 'password' : 'text';
+  iconEl.style.color = isText ? '' : 'var(--ac)';
+}
+
+function checkStrength(v) {
+  var s1=document.getElementById('s1'), s2=document.getElementById('s2'), s3=document.getElementById('s3');
+  var lbl=document.getElementById('strengthLabel');
+  s1.className='strength-seg'; s2.className='strength-seg'; s3.className='strength-seg';
+  if(!v){lbl.textContent='Enter a new password';lbl.className='strength-label';return;}
+  var score=0;
+  if(v.length>=8) score++;
+  if(v.length>=12&&/[A-Z]/.test(v)&&/[0-9]/.test(v)) score++;
+  if(v.length>=16&&/[^A-Za-z0-9]/.test(v)) score++;
+  if(score===0){s1.className='strength-seg s1';lbl.textContent='Weak';lbl.className='strength-label w';}
+  else if(score===1){s1.className='strength-seg s2';s2.className='strength-seg s2';lbl.textContent='Moderate';lbl.className='strength-label m';}
+  else{s1.className='strength-seg s3';s2.className='strength-seg s3';s3.className='strength-seg s3';lbl.textContent='Strong';lbl.className='strength-label s';}
+}
+
+function enable2FA() {
+  var code = document.getElementById('tfaCode').value.trim();
+  if(code.length!==6||isNaN(code)){showToast('Enter a valid 6-digit code');return;}
+  showToast('2FA enabled successfully');
+  document.getElementById('qrBox').innerHTML = '<svg width="48" height="48" viewBox="0 0 16 16" fill="none" stroke="var(--gn)" stroke-width="2"><path d="M3 8l3.5 3.5L13 4"/></svg>';
+}
+
+/* ═══════════════════════════════════════
+   DANGER HELPERS
+═══════════════════════════════════════ */
+function showConfirm(id){document.getElementById(id).classList.add('show');}
+function hideConfirm(id){document.getElementById(id).classList.remove('show');}
+function confirmDelete(){
+  var v=document.getElementById('delInput').value.trim().toUpperCase();
+  if(v==='DELETE'){showToast('Account deletion initiated — check your email');hideConfirm('conf-delete');}
+  else{showToast('Type DELETE to confirm');}
+}
+
+/* ═══════════════════════════════════════
+   INVITE MODAL — state machine
+═══════════════════════════════════════ */
+var invStep = 1;
+var invRole = 'employee';
+var invSelProjects = [];
+var invSelGoals = [];
+
+function openInvite() {
+  invStep = 1; invRole = 'employee'; invSelProjects = []; invSelGoals = [];
+  document.getElementById('invEmail').value = '';
+  document.getElementById('inviteStep1').style.display = 'block';
+  document.getElementById('inviteStep2').style.display = 'none';
+  document.getElementById('inviteStep3').style.display = 'none';
+  document.getElementById('inviteSuccess').classList.remove('show');
+  document.getElementById('inviteFooter').style.display = 'flex';
+  document.getElementById('invBack').style.display = 'none';
+  document.getElementById('invNext').textContent = 'Next';
+  document.getElementById('invNext').innerHTML = 'Next <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M5 3l6 5-6 5"/></svg>';
+  document.getElementById('roleEmployee').classList.add('sel');
+  document.getElementById('roleManager').classList.remove('sel');
+  setStepUI(1);
+  document.getElementById('inviteModal').classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(function(){document.getElementById('invEmail').focus();},300);
+}
+
+function closeInvite() {
+  document.getElementById('inviteModal').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function bgClose(e){if(e.target===document.getElementById('inviteModal'))closeInvite();}
+
+function selectRole(el, role) {
+  invRole = role;
+  ['roleEmployee','roleManager'].forEach(function(id){document.getElementById(id).classList.remove('sel');});
+  el.classList.add('sel');
+}
+
+function setStepUI(step) {
+  var labels = ['Details','Assign','Review'];
+  for(var i=1;i<=3;i++){
+    var el=document.getElementById('step'+i);
+    el.className = 'step'+(i<step?' done':i===step?' active':'');
+  }
+  document.getElementById('inviteFooterMeta').textContent = 'Step '+step+' of 3';
+}
+
+function inviteNext() {
+  if(invStep===1) {
+    var email = document.getElementById('invEmail').value.trim();
+    if(!email||email.indexOf('@')<0){showToast('Enter a valid email address');return;}
+    // populate step 2
+    var initials = email.slice(0,2).toUpperCase();
+    document.getElementById('previewInitials').textContent = initials;
+    document.getElementById('previewEmail').textContent = email;
+    document.getElementById('previewRole').textContent = invRole.charAt(0).toUpperCase()+invRole.slice(1)+' &middot; Reports to: '+(document.getElementById('invManager').options[document.getElementById('invManager').selectedIndex].text);
+    renderProjectList(); renderGoalList();
+    document.getElementById('inviteStep1').style.display='none';
+    document.getElementById('inviteStep2').style.display='block';
+    document.getElementById('invBack').style.display='flex';
+    document.getElementById('invNext').innerHTML = 'Next <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M5 3l6 5-6 5"/></svg>';
+    invStep=2; setStepUI(2);
+  } else if(invStep===2) {
+    buildReview();
+    document.getElementById('inviteStep2').style.display='none';
+    document.getElementById('inviteStep3').style.display='block';
+    document.getElementById('invNext').innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M1 8l14-6-6 14-2-6z"/></svg> Send Invite';
+    invStep=3; setStepUI(3);
+  } else if(invStep===3) {
+    // send
+    var email = document.getElementById('invEmail').value.trim();
+    document.getElementById('inviteStep3').style.display='none';
+    document.getElementById('inviteFooter').style.display='none';
+    var sm = document.getElementById('inviteSuccess');
+    sm.classList.add('show');
+    document.getElementById('successMsg').innerHTML = 'Invitation sent to <strong>'+email+'</strong> as '+invRole+'. The link expires in 7 days.';
+  }
+}
+
+function inviteBack() {
+  if(invStep===2){
+    document.getElementById('inviteStep2').style.display='none';
+    document.getElementById('inviteStep1').style.display='block';
+    document.getElementById('invBack').style.display='none';
+    document.getElementById('invNext').innerHTML = 'Next <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M5 3l6 5-6 5"/></svg>';
+    invStep=1; setStepUI(1);
+  } else if(invStep===3){
+    document.getElementById('inviteStep3').style.display='none';
+    document.getElementById('inviteStep2').style.display='block';
+    document.getElementById('invNext').innerHTML = 'Next <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M5 3l6 5-6 5"/></svg>';
+    invStep=2; setStepUI(2);
+  }
+}
+
+function renderProjectList() {
+  var html = '';
+  PROJECTS.forEach(function(p) {
+    var sel = invSelProjects.indexOf(p.id)>=0;
+    html += '<div class="assignable-item'+(sel?' sel':'')+'" onclick="toggleProject(\''+p.id+'\')">';
+    html += '<div class="assignable-check">'+(sel?'<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2"><path d="M2 6l3 3 5-5"/></svg>':'')+'</div>';
+    html += '<div class="assignable-icon">'+p.icon+'</div>';
+    html += '<div class="assignable-name">'+p.name+'</div>';
+    html += '<div class="assignable-meta">'+p.members+' members</div>';
+    html += '</div>';
+  });
+  document.getElementById('projectList').innerHTML = html;
+}
+
+function toggleProject(id){
+  var idx=invSelProjects.indexOf(id);
+  if(idx>=0)invSelProjects.splice(idx,1);else invSelProjects.push(id);
+  renderProjectList();
+}
+
+function renderGoalList() {
+  var html = '';
+  GOALS.forEach(function(g) {
+    var sel = invSelGoals.indexOf(g.id)>=0;
+    html += '<div class="assignable-item'+(sel?' sel':'')+'" onclick="toggleGoal(\''+g.id+'\')">';
+    html += '<div class="assignable-check">'+(sel?'<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2.2"><path d="M2 6l3 3 5-5"/></svg>':'')+'</div>';
+    html += '<div class="assignable-icon">'+g.icon+'</div>';
+    html += '<div style="flex:1"><div class="assignable-name">'+g.name+'</div><div class="assignable-meta">'+g.project+'</div></div>';
+    html += '</div>';
+  });
+  document.getElementById('goalList').innerHTML = html;
+}
+
+function toggleGoal(id){
+  var idx=invSelGoals.indexOf(id);
+  if(idx>=0)invSelGoals.splice(idx,1);else invSelGoals.push(id);
+  renderGoalList();
+}
+
+function buildReview() {
+  var email = document.getElementById('invEmail').value.trim();
+  var managerName = document.getElementById('invManager').options[document.getElementById('invManager').selectedIndex].text;
+  var projNames  = invSelProjects.map(function(id){return PROJECTS.find(function(p){return p.id===id;}).name;});
+  var goalNames  = invSelGoals.map(function(id){return GOALS.find(function(g){return g.id===id;}).name;});
+
+  var html = '<div style="background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:18px;margin-bottom:16px">';
+  html += '<div style="font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">Summary</div>';
+
+  function row(label, value, color) {
+    return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)">'
+      +'<span style="font-size:12.5px;color:var(--t3)">'+label+'</span>'
+      +'<span style="font-size:12.5px;font-weight:600;color:'+(color||'var(--tx)')+'">'+value+'</span>'
+      +'</div>';
+  }
+  html += row('Email', email);
+  html += row('Role', invRole.charAt(0).toUpperCase()+invRole.slice(1), invRole==='manager'?'var(--ac)':'var(--tx)');
+  html += row('Reports To', managerName);
+  html += row('Projects', projNames.length ? projNames.join(', ') : 'None assigned');
+  html += '<div style="display:flex;justify-content:space-between;padding:8px 0">'
+    +'<span style="font-size:12.5px;color:var(--t3)">Goals</span>'
+    +'<span style="font-size:12.5px;font-weight:600">'+( goalNames.length ? goalNames.join(', ') : 'None assigned')+'</span>'
+    +'</div>';
+  html += '</div>';
+
+  html += '<div style="padding:12px 14px;background:rgba(91,127,255,.06);border:1px solid var(--ab);border-radius:10px;font-size:12.5px;color:var(--t2);line-height:1.6">';
+  html += '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--ac)" stroke-width="1.5" style="vertical-align:middle;margin-right:6px"><circle cx="8" cy="8" r="6"/><path d="M8 7v4M8 5v1"/></svg>';
+  html += 'The invitee will receive a secure link to set their password and activate their account. They won\'t be visible in team dashboards until they accept.';
+  html += '</div>';
+
+  document.getElementById('reviewContent').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════
+   TOAST + SAVE
+═══════════════════════════════════════ */
+function saveAll() {
+  showToast('Changes saved successfully');
+}
+
+function showToast(msg) {
+  var t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2600);
+}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+renderNotifs();
+renderSessions();
+renderBilling();
+</script>
+</body>
+</html>

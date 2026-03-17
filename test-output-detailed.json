@@ -1,0 +1,199 @@
+{
+  "emps": [
+    {
+      "id": "mgr-1",
+      "name": "Sarah Connor",
+      "role": "manager",
+      "auth_user_id": null,
+      "organization_id": "org-1",
+      "email": "sarah@acme.com"
+    },
+    {
+      "id": "mgr-2",
+      "name": "Mike Ross",
+      "role": "manager",
+      "auth_user_id": null,
+      "organization_id": "org-1",
+      "email": "mike@acme.com"
+    },
+    {
+      "id": "emp-1",
+      "name": "Alice Wu",
+      "role": "employee",
+      "auth_user_id": null,
+      "organization_id": "org-1",
+      "email": "alice@acme.com"
+    },
+    {
+      "id": "emp-2",
+      "name": "Bob Smith",
+      "role": "employee",
+      "auth_user_id": null,
+      "organization_id": "org-1",
+      "email": "bob@acme.com"
+    },
+    {
+      "id": "emp-3",
+      "name": "Charlie Black",
+      "role": "employee",
+      "auth_user_id": null,
+      "organization_id": "org-1",
+      "email": "charlie@acme.com"
+    },
+    {
+      "id": "emp-795c6936",
+      "name": "Rez A.",
+      "role": "manager",
+      "auth_user_id": "795c6936-0846-4a50-83c5-bcca2d31a027",
+      "organization_id": "org-r53zr5y",
+      "email": "rezahasan1198@gmail.com"
+    },
+    {
+      "id": "emp-1773350944929-210",
+      "name": "Rez",
+      "role": "employee",
+      "auth_user_id": "343ce723-fb1d-4a64-a2d0-2704babaa6ec",
+      "organization_id": null,
+      "email": "reza@imsold.org"
+    },
+    {
+      "id": "emp-1773351649499-886",
+      "name": "Amy Winehouse",
+      "role": "employee",
+      "auth_user_id": "69072027-9b89-4684-8c8f-7a24c6d79507",
+      "organization_id": "org-r53zr5y",
+      "email": "amy@superbee.my"
+    }
+  ],
+  "projs": [
+    {
+      "id": "proj-1",
+      "name": "Q4 Mobile App Launch",
+      "organization_id": "org-1"
+    },
+    {
+      "id": "project-onboarding-1773350335755",
+      "name": "Drive Social App Engagement Through Content Project",
+      "organization_id": "org-r53zr5y"
+    }
+  ],
+  "goals_assign": [
+    {
+      "id": 1,
+      "goal_id": "goal-1770220497475",
+      "assignee_id": "emp-1770222695948",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-04T16:31:35.948921+00:00"
+    },
+    {
+      "id": 2,
+      "goal_id": "goal-1770541537757",
+      "assignee_id": "emp-1770565251749",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-08T15:40:51.749644+00:00"
+    },
+    {
+      "id": 4,
+      "goal_id": "goal-1770234742003",
+      "assignee_id": "emp-1771005430650",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-13T17:57:10.650839+00:00"
+    },
+    {
+      "id": 5,
+      "goal_id": "goal-1770220497475",
+      "assignee_id": "emp-1771005430650",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-13T17:57:10.650839+00:00"
+    },
+    {
+      "id": 6,
+      "goal_id": "goal-1770916768253",
+      "assignee_id": "emp-1771009287630",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-13T19:01:27.630569+00:00"
+    },
+    {
+      "id": 8,
+      "goal_id": "goal-1770541537757",
+      "assignee_id": "emp-1771009783438",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-13T19:09:43.438115+00:00"
+    },
+    {
+      "id": 34,
+      "goal_id": "goal-1770542895568",
+      "assignee_id": "emp-1770565251749",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-16T18:45:47.468595+00:00"
+    },
+    {
+      "id": 35,
+      "goal_id": "goal-1770542895568",
+      "assignee_id": "emp-1771009783438",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-16T18:45:47.468595+00:00"
+    },
+    {
+      "id": 36,
+      "goal_id": "goal-1771012975968",
+      "assignee_id": "emp-1771013093768",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-17T15:03:50.463937+00:00"
+    },
+    {
+      "id": 37,
+      "goal_id": "goal-1771012975968",
+      "assignee_id": "emp-1771013314439",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-17T15:03:50.463937+00:00"
+    },
+    {
+      "id": 38,
+      "goal_id": "goal-1771012975968",
+      "assignee_id": "emp-1770220498811",
+      "assignee_type": "manager",
+      "assigned_at": "2026-02-17T15:03:50.463937+00:00"
+    },
+    {
+      "id": 39,
+      "goal_id": "goal-1772364390606",
+      "assignee_id": "emp-1771013093768",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-01T11:27:02.640462+00:00"
+    },
+    {
+      "id": 40,
+      "goal_id": "goal-1772364390606",
+      "assignee_id": "emp-1771009783438",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-01T11:27:02.640462+00:00"
+    },
+    {
+      "id": 41,
+      "goal_id": "goal-1772364390606",
+      "assignee_id": "emp-1771013314439",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-01T11:27:02.640462+00:00"
+    },
+    {
+      "id": 42,
+      "goal_id": "goal-onboarding-1773350335755",
+      "assignee_id": "emp-1773351649499-886",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-12T21:40:50.345368+00:00"
+    }
+  ],
+  "goals": [
+    {
+      "id": "goal-1",
+      "name": "Deliver Core API",
+      "project_id": "proj-1"
+    },
+    {
+      "id": "goal-onboarding-1773350335755",
+      "name": "Drive Social App Engagement Through Content",
+      "project_id": "project-onboarding-1773350335755"
+    }
+  ]
+}

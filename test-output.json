@@ -1,0 +1,181 @@
+{
+  "emps": [
+    {
+      "id": "mgr-1",
+      "name": "Sarah Connor",
+      "role": "manager"
+    },
+    {
+      "id": "mgr-2",
+      "name": "Mike Ross",
+      "role": "manager"
+    },
+    {
+      "id": "emp-1",
+      "name": "Alice Wu",
+      "role": "employee"
+    },
+    {
+      "id": "emp-2",
+      "name": "Bob Smith",
+      "role": "employee"
+    },
+    {
+      "id": "emp-3",
+      "name": "Charlie Black",
+      "role": "employee"
+    },
+    {
+      "id": "emp-795c6936",
+      "name": "Rez A.",
+      "role": "manager"
+    },
+    {
+      "id": "emp-1773350944929-210",
+      "name": "Rez",
+      "role": "employee"
+    },
+    {
+      "id": "emp-1773351649499-886",
+      "name": "Amy Winehouse",
+      "role": "employee"
+    }
+  ],
+  "projs": [
+    {
+      "id": 1,
+      "project_id": "proj-1",
+      "assignee_id": "mgr-2",
+      "assignee_type": "manager",
+      "assigned_at": "2026-03-12T21:13:12.49486+00:00"
+    },
+    {
+      "id": 2,
+      "project_id": "proj-1",
+      "assignee_id": "emp-1",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-12T21:13:12.49486+00:00"
+    },
+    {
+      "id": 3,
+      "project_id": "proj-1",
+      "assignee_id": "emp-2",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-12T21:13:12.49486+00:00"
+    },
+    {
+      "id": 4,
+      "project_id": "project-onboarding-1773350335755",
+      "assignee_id": "emp-795c6936",
+      "assignee_type": "manager",
+      "assigned_at": "2026-03-12T21:18:56.977468+00:00"
+    }
+  ],
+  "goals": [
+    {
+      "id": 1,
+      "goal_id": "goal-1770220497475",
+      "assignee_id": "emp-1770222695948",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-04T16:31:35.948921+00:00"
+    },
+    {
+      "id": 2,
+      "goal_id": "goal-1770541537757",
+      "assignee_id": "emp-1770565251749",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-08T15:40:51.749644+00:00"
+    },
+    {
+      "id": 4,
+      "goal_id": "goal-1770234742003",
+      "assignee_id": "emp-1771005430650",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-13T17:57:10.650839+00:00"
+    },
+    {
+      "id": 5,
+      "goal_id": "goal-1770220497475",
+      "assignee_id": "emp-1771005430650",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-13T17:57:10.650839+00:00"
+    },
+    {
+      "id": 6,
+      "goal_id": "goal-1770916768253",
+      "assignee_id": "emp-1771009287630",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-13T19:01:27.630569+00:00"
+    },
+    {
+      "id": 8,
+      "goal_id": "goal-1770541537757",
+      "assignee_id": "emp-1771009783438",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-13T19:09:43.438115+00:00"
+    },
+    {
+      "id": 34,
+      "goal_id": "goal-1770542895568",
+      "assignee_id": "emp-1770565251749",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-16T18:45:47.468595+00:00"
+    },
+    {
+      "id": 35,
+      "goal_id": "goal-1770542895568",
+      "assignee_id": "emp-1771009783438",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-16T18:45:47.468595+00:00"
+    },
+    {
+      "id": 36,
+      "goal_id": "goal-1771012975968",
+      "assignee_id": "emp-1771013093768",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-17T15:03:50.463937+00:00"
+    },
+    {
+      "id": 37,
+      "goal_id": "goal-1771012975968",
+      "assignee_id": "emp-1771013314439",
+      "assignee_type": "employee",
+      "assigned_at": "2026-02-17T15:03:50.463937+00:00"
+    },
+    {
+      "id": 38,
+      "goal_id": "goal-1771012975968",
+      "assignee_id": "emp-1770220498811",
+      "assignee_type": "manager",
+      "assigned_at": "2026-02-17T15:03:50.463937+00:00"
+    },
+    {
+      "id": 39,
+      "goal_id": "goal-1772364390606",
+      "assignee_id": "emp-1771013093768",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-01T11:27:02.640462+00:00"
+    },
+    {
+      "id": 40,
+      "goal_id": "goal-1772364390606",
+      "assignee_id": "emp-1771009783438",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-01T11:27:02.640462+00:00"
+    },
+    {
+      "id": 41,
+      "goal_id": "goal-1772364390606",
+      "assignee_id": "emp-1771013314439",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-01T11:27:02.640462+00:00"
+    },
+    {
+      "id": 42,
+      "goal_id": "goal-onboarding-1773350335755",
+      "assignee_id": "emp-1773351649499-886",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-12T21:40:50.345368+00:00"
+    }
+  ]
+}

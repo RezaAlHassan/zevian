@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Zevian — Organization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c10;--sf:#111318;--s2:#181c24;--s3:#1e2330;
+  --bd:rgba(255,255,255,.07);--bdh:rgba(255,255,255,.13);--bda:rgba(255,255,255,.2);
+  --tx:#f0f2f7;--t2:#8b93a8;--t3:#545d73;
+  --ac:#5b7fff;--ag:rgba(91,127,255,.15);--ab:rgba(91,127,255,.3);
+  --te:#00d4aa;--tg:rgba(0,212,170,.1);--tb:rgba(0,212,170,.25);
+  --wn:#f59e0b;--wg:rgba(245,158,11,.1);
+  --dn:#f04438;--dg:rgba(240,68,56,.12);
+  --gn:#10b981;--gg:rgba(16,185,129,.1);
+  --pu:#8b5cf6;--pg:rgba(139,92,246,.1);
+  --sw:220px;--hh:56px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--tx);font-family:'Syne',sans-serif;font-size:14px;line-height:1.5;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:4px;}
+
+/* ─── sidebar ─────────────────────────────── */
+.sb{position:fixed;inset:0 auto 0 0;width:var(--sw);background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;z-index:100;}
+.logo{padding:18px 20px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bd);}
+.logo-mark{width:30px;height:30px;background:var(--ac);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;box-shadow:0 0 20px rgba(91,127,255,.35);}
+.logo-text{font-weight:700;font-size:17px;letter-spacing:-.3px;}
+.nav{padding:12px 10px;flex:1;}
+.nav-label{font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;padding:8px 10px 4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--t2);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:1px;}
+.nav-item:hover{background:var(--s2);color:var(--tx);}
+.nav-item.active{background:var(--ag);color:var(--ac);border:1px solid var(--ab);}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;}
+
+/* ─── header ──────────────────────────────── */
+.hd{position:fixed;left:var(--sw);right:0;top:0;height:var(--hh);background:rgba(10,12,16,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 28px;gap:12px;z-index:90;}
+.hd-icon{width:32px;height:32px;border-radius:8px;background:var(--ag);display:flex;align-items:center;justify-content:center;border:1px solid var(--ab);}
+.hd-icon svg{width:15px;height:15px;color:var(--ac);}
+.hd-title{font-weight:700;font-size:16px;letter-spacing:-.2px;}
+.hd-sub{font-size:12px;color:var(--t3);}
+.hd-spacer{flex:1;}
+.user-av{width:34px;height:34px;background:linear-gradient(135deg,#5b7fff,#00d4aa);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;}
+
+/* ─── main layout ─────────────────────────── */
+.main{margin-left:var(--sw);padding-top:var(--hh);min-height:100vh;}
+.page{display:flex;height:calc(100vh - var(--hh));}
+
+/* left nav rail */
+.rail{width:200px;flex-shrink:0;border-right:1px solid var(--bd);padding:20px 12px;overflow-y:auto;}
+.rail-tab{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--t2);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px;}
+.rail-tab:hover{background:var(--s2);color:var(--tx);}
+.rail-tab.on{background:var(--ag);color:var(--ac);}
+.rail-tab svg{width:15px;height:15px;flex-shrink:0;}
+.rail-tab.danger:hover{background:var(--dg);color:var(--dn);}
+.rail-tab.danger.on{background:var(--dg);color:var(--dn);}
+.rail-divider{height:1px;background:var(--bd);margin:12px 4px;}
+
+/* content area */
+.content{flex:1;overflow-y:auto;padding:28px 32px 60px;}
+
+/* ─── common card ─────────────────────────── */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;margin-bottom:20px;overflow:hidden;animation:fadeUp .35s ease both;}
+.card-head{padding:18px 22px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.card-title{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:700;}
+.card-title svg{width:16px;height:16px;color:var(--ac);}
+.card-body{padding:22px;}
+
+/* ─── section title ───────────────────────── */
+.sec-title{font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+.sec-title svg{width:12px;height:12px;color:var(--ac);}
+
+/* ─── form fields ─────────────────────────── */
+.field-label{font-size:11.5px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;}
+.field-input{width:100%;padding:10px 13px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;font-size:13px;color:var(--tx);outline:none;font-family:'Syne',sans-serif;transition:border-color .15s;}
+.field-input:focus{border-color:var(--ab);box-shadow:0 0 0 3px rgba(91,127,255,.08);}
+.field-row{margin-bottom:18px;}
+.field-hint{font-size:11.5px;color:var(--t3);margin-top:6px;line-height:1.5;}
+
+/* ─── buttons ─────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;border:none;}
+.btn svg{width:13px;height:13px;}
+.btn-p{background:var(--ac);color:#fff;box-shadow:0 0 14px rgba(91,127,255,.2);}
+.btn-p:hover{background:#7090ff;}
+.btn-s{background:var(--s2);color:var(--t2);border:1px solid var(--bd);}
+.btn-s:hover{border-color:var(--bdh);color:var(--tx);}
+.btn-d{background:var(--dg);color:var(--dn);border:1px solid rgba(240,68,56,.2);}
+.btn-d:hover{background:rgba(240,68,56,.2);}
+.btn-sm{padding:6px 13px;font-size:12px;border-radius:7px;}
+
+/* ─── metric tiles ────────────────────────── */
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.metric-tile{padding:14px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:11px;cursor:pointer;transition:all .18s;}
+.metric-tile:hover{border-color:var(--bdh);}
+.metric-tile.sel{background:var(--ag);border-color:var(--ab);}
+.metric-tile-name{font-size:13px;font-weight:700;margin-bottom:3px;}
+.metric-tile.sel .metric-tile-name{color:var(--ac);}
+.metric-tile-cat{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.metric-tile-desc{font-size:11.5px;color:var(--t3);line-height:1.5;}
+.metric-tile.sel .metric-tile-desc{color:var(--t2);}
+.metric-check{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--bd);margin-left:auto;display:flex;align-items:center;justify-content:center;margin-top:8px;transition:all .15s;}
+.metric-tile.sel .metric-check{background:var(--ac);border-color:var(--ac);}
+.metric-count-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--ag);border:1px solid var(--ab);border-radius:20px;font-size:11px;font-weight:700;color:var(--ac);}
+
+/* ─── day picker ──────────────────────────── */
+.day-row{display:flex;gap:6px;flex-wrap:wrap;}
+.day-btn{padding:6px 11px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;border:1.5px solid var(--bd);background:var(--s2);color:var(--t3);}
+.day-btn:hover{border-color:var(--bdh);color:var(--t2);}
+.day-btn.on{background:var(--ac);border-color:var(--ac);color:#fff;}
+
+/* ─── frequency scope toggle ─────────────── */
+.scope-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.scope-tile{padding:16px 18px;border:1.5px solid var(--bd);border-radius:11px;cursor:pointer;transition:all .18s;}
+.scope-tile:hover{border-color:var(--bdh);}
+.scope-tile.on{border-color:var(--ab);background:var(--ag);}
+.scope-tile-title{font-size:13px;font-weight:700;margin-bottom:3px;}
+.scope-tile.on .scope-tile-title{color:var(--ac);}
+.scope-tile-desc{font-size:12px;color:var(--t3);}
+.scope-tile.on .scope-tile-desc{color:var(--t2);}
+
+/* ─── toggle switch ───────────────────────── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;margin-bottom:10px;}
+.toggle-row:last-child{margin-bottom:0;}
+.tg-info{}
+.tg-name{font-size:13px;font-weight:600;margin-bottom:2px;}
+.tg-desc{font-size:11.5px;color:var(--t3);}
+.toggle{width:38px;height:21px;border-radius:11px;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--ac);}
+.toggle.off{background:var(--s3);}
+.toggle-dot{position:absolute;top:3px;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transition:left .2s;}
+.toggle.on .toggle-dot{left:20px;}
+.toggle.off .toggle-dot{left:3px;}
+
+/* ─── employee freq rows ──────────────────── */
+.emp-freq-row{padding:14px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;}
+.emp-freq-row:last-child{margin-bottom:0;}
+.emp-freq-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.emp-freq-av{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0;}
+
+/* ─── hierarchy table ─────────────────────── */
+.htable{width:100%;border-collapse:collapse;}
+.htable th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--bd);}
+.htable td{padding:13px 14px;border-bottom:1px solid var(--bd);vertical-align:middle;}
+.htable tr:last-child td{border-bottom:none;}
+.htable tr:hover td{background:var(--s2);}
+.emp-cell{display:flex;align-items:center;gap:10px;}
+.emp-av{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;}
+.emp-name{font-size:13px;font-weight:600;}
+.emp-email{font-size:11px;color:var(--t3);}
+.role-badge{display:inline-flex;padding:2px 8px;border-radius:5px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+.rb-owner{background:var(--pg);color:var(--pu);}
+.rb-manager{background:var(--ag);color:var(--ac);}
+.rb-employee{background:var(--s3);color:var(--t3);}
+.access-radio{display:flex;align-items:center;gap:14px;}
+.radio-opt{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--t2);}
+.radio-opt input{accent-color:var(--ac);}
+.radio-opt.sel{color:var(--ac);font-weight:600;}
+.hsel{padding:6px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;font-size:12.5px;color:var(--t2);font-family:'Syne',sans-serif;outline:none;cursor:pointer;min-width:140px;}
+.hsel:focus{border-color:var(--ab);}
+
+/* ─── users tab ───────────────────────────── */
+.users-table{width:100%;border-collapse:collapse;}
+.users-table th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--bd);}
+.users-table td{padding:12px 14px;border-bottom:1px solid var(--bd);vertical-align:middle;}
+.users-table tr:last-child td{border-bottom:none;}
+.users-table tbody tr:hover td{background:var(--s2);}
+.invite-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;}
+.invite-row:last-child{margin-bottom:0;}
+.pending-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:var(--wg);color:var(--wn);}
+
+/* ─── danger zone ─────────────────────────── */
+.danger-card{border-color:rgba(240,68,56,.2) !important;}
+.danger-item{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:18px;background:var(--s2);border:1px solid rgba(240,68,56,.1);border-radius:11px;margin-bottom:12px;}
+.danger-item:last-child{margin-bottom:0;}
+.danger-info-title{font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px;}
+.danger-info-desc{font-size:12px;color:var(--t3);line-height:1.6;max-width:340px;}
+
+/* ─── save bar ────────────────────────────── */
+.save-bar{display:flex;justify-content:flex-end;padding-top:20px;border-top:1px solid var(--bd);margin-top:4px;}
+
+/* ─── project freq item ───────────────────── */
+.proj-freq-row{padding:14px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;}
+.proj-freq-row:last-child{margin-bottom:0;}
+.proj-freq-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.proj-freq-name{font-size:13px;font-weight:600;}
+.proj-chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:var(--ag);color:var(--ac);border:1px solid var(--ab);}
+
+/* ─── toast ───────────────────────────────── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--gn);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:all .25s;z-index:999;pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(16,185,129,.35);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ─── inline confirm ──────────────────────── */
+.confirm-strip{display:none;padding:12px 16px;background:var(--dg);border:1px solid rgba(240,68,56,.25);border-radius:10px;margin-top:12px;align-items:center;gap:12px;}
+.confirm-strip.show{display:flex;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+
+<!-- sidebar -->
+<aside class="sb">
+  <div class="logo">
+    <div class="logo-mark">Z</div>
+    <span class="logo-text">Zevian</span>
+  </div>
+  <nav class="nav">
+    <div class="nav-label">Workspace</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>Dashboard</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 3V1h6v2"/></svg>Projects</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg>Goals</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="1" width="12" height="14" rx="2"/><path d="M5 5h6M5 8h6M5 11h4"/></svg>Reports</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M14 14c0-2-1-3.5-2-4"/></svg>Employees</div>
+    <div class="nav-label" style="margin-top:8px">Settings</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="12" height="12" rx="3"/><path d="M5 8h6M8 5v6"/></svg>Knowledge Base</div>
+    <div class="nav-item active"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="6" cy="8" r="2"/><path d="M10 6h3M10 10h3"/></svg>Organization</div>
+  </nav>
+</aside>
+
+<!-- header -->
+<header class="hd">
+  <div class="hd-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="6" cy="8" r="2"/><path d="M10 6h3M10 10h3"/></svg></div>
+  <div>
+    <div class="hd-title">Organization</div>
+    <div class="hd-sub">Acme Inc &middot; 7 members</div>
+  </div>
+  <div class="hd-spacer"></div>
+  <div class="user-av">JM</div>
+</header>
+
+<main class="main">
+<div class="page">
+
+  <!-- rail nav -->
+  <nav class="rail">
+    <div class="rail-tab on" data-tab="general" onclick="switchTab('general',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="6" cy="8" r="2"/><path d="M10 6h3M10 10h3"/></svg>
+      General
+    </div>
+    <div class="rail-tab" data-tab="metrics" onclick="switchTab('metrics',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 12l4-4 3 3 4-5 3 3"/><rect x="1" y="1" width="14" height="14" rx="2"/></svg>
+      Metrics
+    </div>
+    <div class="rail-tab" data-tab="users" onclick="switchTab('users',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M14 14c0-2-1-3.5-2-4"/></svg>
+      Users
+    </div>
+    <div class="rail-tab" data-tab="reporting" onclick="switchTab('reporting',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="2" width="14" height="12" rx="2"/><path d="M1 6h14M5 2v4M11 2v4"/></svg>
+      Reporting
+    </div>
+    <div class="rail-tab" data-tab="hierarchy" onclick="switchTab('hierarchy',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="1" width="6" height="4" rx="1"/><rect x="1" y="11" width="6" height="4" rx="1"/><rect x="9" y="11" width="6" height="4" rx="1"/><path d="M8 5v3M4 11V9a1 1 0 011-1h6a1 1 0 011 1v2"/></svg>
+      Hierarchy
+    </div>
+    <div class="rail-divider"></div>
+    <div class="rail-tab danger" data-tab="danger" onclick="switchTab('danger',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 11v1"/></svg>
+      Advanced
+    </div>
+  </nav>
+
+  <!-- content -->
+  <div class="content">
+
+    <!-- ══ GENERAL ══════════════════════════════ -->
+    <div id="tab-general">
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="6" cy="8" r="2"/><path d="M10 6h3M10 10h3"/></svg>
+            General Information
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:6px">
+            <div>
+              <div class="field-label">Organization Name</div>
+              <input class="field-input" id="orgName" value="Acme Inc" placeholder="Your Organization Name">
+              <div class="field-hint">This appears on report PDFs and invitation emails.</div>
+            </div>
+            <div>
+              <div class="field-label">Plan</div>
+              <div style="padding:10px 14px;background:var(--ag);border:1px solid var(--ab);border-radius:9px;display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--ac)">Pro Plan</div>
+                  <div style="font-size:11.5px;color:var(--t2)">7 of 50 seats used</div>
+                </div>
+                <button class="btn btn-s btn-sm">Manage Billing</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1l1 3h3l-2.5 2 1 3L8 7.5 5.5 9l1-3L4 4h3z"/></svg>
+            AI Evaluation Configuration
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="field-row">
+            <div class="field-label">Evaluation Model</div>
+            <select class="field-input" style="cursor:pointer;appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23545d73' stroke-width='2'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 12px center">
+              <option>claude-sonnet-4-6 (Recommended)</option>
+              <option>claude-opus-4-6 (Highest accuracy)</option>
+            </select>
+            <div class="field-hint">Higher-tier models produce richer feedback but consume more API credits per report.</div>
+          </div>
+          <div class="field-row" style="margin-bottom:0">
+            <div class="field-label">Score Weighting</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <div style="font-size:12px;color:var(--t2);margin-bottom:6px">Goal Criteria Weight</div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <input type="range" min="50" max="100" value="70" id="goalWeight" oninput="updateWeights()"
+                    style="flex:1;accent-color:var(--ac)">
+                  <span id="goalWeightVal" style="font-size:14px;font-weight:700;color:var(--ac);min-width:36px">70%</span>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:12px;color:var(--t2);margin-bottom:6px">Org Metrics Weight</div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden">
+                    <div id="orgWeightBar" style="height:100%;width:30%;background:var(--te);border-radius:3px;transition:width .2s"></div>
+                  </div>
+                  <span id="orgWeightVal" style="font-size:14px;font-weight:700;color:var(--te);min-width:36px">30%</span>
+                </div>
+              </div>
+            </div>
+            <div class="field-hint">Determines how goal-specific criteria vs. org-wide metrics influence the final AI score.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="save-bar">
+        <button class="btn btn-p" onclick="save('General settings')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 10v3h3l7-7L9 3l-7 7zM12 2l2 2-1 1-2-2 1-1z"/></svg>
+          Save Changes
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ METRICS ══════════════════════════════ -->
+    <div id="tab-metrics" style="display:none">
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 12l4-4 3 3 4-5 3 3"/></svg>
+            Organizational Metrics
+          </div>
+          <div id="metricsBadge" class="metric-count-badge">
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 4"/></svg>
+            <span id="metricsCount">5</span> active
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--t2);margin-bottom:18px;line-height:1.65">
+            Select the performance dimensions measured across your organization. These are applied to every AI evaluation at the org-metrics weight — separately from goal-specific criteria.
+          </p>
+          <div class="metric-grid" id="metricGrid"></div>
+        </div>
+      </div>
+
+      <div class="save-bar">
+        <button class="btn btn-p" onclick="save('Metric selection')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 10v3h3l7-7L9 3l-7 7zM12 2l2 2-1 1-2-2 1-1z"/></svg>
+          Save Metrics
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ USERS ════════════════════════════════ -->
+    <div id="tab-users" style="display:none">
+
+      <!-- active members -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M14 14c0-2-1-3.5-2-4"/></svg>
+            Active Members (7)
+          </div>
+          <button class="btn btn-p btn-sm" onclick="showToast('Invite flow — use Employees page')">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 3v10M3 8h10"/></svg>
+            Invite Member
+          </button>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="users-table">
+            <thead><tr>
+              <th>Member</th><th>Role</th><th>Department</th><th>Joined</th><th style="text-align:right">Actions</th>
+            </tr></thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- pending invitations -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 4h14v9a1 1 0 01-1 1H2a1 1 0 01-1-1V4z"/><path d="M1 4l7 6 7-6"/></svg>
+            Pending Invitations
+          </div>
+        </div>
+        <div class="card-body" id="invitationsBody"></div>
+      </div>
+    </div>
+
+    <!-- ══ REPORTING ═════════════════════════════ -->
+    <div id="tab-reporting" style="display:none">
+
+      <!-- Submission policy -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="12" height="12" rx="3"/><path d="M5 8h6M8 5v6"/></svg>
+            Submission Policy
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="toggle-row">
+            <div class="tg-info">
+              <div class="tg-name">Allow Late Submissions</div>
+              <div class="tg-desc">Employees can submit reports after the goal deadline has passed. Late reports are marked as such.</div>
+            </div>
+            <div class="toggle on" id="tg-late" onclick="toggleSetting(this,'late')"><div class="toggle-dot"></div></div>
+          </div>
+          <div class="toggle-row">
+            <div class="tg-info">
+              <div class="tg-name">Require Report Before Scoring</div>
+              <div class="tg-desc">AI scoring only runs after an employee submits a report. Managers cannot manually trigger scoring on empty reports.</div>
+            </div>
+            <div class="toggle on" id="tg-require" onclick="toggleSetting(this,'require')"><div class="toggle-dot"></div></div>
+          </div>
+          <div class="toggle-row">
+            <div class="tg-info">
+              <div class="tg-name">Notify Manager on Submission</div>
+              <div class="tg-desc">Send an email notification to the manager each time a direct report submits a weekly report.</div>
+            </div>
+            <div class="toggle off" id="tg-notify" onclick="toggleSetting(this,'notify')"><div class="toggle-dot"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reporting frequency -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="2" width="14" height="12" rx="2"/><path d="M1 6h14M5 2v4M11 2v4"/></svg>
+            Reporting Frequency
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="scope-tiles">
+            <div class="scope-tile on" id="scope-global" onclick="setScope('global')">
+              <div style="font-size:18px;margin-bottom:6px">&#127758;</div>
+              <div class="scope-tile-title">Global (All employees)</div>
+              <div class="scope-tile-desc">Set one schedule for all employees. Simple and consistent across the team.</div>
+            </div>
+            <div class="scope-tile" id="scope-per" onclick="setScope('per')">
+              <div style="font-size:18px;margin-bottom:6px">&#128100;</div>
+              <div class="scope-tile-title">Per Employee / Project</div>
+              <div class="scope-tile-desc">Different reporting days per employee or project. More control, more complexity.</div>
+            </div>
+          </div>
+
+          <!-- Global days -->
+          <div id="global-days">
+            <div class="sec-title"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="14" height="12" rx="2"/><path d="M1 6h14"/></svg>Report Due Days (Global)</div>
+            <div class="day-row" id="globalDays"></div>
+            <div class="field-hint" style="margin-top:10px" id="globalDayHint">Reports expected every Monday and Friday.</div>
+          </div>
+
+          <!-- Per employee -->
+          <div id="per-days" style="display:none">
+            <div class="sec-title"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/></svg>Per-Employee Schedule</div>
+            <div id="perEmpRows"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="save-bar">
+        <button class="btn btn-p" onclick="save('Reporting settings')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 10v3h3l7-7L9 3l-7 7zM12 2l2 2-1 1-2-2 1-1z"/></svg>
+          Save Reporting Settings
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ HIERARCHY ═════════════════════════════ -->
+    <div id="tab-hierarchy" style="display:none">
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="1" width="6" height="4" rx="1"/><rect x="1" y="11" width="6" height="4" rx="1"/><rect x="9" y="11" width="6" height="4" rx="1"/><path d="M8 5v3M4 11V9a1 1 0 011-1h6a1 1 0 011 1v2"/></svg>
+            Hierarchy &amp; Permissions
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--t2);margin-bottom:18px;line-height:1.65">
+            Assign reporting lines and delegate administrative access. <strong style="color:var(--tx)">Limited</strong> managers see only their chain. <strong style="color:var(--tx)">Full (Senior)</strong> managers have org-wide visibility and settings access.
+          </p>
+          <div style="overflow-x:auto">
+            <table class="htable">
+              <thead><tr>
+                <th>Employee</th>
+                <th>System Role</th>
+                <th>Reports To</th>
+                <th>Access Level</th>
+                <th>Status</th>
+              </tr></thead>
+              <tbody id="hierarchyBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="save-bar">
+        <button class="btn btn-p" onclick="save('Hierarchy settings')">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 10v3h3l7-7L9 3l-7 7zM12 2l2 2-1 1-2-2 1-1z"/></svg>
+          Save Hierarchy
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ DANGER ZONE ═══════════════════════════ -->
+    <div id="tab-danger" style="display:none">
+
+      <div class="card danger-card">
+        <div class="card-head">
+          <div class="card-title" style="color:var(--dn)">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" color="var(--dn)"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 11v1"/></svg>
+            Danger Zone
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--t3);margin-bottom:20px;line-height:1.6">
+            These actions are permanent or have significant consequences. Proceed with caution — some cannot be undone.
+          </p>
+
+          <div class="danger-item">
+            <div>
+              <div class="danger-info-title">Reset All Scores</div>
+              <div class="danger-info-desc">Permanently delete all AI-generated scores across every report in the organization. Reports will remain but scores become blank. This cannot be undone.</div>
+            </div>
+            <button class="btn btn-d btn-sm" onclick="showConfirm('confirm-scores')">Reset Scores</button>
+          </div>
+          <div class="confirm-strip" id="confirm-scores">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--dn)" stroke-width="1.6"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 11v1"/></svg>
+            <span style="flex:1;font-size:12.5px;color:var(--dn)">This will erase all scores permanently. Are you sure?</span>
+            <button class="btn btn-d btn-sm" onclick="save('Score reset confirmed');hideConfirm('confirm-scores')">Yes, Reset</button>
+            <button class="btn btn-s btn-sm" onclick="hideConfirm('confirm-scores')">Cancel</button>
+          </div>
+
+          <div class="danger-item" style="margin-top:12px">
+            <div>
+              <div class="danger-info-title">Export Organization Data</div>
+              <div class="danger-info-desc">Download a full CSV export of all reports, scores, employees, goals, and projects. Useful for audits or migrating to another platform.</div>
+            </div>
+            <button class="btn btn-s btn-sm" onclick="save('Export queued — you\'ll receive an email')">Export CSV</button>
+          </div>
+
+          <div class="danger-item" style="margin-top:12px">
+            <div>
+              <div class="danger-info-title">Delete Organization</div>
+              <div class="danger-info-desc">Permanently delete this organization and all associated data including employees, reports, goals, and scores. All members will lose access immediately.</div>
+            </div>
+            <button class="btn btn-d btn-sm" onclick="showConfirm('confirm-delete')">Delete Org</button>
+          </div>
+          <div class="confirm-strip" id="confirm-delete">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--dn)" stroke-width="1.6"><path d="M8 1l7 13H1L8 1z"/><path d="M8 6v4M8 11v1"/></svg>
+            <span style="flex:1;font-size:12.5px;color:var(--dn)">This will permanently delete Acme Inc and all data. Type <strong>ACME INC</strong> to confirm.</span>
+            <input class="field-input" id="deleteConfirmInput" placeholder="ACME INC" style="width:130px;margin-bottom:0;padding:6px 10px;font-size:12px">
+            <button class="btn btn-d btn-sm" onclick="checkDeleteConfirm()">Delete Forever</button>
+            <button class="btn btn-s btn-sm" onclick="hideConfirm('confirm-delete')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /page -->
+</main>
+
+<div class="toast" id="toast">
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 8l3.5 3.5L13 4"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════════ */
+var METRICS = [
+  {id:'communication',  cat:'Soft Skills',    name:'Communication',         desc:'Clarity, responsiveness, and effectiveness across written and verbal communication.'},
+  {id:'initiative',     cat:'Soft Skills',    name:'Initiative',            desc:'Proactively identifies problems and acts without being asked. Goes beyond the job description.'},
+  {id:'collaboration',  cat:'Soft Skills',    name:'Collaboration',         desc:'Works effectively with teammates. Helps unblock others and contributes to a positive team dynamic.'},
+  {id:'delivery',       cat:'Execution',      name:'On-time Delivery',      desc:'Consistently meets deadlines and delivers completed work within agreed sprint or project windows.'},
+  {id:'quality',        cat:'Execution',      name:'Work Quality',          desc:'Produces outputs that are accurate, polished, and meet or exceed the standards of the goal criteria.'},
+  {id:'problem_solving',cat:'Execution',      name:'Problem Solving',       desc:'Identifies root causes, weighs options, and applies sound judgment to resolve blockers and challenges.'},
+  {id:'documentation',  cat:'Process',        name:'Documentation',         desc:'Maintains clear records of decisions, work done, and next steps. Knowledge is shareable and findable.'},
+  {id:'growth',         cat:'Development',    name:'Learning & Growth',     desc:'Actively develops new skills, seeks feedback, and shows measurable improvement over time.'},
+  {id:'ownership',      cat:'Development',    name:'Ownership & Accountability', desc:'Takes responsibility for outcomes. Follows through on commitments and learns from mistakes.'},
+];
+
+var SELECTED_METRICS = ['communication','delivery','quality','ownership','collaboration'];
+
+var EMPLOYEES = [
+  {id:'e1', name:'James Mitchell', initials:'JM', title:'Engineering Manager',    dept:'Engineering',      role:'owner',    grad:'linear-gradient(135deg,#5b7fff,#8b5cf6)', joined:'Jan 2023', email:'james@acme.io',  access:'full'},
+  {id:'e2', name:'Sofia Mercer',   initials:'SM', title:'Senior Engineer',         dept:'Engineering',      role:'employee', grad:'linear-gradient(135deg,#5b7fff,#818cf8)', joined:'Mar 2023', email:'sofia@acme.io',  access:'limited'},
+  {id:'e3', name:'James Cole',     initials:'JC', title:'Product Designer',         dept:'Design',           role:'employee', grad:'linear-gradient(135deg,#00d4aa,#0ea5e9)', joined:'Jun 2023', email:'jcole@acme.io',  access:'limited'},
+  {id:'e4', name:'Riya Ahmed',     initials:'RA', title:'Marketing Manager',        dept:'Marketing',        role:'manager',  grad:'linear-gradient(135deg,#f59e0b,#fb923c)', joined:'Sep 2022', email:'riya@acme.io',   access:'full'},
+  {id:'e5', name:'Lucas Park',     initials:'LP', title:'Backend Engineer',         dept:'Engineering',      role:'employee', grad:'linear-gradient(135deg,#8b5cf6,#ec4899)', joined:'Nov 2023', email:'lucas@acme.io',  access:'limited'},
+  {id:'e6', name:'Amara Osei',     initials:'AO', title:'Customer Success Lead',    dept:'Customer Success', role:'manager',  grad:'linear-gradient(135deg,#10b981,#0ea5e9)', joined:'Apr 2022', email:'amara@acme.io',  access:'limited'},
+  {id:'e7', name:'David Kim',      initials:'DK', title:'Product Manager',          dept:'Product',          role:'manager',  grad:'linear-gradient(135deg,#8b5cf6,#5b7fff)', joined:'Feb 2023', email:'david@acme.io',  access:'limited'},
+];
+
+var INVITATIONS = [
+  {email:'tom.walsh@acme.io',  role:'employee', sentBy:'Riya Ahmed',     sent:'Mar 5, 2026', expires:'Mar 12, 2026'},
+  {email:'priya.n@acme.io',    role:'manager',  sentBy:'James Mitchell', sent:'Mar 3, 2026', expires:'Mar 10, 2026'},
+];
+
+var DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+var GLOBAL_DAYS = ['Monday','Friday'];
+var EMP_DAYS = {e1:['Monday'],e2:['Friday'],e3:['Wednesday'],e4:['Monday','Wednesday'],e5:['Tuesday','Friday'],e6:['Monday'],e7:['Thursday']};
+var SCOPE = 'global';
+var SETTINGS = {late:true, require:true, notify:false};
+
+/* ═══════════════════════════════════════════════
+   TAB SWITCHING
+═══════════════════════════════════════════════ */
+function switchTab(name, el) {
+  document.querySelectorAll('.rail-tab').forEach(function(t){t.classList.remove('on');});
+  el.classList.add('on');
+  ['general','metrics','users','reporting','hierarchy','danger'].forEach(function(t){
+    document.getElementById('tab-'+t).style.display = (t===name)?'block':'none';
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   METRICS
+═══════════════════════════════════════════════ */
+function renderMetrics() {
+  var html = '';
+  METRICS.forEach(function(m) {
+    var sel = SELECTED_METRICS.indexOf(m.id) >= 0;
+    html += '<div class="metric-tile'+(sel?' sel':'')+'" onclick="toggleMetric(\''+m.id+'\')">';
+    html += '<div class="metric-tile-cat">'+m.cat+'</div>';
+    html += '<div class="metric-tile-name">'+m.name+'</div>';
+    html += '<div class="metric-tile-desc">'+m.desc+'</div>';
+    html += '<div class="metric-check">';
+    if(sel) html += '<svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg>';
+    html += '</div></div>';
+  });
+  document.getElementById('metricGrid').innerHTML = html;
+  document.getElementById('metricsCount').textContent = SELECTED_METRICS.length;
+}
+
+function toggleMetric(id) {
+  var idx = SELECTED_METRICS.indexOf(id);
+  if(idx>=0) SELECTED_METRICS.splice(idx,1);
+  else SELECTED_METRICS.push(id);
+  renderMetrics();
+}
+
+/* ═══════════════════════════════════════════════
+   USERS
+═══════════════════════════════════════════════ */
+function renderUsers() {
+  var html = '';
+  EMPLOYEES.forEach(function(e) {
+    var rbc = e.role==='owner'?'rb-owner':e.role==='manager'?'rb-manager':'rb-employee';
+    var rl = e.role==='owner'?'Owner':e.role==='manager'?'Manager':'Employee';
+    html += '<tr>';
+    html += '<td><div class="emp-cell"><div class="emp-av" style="background:'+e.grad+'">'+e.initials+'</div>';
+    html += '<div><div class="emp-name">'+e.name+'</div><div class="emp-email">'+e.email+'</div></div></div></td>';
+    html += '<td><span class="role-badge '+rbc+'">'+rl+'</span></td>';
+    html += '<td style="font-size:12.5px;color:var(--t2)">'+e.dept+'</td>';
+    html += '<td style="font-size:12px;color:var(--t3)">'+e.joined+'</td>';
+    if(e.role==='owner'){
+      html += '<td style="text-align:right"><span style="font-size:12px;color:var(--t3)">Account owner</span></td>';
+    } else {
+      html += '<td style="text-align:right"><button class="btn btn-s btn-sm" onclick="showToast(\'Remove '+e.name+' — confirmation required\')">Remove</button></td>';
+    }
+    html += '</tr>';
+  });
+  document.getElementById('usersBody').innerHTML = html;
+
+  // invitations
+  if(INVITATIONS.length === 0) {
+    document.getElementById('invitationsBody').innerHTML = '<div style="text-align:center;padding:24px;color:var(--t3);font-size:13px">No pending invitations.</div>';
+    return;
+  }
+  var ihtml = '';
+  INVITATIONS.forEach(function(inv,i) {
+    var rbc = inv.role==='manager'?'rb-manager':'rb-employee';
+    var rl = inv.role==='manager'?'Manager':'Employee';
+    ihtml += '<div class="invite-row">';
+    ihtml += '<div style="width:34px;height:34px;border-radius:8px;background:var(--s3);display:flex;align-items:center;justify-content:center;flex-shrink:0">';
+    ihtml += '<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--t3)" stroke-width="1.5"><path d="M1 4h14v9a1 1 0 01-1 1H2a1 1 0 01-1-1V4z"/><path d="M1 4l7 6 7-6"/></svg></div>';
+    ihtml += '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+inv.email+'</div>';
+    ihtml += '<div style="font-size:11.5px;color:var(--t3)">Invited by '+inv.sentBy+' &middot; '+inv.sent+'</div></div>';
+    ihtml += '<span class="role-badge '+rbc+'">'+rl+'</span>';
+    ihtml += '<span class="pending-badge"><svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg> Pending</span>';
+    ihtml += '<div style="font-size:11px;color:var(--t3)">Expires '+inv.expires+'</div>';
+    ihtml += '<button class="btn btn-s btn-sm" onclick="cancelInvite('+i+')">Revoke</button>';
+    ihtml += '</div>';
+  });
+  document.getElementById('invitationsBody').innerHTML = ihtml;
+}
+
+function cancelInvite(i) {
+  showToast('Invitation to '+INVITATIONS[i].email+' revoked');
+  INVITATIONS.splice(i,1);
+  renderUsers();
+}
+
+/* ═══════════════════════════════════════════════
+   REPORTING
+═══════════════════════════════════════════════ */
+function renderGlobalDays() {
+  var html = '';
+  DAYS.forEach(function(d) {
+    var on = GLOBAL_DAYS.indexOf(d)>=0;
+    html += '<div class="day-btn'+(on?' on':'')+'" onclick="toggleGlobalDay(\''+d+'\')">'+d.slice(0,3)+'</div>';
+  });
+  document.getElementById('globalDays').innerHTML = html;
+  var active = GLOBAL_DAYS.length ? GLOBAL_DAYS.join(', ') : 'none';
+  document.getElementById('globalDayHint').textContent = GLOBAL_DAYS.length
+    ? 'Reports expected every '+active+'.'
+    : 'No reporting days selected — employees won\'t receive reminders.';
+}
+
+function toggleGlobalDay(d) {
+  var idx = GLOBAL_DAYS.indexOf(d);
+  if(idx>=0) GLOBAL_DAYS.splice(idx,1);
+  else GLOBAL_DAYS.push(d);
+  renderGlobalDays();
+}
+
+function renderPerEmpRows() {
+  var html = '';
+  EMPLOYEES.forEach(function(e) {
+    var days = EMP_DAYS[e.id] || [];
+    html += '<div class="emp-freq-row">';
+    html += '<div class="emp-freq-top"><div class="emp-freq-av" style="background:'+e.grad+'">'+e.initials+'</div>';
+    html += '<div><div style="font-size:13px;font-weight:600">'+e.name+'</div>';
+    html += '<div style="font-size:11.5px;color:var(--t3)">'+e.title+'</div></div></div>';
+    html += '<div class="day-row">';
+    DAYS.forEach(function(d) {
+      var on = days.indexOf(d)>=0;
+      html += '<div class="day-btn'+(on?' on':'')+'" onclick="toggleEmpDay(\''+e.id+'\',\''+d+'\')">'+d.slice(0,3)+'</div>';
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('perEmpRows').innerHTML = html;
+}
+
+function toggleEmpDay(empId, d) {
+  if(!EMP_DAYS[empId]) EMP_DAYS[empId]=[];
+  var idx = EMP_DAYS[empId].indexOf(d);
+  if(idx>=0) EMP_DAYS[empId].splice(idx,1);
+  else EMP_DAYS[empId].push(d);
+  renderPerEmpRows();
+}
+
+function setScope(v) {
+  SCOPE = v;
+  document.getElementById('scope-global').className = 'scope-tile'+(v==='global'?' on':'');
+  document.getElementById('scope-per').className    = 'scope-tile'+(v==='per'?' on':'');
+  document.getElementById('global-days').style.display = v==='global'?'block':'none';
+  document.getElementById('per-days').style.display    = v==='per'?'block':'none';
+}
+
+function toggleSetting(el, key) {
+  SETTINGS[key] = !SETTINGS[key];
+  el.className = 'toggle '+(SETTINGS[key]?'on':'off');
+}
+
+/* ═══════════════════════════════════════════════
+   HIERARCHY
+═══════════════════════════════════════════════ */
+function renderHierarchy() {
+  var html = '';
+  var managerOptions = EMPLOYEES
+    .filter(function(e){return e.role==='manager'||e.role==='owner';})
+    .map(function(e){return '<option value="'+e.id+'">'+e.name+'</option>';})
+    .join('');
+
+  EMPLOYEES.forEach(function(e) {
+    var rbc = e.role==='owner'?'rb-owner':e.role==='manager'?'rb-manager':'rb-employee';
+    var rl = e.role==='owner'?'Owner':e.role==='manager'?'Manager':'Employee';
+    html += '<tr>';
+    // employee cell
+    html += '<td><div class="emp-cell"><div class="emp-av" style="background:'+e.grad+'">'+e.initials+'</div>';
+    html += '<div><div class="emp-name">'+e.name+'</div><div class="emp-email">'+e.email+'</div></div></div></td>';
+    // role
+    html += '<td><span class="role-badge '+rbc+'">'+rl+'</span></td>';
+    // reports to
+    if(e.role==='owner') {
+      html += '<td><span style="font-size:12px;color:var(--t3)">— (Root)</span></td>';
+    } else {
+      html += '<td><select class="hsel" onchange="showToast(\'Reports-to updated for '+e.name+'\')"><option value="">No Manager</option>'+managerOptions+'<option selected value="e1">James Mitchell</option></select></td>';
+    }
+    // access level
+    if(e.role==='owner') {
+      html += '<td><span style="font-size:12px;color:var(--pu);font-weight:600">Full (Owner)</span></td>';
+    } else {
+      var isF = e.access==='full';
+      html += '<td><div class="access-radio">';
+      html += '<label class="radio-opt'+(isF?'':' sel')+'"><input type="radio" name="access_'+e.id+'" '+(isF?'':'checked')+' onchange="setAccess(\''+e.id+'\',\'limited\')"> Limited</label>';
+      html += '<label class="radio-opt'+(isF?' sel':'')+'"><input type="radio" name="access_'+e.id+'" '+(isF?'checked':'')+' onchange="setAccess(\''+e.id+'\',\'full\')"> Full (Senior)</label>';
+      html += '</div></td>';
+    }
+    // status
+    var you = e.id==='e1';
+    html += '<td style="font-size:12px;color:var(--t3)">'+(you?'<span style="color:var(--ac);font-weight:600">You</span>':e.dept)+'</td>';
+    html += '</tr>';
+  });
+  document.getElementById('hierarchyBody').innerHTML = html;
+}
+
+function setAccess(id, level) {
+  for(var i=0;i<EMPLOYEES.length;i++){
+    if(EMPLOYEES[i].id===id){EMPLOYEES[i].access=level;break;}
+  }
+  showToast('Access level updated');
+}
+
+/* ═══════════════════════════════════════════════
+   WEIGHTS SLIDER
+═══════════════════════════════════════════════ */
+function updateWeights() {
+  var g = parseInt(document.getElementById('goalWeight').value);
+  var o = 100-g;
+  document.getElementById('goalWeightVal').textContent = g+'%';
+  document.getElementById('orgWeightVal').textContent  = o+'%';
+  document.getElementById('orgWeightBar').style.width  = o+'%';
+}
+
+/* ═══════════════════════════════════════════════
+   DANGER ZONE
+═══════════════════════════════════════════════ */
+function showConfirm(id) {
+  document.getElementById(id).classList.add('show');
+}
+function hideConfirm(id) {
+  document.getElementById(id).classList.remove('show');
+}
+function checkDeleteConfirm() {
+  var v = document.getElementById('deleteConfirmInput').value.trim().toUpperCase();
+  if(v==='ACME INC') {
+    showToast('Deletion initiated — you will receive a confirmation email');
+    hideConfirm('confirm-delete');
+  } else {
+    showToast('Organization name does not match');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   TOAST / SAVE
+═══════════════════════════════════════════════ */
+function save(label) {
+  showToast((label||'Settings')+' saved successfully');
+}
+
+function showToast(msg) {
+  var t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2600);
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+renderMetrics();
+renderUsers();
+renderGlobalDays();
+renderPerEmpRows();
+renderHierarchy();
+</script>
+</body>
+</html>

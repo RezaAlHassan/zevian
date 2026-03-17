@@ -1,0 +1,307 @@
+'use client'
+
+import { colors, radius, typography, animation, layout, shadows, getAvatarGradient, getInitials, getScoreColor } from '@/design-system'
+import { Button } from '@/components/atoms/Button'
+import { Icon } from '@/components/atoms/Icon'
+import { StatusPill } from '@/components/atoms/StatusPill'
+import { ScoreDisplay, MiniBar, ScoreBar } from '@/components/atoms/Score'
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+import { Report } from '@/types'
+import { useScoreReport } from '@/hooks/useScoreReport'
+
+interface ReportDetailProps {
+    report: Report
+    role?: 'manager' | 'employee'
+}
+
+export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps) {
+    const router = useRouter()
+    const { loading: isScoring, error: scoringError, scoreReport } = useScoreReport()
+    
+    const [activeTab, setActiveTab] = useState<'breakdown' | 'content' | 'override' | 'activity'>('breakdown')
+    const [evaluationData, setEvaluationData] = useState<{
+        overall_score: number;
+        criterion_scores: any[];
+        summary: string;
+    } | null>(report.evaluationScore ? {
+        overall_score: report.evaluationScore,
+        criterion_scores: (report as any).criterionScores || [],
+        summary: report.aiSummary || report.evaluationReasoning || ''
+    } : null)
+
+    const handleScore = async () => {
+        if (!report.id || evaluationData) return
+        
+        const result = await scoreReport(report.id)
+        if (result) {
+            setEvaluationData(result)
+        }
+    }
+
+    const hasScored = !!evaluationData
+    const effectiveScore = report.managerOverallScore ?? evaluationData?.overall_score ?? report.evaluationScore
+    const scoreColor = getScoreColor(effectiveScore ?? 0)
+    const employeeName = report.employees?.name || 'Unknown'
+    const goalName = report.goals?.name || 'Unknown Goal'
+    const projectName = report.goals?.projects?.name || 'Unknown Project'
+    const status = report.reviewedBy ? 'reviewed' : (effectiveScore ? 'scored' : 'pending')
+
+    return (
+        <div style={{ background: colors.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            {/* Sticky Header with Breadcrumbs */}
+            <header style={{
+                position: 'sticky',
+                top: 0,
+                height: '56px',
+                background: 'rgba(10,12,16,0.9)',
+                backdropFilter: 'blur(12px)',
+                borderBottom: `1px solid ${colors.border}`,
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 24px',
+                gap: '10px',
+                zIndex: 90,
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: colors.text3 }}>
+                    <Link href="/reports" style={{ color: colors.text2, textDecoration: 'none' }}>Reports</Link>
+                    <span style={{ color: colors.text3 }}>/</span>
+                    <span style={{ color: colors.text, fontWeight: 500 }}>{employeeName}</span>
+                </div>
+                <div style={{ flex: 1 }} />
+                {scoringError && (
+                    <div style={{ fontSize: '12px', color: colors.warn, background: `${colors.warn}10`, padding: '4px 10px', borderRadius: '4px', border: `1px solid ${colors.warn}30` }}>
+                        {scoringError}
+                    </div>
+                )}
+                <Button variant="secondary" size="sm" onClick={() => router.back()} icon="x">Close</Button>
+            </header>
+
+            {/* Score Section */}
+            <div style={{ padding: '22px 26px', background: `linear-gradient(90deg, ${colors.accentGlow}, ${colors.tealGlow})`, borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '40px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                        {report.managerOverallScore ? 'Manager Override' : 'AI Score'}
+                    </div>
+                    {hasScored ? (
+                        <ScoreDisplay
+                            score={effectiveScore ?? 0}
+                            size="xl"
+                            showBar={true}
+                            animate={true}
+                        />
+                    ) : (
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                            <span style={{ fontSize: '52px', fontWeight: 800, letterSpacing: '-3px', lineHeight: 1, color: colors.text3 }}>—</span>
+                            <span style={{ fontSize: '18px', color: colors.text3 }}>/10</span>
+                        </div>
+                    )}
+                </div>
+
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '9px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: colors.text2 }}>
+                        <Icon name="goals" size={14} color={colors.text3} />
+                        <strong>{goalName}</strong>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: colors.text2 }}>
+                        <Icon name="projects" size={14} color={colors.text3} />
+                        <strong>{projectName}</strong>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: colors.text2 }}>
+                        <Icon name="clock" size={14} color={colors.text3} />
+                        {report.submissionDate ? new Date(report.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                    <StatusPill status={status as any} score={effectiveScore} />
+                    {!hasScored && (
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            icon="star"
+                            onClick={handleScore}
+                            disabled={isScoring}
+                        >
+                            {isScoring ? 'Scoring...' : 'Score with AI'}
+                        </Button>
+                    )}
+                </div>
+            </div>
+
+            {/* AI Summary Section */}
+            {hasScored && evaluationData?.summary && (
+                <div style={{ padding: '14px 26px', background: colors.tealGlow, borderBottom: `1px solid ${colors.border}`, display: 'flex', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: colors.tealGlow, border: `1px solid ${colors.teal}40`, borderRadius: '6px', padding: '4px 10px', fontSize: '11px', fontWeight: 700, color: colors.teal, height: 'fit-content' }}>
+                        <span style={{ fontSize: '14px' }}>✨</span>
+                        Zevian AI
+                    </div>
+                    <div style={{ fontSize: '13px', color: colors.text2, lineHeight: 1.65 }}>{evaluationData.summary}</div>
+                </div>
+            )}
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', borderBottom: `1px solid ${colors.border}`, padding: '0 26px', background: colors.surface }}>
+                {[
+                    { id: 'breakdown', label: 'Criteria Breakdown' },
+                    { id: 'content', label: 'Report Content' },
+                    ...(role === 'manager' ? [{ id: 'override', label: 'Manager Override' }] : []),
+                    { id: 'activity', label: 'Activity' }
+                ].map(tab => (
+                    <div
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        style={{
+                            padding: '12px 16px', fontSize: '13px', fontWeight: activeTab === tab.id ? 600 : 500,
+                            color: activeTab === tab.id ? colors.accent : colors.text3,
+                            cursor: 'pointer', borderBottom: `2px solid ${activeTab === tab.id ? colors.accent : 'transparent'}`,
+                            marginBottom: '-1px', transition: `all ${animation.fast}`
+                        }}
+                    >
+                        {tab.label}
+                        {tab.id === 'override' && report.managerOverallScore && (
+                            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: colors.accent, marginLeft: '6px', verticalAlign: 'middle' }} />
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* Tab Content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 26px' }}>
+                {activeTab === 'breakdown' && (
+                    <div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                            <Icon name="target" size={13} color={colors.accent} />
+                            Criteria Performance
+                        </div>
+                        {!hasScored ? (
+                            <div style={{ padding: '60px 0', textAlign: 'center' }}>
+                                <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: colors.accentGlow, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                                    <Icon name="star" size={26} color={colors.accent} />
+                                </div>
+                                <div style={{ fontSize: '16px', fontWeight: 800, color: colors.text, marginBottom: '8px' }}>Not yet scored</div>
+                                <div style={{ fontSize: '13px', color: colors.text3, maxWidth: '260px', margin: '0 auto' }}>Click "Score with AI" to generate an objective breakdown against each criterion.</div>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {evaluationData?.criterion_scores?.map((c: any, idx: number) => (
+                                    <div key={idx} style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '10px', padding: '16px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                            <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>{c.criterion_id || c.criterionName || 'Criterion'}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <ScoreDisplay score={c.score ?? 0} size="md" showBar={false} />
+                                                <ScoreBar score={c.score ?? 0} />
+                                            </div>
+                                        </div>
+                                        {(c.feedback || c.reasoning) && (
+                                            <div style={{ background: colors.surface3, padding: '10px 12px', borderRadius: '7px', fontSize: '12.5px', color: colors.text2, lineHeight: 1.6, marginBottom: '8px' }}>
+                                                {c.feedback || c.reasoning}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'content' && (
+                    <div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                            <Icon name="fileText" size={13} color={colors.accent} />
+                            Submitted Content
+                        </div>
+                        <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '10px', padding: '20px', fontSize: '13.5px', lineHeight: 1.8, color: colors.text, whiteSpace: 'pre-wrap' }}>
+                            {report.reportText}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'override' && (
+                    <div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                            <Icon name="edit" size={13} color={colors.accent} />
+                            Manager Score Override
+                        </div>
+                        <p style={{ fontSize: '13px', color: colors.text3, marginBottom: '20px', lineHeight: 1.6 }}>
+                            The AI score is the baseline. Override it when context the AI couldn't see changes the picture.
+                        </p>
+
+                        {report.managerOverallScore && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '16px', background: colors.surface2, borderRadius: '10px', marginBottom: '20px', border: `1px solid ${colors.border}` }}>
+                                <span className="font-numeric" style={{ fontSize: '24px', fontWeight: 700, color: colors.text3, textDecoration: 'line-through' }}>{report.evaluationScore?.toFixed(1)}</span>
+                                <Icon name="chevronRight" size={16} color={colors.text3} />
+                                <span className="font-numeric" style={{ fontSize: '32px', fontWeight: 800, color: colors.accent }}>{report.managerOverallScore.toFixed(1)}</span>
+                                <span style={{ padding: '3px 8px', background: colors.accentGlow, borderRadius: '20px', fontSize: '11px', fontWeight: 700, color: colors.accent }}>Manager Override</span>
+                            </div>
+                        )}
+
+                        <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, marginBottom: '8px', textTransform: 'uppercase' }}>Override Score</label>
+                                    <input
+                                        type="number"
+                                        min="0" max="10" step="0.1"
+                                        placeholder={report.evaluationScore?.toFixed(1) || '0.0'}
+                                        style={{ width: '100%', padding: '10px 14px', background: colors.surface3, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, fontSize: '15px', fontWeight: 600, outline: 'none' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, marginBottom: '8px', textTransform: 'uppercase' }}>Reason (Required)</label>
+                                    <textarea
+                                        placeholder="Explain why you're adjusting the score..."
+                                        style={{ width: '100%', padding: '10px 14px', background: colors.surface3, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, fontSize: '13px', lineHeight: 1.5, resize: 'none', minHeight: '80px', outline: 'none' }}
+                                    />
+                                </div>
+                            </div>
+                            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                                <Button variant="primary">Save Override</Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'activity' && (
+                    <div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                            <Icon name="clock" size={13} color={colors.accent} />
+                            Activity Log
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                            <div style={{ display: 'flex', gap: '15px', position: 'relative' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors.accent, marginTop: '6px', zIndex: 1 }} />
+                                    <div style={{ width: '1px', flex: 1, background: colors.border, margin: '4px 0' }} />
+                                </div>
+                                <div style={{ paddingBottom: '20px', flex: 1 }}>
+                                    <div style={{ fontSize: '13px', color: colors.text2 }}><strong>Zevian AI</strong> scored this report — overall {report.evaluationScore?.toFixed(1) || '—'}</div>
+                                    <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>{report.submissionDate ? new Date(report.submissionDate).toLocaleDateString() : ''}</div>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '15px', position: 'relative' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors.green, marginTop: '6px', zIndex: 1 }} />
+                                </div>
+                                <div style={{ paddingBottom: '20px', flex: 1 }}>
+                                    <div style={{ fontSize: '13px', color: colors.text2 }}><strong>{employeeName}</strong> submitted the report</div>
+                                    <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>{report.submissionDate ? new Date(report.submissionDate).toLocaleDateString() : ''}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Footer Meta */}
+            <div style={{ padding: '14px 26px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: colors.text3, background: colors.surface }}>
+                <Icon name="clock" size={13} color={colors.text3} />
+                Submitted {report.submissionDate ? new Date(report.submissionDate).toLocaleDateString() : 'N/A'}
+            </div>
+        </div>
+    )
+}

@@ -1,0 +1,120 @@
+# Implementation Plan: Organization General Settings & AI Evaluation Config
+
+This plan outlines the steps to connect the Organization settings page to the database and allow users to configure AI evaluation settings.
+
+## Proposed Changes
+
+### Database & Types
+
+#### [MODIFY] [index.ts](file:///e:/Zevian%20v3/zevian-next/src/types/index.ts)
+- Update [Organization](file:///e:/Zevian%20v3/zevian-next/src/types/index.ts#1-14) interface to include `goalWeight` and `aiEvaluationConfig`.
+
+#### [SQL] Database Schema Update
+- Add `goal_weight` (INTEGER DEFAULT 70) and `ai_config` (JSONB) to the `organizations` table.
+- I will provide the SQL script for this.
+
+---
+
+### Services & Actions
+
+#### [MODIFY] [databaseService2.ts](file:///e:/Zevian%20v3/zevian-next/databaseService2.ts)
+- Update `organizationService.getById` to fetch new columns.
+- Update `organizationService.update` to save new columns.
+
+#### [NEW] [organizationActions.ts](file:///e:/Zevian%20v3/zevian-next/src/app/actions/organizationActions.ts)
+- Create [getOrganizationAction()](file:///e:/Zevian%20v3/zevian-next/src/app/actions/organizationActions.ts#7-29): Fetches the organization for the current authenticated user.
+- Create [updateOrganizationAction(data)](file:///e:/Zevian%20v3/zevian-next/src/app/actions/organizationActions.ts#30-58): Updates the organization settings.
+
+---
+
+### Components & Pages
+
+#### [MODIFY] [page.tsx](file:///e:/Zevian%20v3/zevian-next/src/app/(app)/organization/page.tsx)
+- Change to an async server component.
+- Fetch organization data using [getOrganizationAction()](file:///e:/Zevian%20v3/zevian-next/src/app/actions/organizationActions.ts#7-29).
+- Pass the data to [OrganizationView](file:///e:/Zevian%20v3/zevian-next/src/components/organisms/OrganizationView.tsx#15-453).
+
+#### [MODIFY] [OrganizationView.tsx](file:///e:/Zevian%20v3/zevian-next/src/components/organisms/OrganizationView.tsx)
+- Add `organization` prop (DONE).
+- Initialize local state (org name, goal weight, submission policy) from the prop (DONE).
+- **[NEW]** Initialize `selectedMetrics` from `organization.selectedMetrics`.
+- **[NEW]** Connect "Save Metrics" button in the Metrics tab to [updateOrganizationAction](file:///e:/Zevian%20v3/zevian-next/src/app/actions/organizationActions.ts#30-58).
+- Add loading and success feedback states.
+
+#### [MODIFY] [DashboardView.tsx](file:///e:/Zevian%20v3/zevian-next/src/components/organisms/DashboardView.tsx)
+- Add `organization` prop.
+- Initialize `selectedMetrics` from `organization.selectedMetrics`.
+- Implement a way to toggle metrics (e.g., clicking on the dashed "Add metric" card).
+- When a metric is toggled, call [updateOrganizationAction](file:///e:/Zevian%20v3/zevian-next/src/app/actions/organizationActions.ts#30-58) to persist the change.
+
+#### [MODIFY] [dashboardActions.ts](file:///e:/Zevian%20v3/zevian-next/src/app/actions/dashboardActions.ts)
+- Update [getDashboardDataAction](file:///e:/Zevian%20v3/zevian-next/src/app/actions/dashboardActions.ts#6-36) to also fetch and return the `organization` object.
+
+---
+
+### Users & Hierarchy
+
+#### [MODIFY] [databaseService2.ts](file:///e:/Zevian%20v3/zevian-next/databaseService2.ts)
+- Add `employeeService.getByOrganizationId(orgId)` to fetch all employees for an organization.
+
+#### [MODIFY] [organizationActions.ts](file:///e:/Zevian%20v3/zevian-next/src/app/actions/organizationActions.ts)
+- Create [getOrganizationEmployeesAction()](file:///e:/Zevian%20v3/zevian-next/src/app/actions/organizationActions.ts#59-80): Fetches all employees for the current organization.
+
+#### [MODIFY] [page.tsx](file:///e:/Zevian%20v3/zevian-next/src/app/(app)/organization/page.tsx)
+- Fetch employees using [getOrganizationEmployeesAction()](file:///e:/Zevian%20v3/zevian-next/src/app/actions/organizationActions.ts#59-80).
+- Pass `employees` to [OrganizationView](file:///e:/Zevian%20v3/zevian-next/src/components/organisms/OrganizationView.tsx#15-453).
+
+#### [MODIFY] [OrganizationView.tsx](file:///e:/Zevian%20v3/zevian-next/src/components/organisms/OrganizationView.tsx)
+- Add `employees` prop.
+- Replace dummy `employees` array with the passed prop.
+- Update "Users" tab to display real employees.
+- Update "Hierarchy" tab to render the team structure based on `manager_id`.
+
+---
+
+### Reporting Policies Synchronization
+
+#### [SQL] Database Schema Update
+- Add `allow_late_submissions` (BOOLEAN DEFAULT TRUE) to `organizations`.
+- Add `require_report_submission` (BOOLEAN DEFAULT TRUE) to `organizations`.
+- Add `notify_manager_on_submission` (BOOLEAN DEFAULT FALSE) to `organizations`.
+- Add `global_frequency` (BOOLEAN DEFAULT TRUE) to `organizations`.
+
+#### [MODIFY] [index.ts](file:///e:/Zevian%20v3/zevian-next/src/types/index.ts)
+- Update [Organization](file:///e:/Zevian%20v3/zevian-next/src/types/index.ts#1-14) interface to include these proper fields instead of (or alongside) the JSONB `aiConfig`.
+
+#### [MODIFY] [databaseService2.ts](file:///e:/Zevian%20v3/zevian-next/databaseService2.ts)
+- Update `organizationService` to fetch and update these new columns.
+
+#### [MODIFY] [OrganizationView.tsx](file:///e:/Zevian%20v3/zevian-next/src/components/organisms/OrganizationView.tsx)
+- Update "Reporting" tab to include the "Global Frequency" toggle.
+- Ensure all toggles map to the individual database fields.
+- Ensure the "Save" logic persists these fields.
+
+## Verification Plan
+
+### Automated Tests
+- None currently available in the project.
+
+### Manual Verification
+1.  **Data Loading**:
+    -   Log in and go to the **Organization** page.
+    -   Verify that the organization name displayed matches the database.
+2.  **Organization Rename**:
+    -   Change the Organization Name to something else.
+    -   Click **Save Changes**.
+    -   Refresh the page and ensure the name remains updated.
+3.  **AI Config Change**:
+    -   Adjust the **Goal Criteria Weight** slider.
+    -   Toggle **Submission Policy** settings.
+    -   Click **Save Changes**.
+    -   Refresh the page and ensure these settings are persisted.
+4.  **Metrics Integration (Organization Page)**:
+    -   Go to the **Metrics** tab in Organization settings.
+    -   Select/deselect some metrics.
+    -   Click **Save Metrics**.
+    -   Verify that the changes are saved and reflected on the Dashboard.
+5.  **Metrics Integration (Dashboard)**:
+    -   On the Dashboard, find the "Organizational Metrics" section.
+    -   Click "Add metric" (or similar interaction) to toggle metrics.
+    -   Verify that the changes are persisted to the database and correctly update the UI.

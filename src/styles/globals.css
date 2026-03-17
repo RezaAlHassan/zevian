@@ -1,0 +1,277 @@
+/* ═══════════════════════════════════════════════════════════
+   ZEVIAN GLOBAL STYLES
+   Fonts are loaded via next/font in layout.tsx — no @import needed.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── CSS Variables ──────────────────────────── */
+:root {
+  /* Backgrounds */
+  --color-bg: #0a0c10;
+  --color-surface: #111318;
+  --color-surface-2: #181c24;
+  --color-surface-3: #1e2330;
+
+  /* Borders */
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-hover: rgba(255, 255, 255, 0.13);
+
+  /* Text */
+  --color-text: #f0f2f7;
+  --color-text-2: #8b93a8;
+  --color-text-3: #545d73;
+
+  /* Accent */
+  --color-accent: #5b7fff;
+  --color-accent-hover: #7090ff;
+  --color-accent-glow: rgba(91, 127, 255, 0.18);
+  --color-accent-border: rgba(91, 127, 255, 0.28);
+
+  /* Teal / AI */
+  --color-teal: #00d4aa;
+  --color-teal-glow: rgba(0, 212, 170, 0.12);
+
+  /* Semantic */
+  --color-green: #10b981;
+  --color-green-glow: rgba(16, 185, 129, 0.12);
+  --color-warn: #f59e0b;
+  --color-warn-glow: rgba(245, 158, 11, 0.12);
+  --color-danger: #f04438;
+  --color-danger-glow: rgba(240, 68, 56, 0.15);
+  --color-purple: #8b5cf6;
+  --color-purple-glow: rgba(139, 92, 246, 0.12);
+
+  /* Layout */
+  --sidebar-width: 220px;
+  --header-height: 56px;
+
+  /* Fonts — set by next/font variables in layout.tsx */
+  --font-display: var(--font-outfit-google), 'Outfit', sans-serif;
+  --font-body: var(--font-outfit-google), 'Outfit', sans-serif;
+  --font-mono: var(--font-mono-google), 'DM Mono', monospace;
+  --font-numeric: var(--font-outfit-google), 'Outfit', sans-serif;
+}
+
+/* ─── Base Reset ─────────────────────────────── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* ─── Scrollbar ──────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-3);
+}
+
+/* ─── Keyframes ──────────────────────────────── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(48px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes barGrow {
+  from {
+    width: 0%;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(91, 127, 255, 0.25);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(91, 127, 255, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(91, 127, 255, 0);
+  }
+}
+
+/* ─── Utility classes ────────────────────────── */
+.animate-fade-up {
+  animation: fadeUp 0.35s ease both;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.28s cubic-bezier(0.22, 0.68, 0, 1.2) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease both;
+}
+
+.font-numeric {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums lining-nums;
+  -moz-font-feature-settings: "tnum", "lnum";
+  -webkit-font-feature-settings: "tnum", "lnum";
+  font-feature-settings: "tnum", "lnum";
+}
+
+.delay-1 {
+  animation-delay: 0.05s;
+}
+
+.delay-2 {
+  animation-delay: 0.10s;
+}
+
+.delay-3 {
+  animation-delay: 0.15s;
+}
+
+.delay-4 {
+  animation-delay: 0.20s;
+}
+
+.delay-5 {
+  animation-delay: 0.25s;
+}
+
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+      var(--color-surface-2) 25%,
+      var(--color-surface-3) 50%,
+      var(--color-surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+.pulse-ring {
+  animation: pulse-ring 2.4s ease-in-out infinite;
+}
+
+.bar-animate {
+  animation: barGrow 0.8s ease both;
+}
+
+.section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--color-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.glow-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-green);
+  box-shadow: 0 0 6px var(--color-green);
+}

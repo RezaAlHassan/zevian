@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Zevian — Submit Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c10;--sf:#111318;--s2:#181c24;--s3:#1e2330;
+  --bd:rgba(255,255,255,.06);--bdh:rgba(255,255,255,.12);
+  --tx:#f0f2f7;--t2:#8b93a8;--t3:#545d73;
+  --ac:#5b7fff;--ag:rgba(91,127,255,.09);--ab:rgba(91,127,255,.25);
+  --te:#00d4aa;--tg:rgba(0,212,170,.07);--tb:rgba(0,212,170,.2);
+  --wn:#f59e0b;--wg:rgba(245,158,11,.08);--wb:rgba(245,158,11,.2);
+  --dn:#f04438;--dg:rgba(240,68,56,.07);--db:rgba(240,68,56,.2);
+  --gn:#10b981;--gg:rgba(16,185,129,.07);--gb:rgba(16,185,129,.22);
+  --pu:#8b5cf6;--pg:rgba(139,92,246,.08);--pb:rgba(139,92,246,.22);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;overflow:hidden;}
+::selection{background:rgba(91,127,255,.25);}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px;}
+
+/* ── LAYOUT ─────────────────────────────── */
+.shell{display:flex;height:100vh;}
+
+/* sidebar */
+.sidebar{width:216px;flex-shrink:0;background:var(--sf);border-right:1px solid var(--bd);display:flex;flex-direction:column;}
+.logo{height:54px;display:flex;align-items:center;gap:9px;padding:0 16px;border-bottom:1px solid var(--bd);}
+.lmark{width:26px;height:26px;background:var(--ac);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;box-shadow:0 0 16px rgba(91,127,255,.3);}
+.lname{font-weight:800;font-size:15px;letter-spacing:-.4px;}
+.nav{flex:1;padding:10px 8px;overflow-y:auto;}
+.nlabel{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.11em;padding:0 8px;margin:14px 0 5px;}
+.nlabel:first-child{margin-top:4px;}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .14s;}
+.ni svg{width:14px;height:14px;flex-shrink:0;opacity:.7;}
+.ni:hover{background:var(--s2);color:var(--tx);}
+.ni.on{background:var(--ag);color:var(--ac);}
+.ni.on svg{opacity:1;}
+.sfoot{padding:10px 8px;border-top:1px solid var(--bd);}
+.urow{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:pointer;transition:background .14s;}
+.urow:hover{background:var(--s2);}
+.av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--pu));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0;}
+.uname{font-size:12px;font-weight:700;line-height:1.2;}
+.urole{font-size:10px;color:var(--t3);}
+
+/* content */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{height:54px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;padding:0 24px;flex-shrink:0;}
+.topbar-title{font-size:14px;font-weight:800;letter-spacing:-.3px;}
+.page-body{flex:1;overflow-y:auto;padding:24px;}
+.page-inner{max-width:1060px;margin:0 auto;display:grid;grid-template-columns:1fr 272px;gap:20px;align-items:start;}
+
+/* ── BUTTONS ─────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;transition:all .14s;font-family:'Syne',sans-serif;border:none;line-height:1;}
+.btn svg{width:13px;height:13px;flex-shrink:0;}
+.btn-p{background:var(--ac);color:#fff;box-shadow:0 0 16px rgba(91,127,255,.22);}
+.btn-p:hover{background:#6e8fff;}
+.btn-p:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;}
+.btn-s{background:var(--s2);color:var(--t2);border:1px solid var(--bd);}
+.btn-s:hover{border-color:var(--bdh);color:var(--tx);}
+
+/* ── STEP TRACK ──────────────────────────── */
+.step-track{display:flex;align-items:center;margin-bottom:20px;padding:0 2px;}
+.s-outer{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;}
+.s-dot{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;color:var(--t3);transition:all .2s;}
+.s-dot.done{background:var(--gn);border-color:var(--gn);color:#fff;}
+.s-dot.act{background:var(--ac);border-color:var(--ac);color:#fff;box-shadow:0 0 10px rgba(91,127,255,.3);}
+.s-label{font-size:9.5px;font-weight:700;color:var(--t3);white-space:nowrap;}
+.s-label.done{color:var(--gn);}
+.s-label.act{color:var(--ac);}
+.s-line{flex:1;height:1.5px;background:var(--bd);margin:0 6px;transition:background .25s;margin-bottom:15px;}
+.s-line.done{background:var(--gn);}
+
+/* ── MAIN CARDS ──────────────────────────── */
+.section{background:var(--sf);border:1px solid var(--bd);border-radius:13px;overflow:hidden;transition:border-color .2s;}
+.section-hd{padding:13px 18px;display:flex;align-items:center;gap:10px;}
+.s-icon{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.s-icon.blue{background:var(--ac);}
+.s-icon.purple{background:var(--pu);}
+.s-icon.teal{background:var(--te);}
+.s-title{font-size:12px;font-weight:600;letter-spacing:0;color:var(--t2);}
+.s-hint{margin-left:auto;font-size:11px;color:var(--t3);}
+.section-body{padding:14px 18px;}
+.section-body + .section-body{padding-top:0;}
+
+/* ── CHIPS ───────────────────────────────── */
+.chips{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:8px;
+  background:var(--s2);border:1px solid var(--bd);
+  font-size:12px;font-weight:700;color:var(--t2);
+  cursor:pointer;transition:all .14s;
+}
+.chip svg{width:12px;height:12px;flex-shrink:0;opacity:.6;}
+.chip:hover{border-color:var(--bdh);color:var(--tx);}
+.chip.sel-proj{background:var(--ag);border-color:var(--ab);color:var(--ac);}
+.chip.sel-proj svg{opacity:1;}
+.chip.sel-goal{background:var(--pg);border-color:var(--pb);color:var(--pu);}
+.chip.sel-goal svg{opacity:1;}
+.chip-check{width:13px;height:13px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chip.sel-proj .chip-check{background:var(--ac);}
+.chip.sel-goal .chip-check{background:var(--pu);}
+.chip-check svg{width:7px;height:7px;stroke:#fff;}
+
+/* ── CRITERIA STRIP ──────────────────────── */
+.cstrip{
+  padding:11px 18px;background:var(--s2);border-top:1px solid var(--bd);
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+}
+.cstrip-label{font-size:9.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;flex-shrink:0;margin-right:2px;}
+.cp{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;letter-spacing:-.01em;}
+.cp.goal{background:rgba(139,92,246,.14);color:#b89cff;border:1px solid rgba(139,92,246,.3);}
+.cp.org{background:rgba(91,127,255,.14);color:#8eaaff;border:1px solid rgba(91,127,255,.3);}
+.cp-wt{opacity:.65;font-size:9px;margin-left:2px;}
+.cstrip-div{width:1px;height:18px;background:var(--bdh);flex-shrink:0;margin:0 5px;align-self:center;}
+
+/* ── EDITOR ──────────────────────────────── */
+.editor-placeholder{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:240px;padding:28px;text-align:center;
+}
+.editor-placeholder svg{width:28px;height:28px;color:var(--t3);margin-bottom:12px;opacity:.5;}
+.editor-placeholder h3{font-size:14px;font-weight:800;margin-bottom:5px;color:var(--t2);}
+.editor-placeholder p{font-size:12.5px;color:var(--t3);line-height:1.6;max-width:280px;}
+.editor{
+  width:100%;min-height:300px;background:transparent;border:none;outline:none;resize:none;
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:500;
+  color:var(--tx);line-height:1.8;padding:20px 18px;
+}
+.editor::placeholder{color:var(--t3);}
+.editor-bar{
+  padding:11px 16px;border-top:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.attach-btn{
+  display:flex;align-items:center;gap:5px;padding:6px 11px;
+  border-radius:7px;background:transparent;border:1px solid var(--bd);
+  font-size:11.5px;font-weight:700;color:var(--t3);cursor:pointer;
+  transition:all .14s;font-family:'Syne',sans-serif;
+}
+.attach-btn:hover{border-color:var(--bdh);color:var(--t2);}
+.attach-btn svg{width:12px;height:12px;}
+.wcount{font-size:11px;font-weight:700;color:var(--t3);font-variant-numeric:tabular-nums;}
+.wcount.warn{color:var(--wn);}
+.wcount.danger{color:var(--dn);}
+
+/* file list */
+.flist{padding:0 16px 12px;display:flex;flex-direction:column;gap:3px;}
+.frow{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;background:var(--s2);border:1px solid var(--bd);}
+.frow svg{width:11px;height:11px;color:var(--t3);}
+.fname{flex:1;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fsize{font-size:10.5px;color:var(--t3);}
+.fdel{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);transition:all .13s;}
+.fdel:hover{background:var(--dg);color:var(--dn);}
+.fdel svg{width:9px;height:9px;}
+
+/* ── RIGHT SIDEBAR ───────────────────────── */
+.panel{background:var(--sf);border:1px solid var(--bd);border-radius:13px;overflow:hidden;margin-bottom:12px;}
+.panel:last-child{margin-bottom:0;}
+.panel-hd{padding:12px 15px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.panel-title{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.09em;}
+.panel-badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:4px;}
+.panel-body{padding:12px 14px;}
+
+/* due date */
+.due{display:flex;align-items:center;gap:8px;padding:10px 13px;border-radius:9px;background:var(--wg);border:1px solid var(--wb);}
+.due svg{width:12px;height:12px;color:var(--wn);flex-shrink:0;}
+.due-label{font-size:12px;font-weight:800;color:var(--wn);}
+.due-sub{font-size:10px;color:rgba(245,158,11,.6);margin-top:1px;}
+
+/* proj panel */
+.proj-detail{padding:11px 13px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;}
+.pname{font-size:13px;font-weight:800;margin-bottom:1px;}
+.pcat{font-size:10.5px;color:var(--t3);}
+.pbadge{display:inline-flex;align-items:center;gap:4px;margin-top:7px;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:var(--ag);color:var(--ac);border:1px solid var(--ab);}
+.pbadge svg{width:9px;height:9px;}
+.kb-btn{display:flex;align-items:center;gap:6px;margin-top:8px;padding:7px 10px;border-radius:7px;background:var(--tg);border:1px solid var(--tb);font-size:11.5px;font-weight:700;color:var(--te);cursor:pointer;transition:all .14s;}
+.kb-btn:hover{background:rgba(0,212,170,.12);}
+.kb-btn svg{width:11px;height:11px;}
+
+/* empty panel state */
+.pempty{padding:20px;text-align:center;}
+.pempty svg{width:18px;height:18px;color:var(--t3);margin:0 auto 7px;display:block;opacity:.5;}
+.pempty p{font-size:11.5px;color:var(--t3);}
+
+/* goal guide */
+.gguide{padding:12px 14px;background:var(--s2);border:1px solid var(--bd);border-radius:9px;margin-bottom:6px;}
+.gguide:last-child{margin-bottom:0;}
+.gname{font-size:11.5px;font-weight:600;color:var(--pu);margin-bottom:5px;}
+.gtext{font-size:13px;color:var(--t2);line-height:1.7;}
+
+/* org metrics panel */
+.om-note{font-size:11.5px;color:var(--t3);line-height:1.6;margin-bottom:10px;}
+.om-scores{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+.om-score-row{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;}
+.om-emo{font-size:13px;flex-shrink:0;line-height:1;}
+.om-name{font-size:12.5px;font-weight:600;color:var(--tx);flex:1;}
+.om-score-wrap{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.om-mini-bar{width:40px;height:3px;background:var(--s3);border-radius:2px;overflow:hidden;}
+.om-mini-fill{height:100%;border-radius:2px;}
+.om-mini-fill.great{background:var(--gn);}
+.om-mini-fill.ok{background:var(--wn);}
+.om-mini-fill.risk{background:var(--dn);}
+.om-score{font-size:13px;font-weight:800;min-width:24px;text-align:right;}
+.om-score.great{color:var(--gn);}
+.om-score.ok{color:var(--wn);}
+.om-score.risk{color:var(--dn);}
+/* "View all metrics" accordion */
+.om-view-all{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;border-radius:8px;border:1px solid var(--bd);cursor:pointer;background:transparent;transition:border-color .14s;font-family:'Syne',sans-serif;width:100%;}
+.om-view-all:hover{border-color:var(--bdh);}
+.om-view-all.open{border-color:var(--ab);background:var(--ag);}
+.om-view-all-label{font-size:11.5px;font-weight:700;color:var(--t2);}
+.om-view-all.open .om-view-all-label{color:var(--ac);}
+.om-chevron{width:13px;height:13px;color:var(--t3);transition:transform .2s;}
+.om-view-all.open .om-chevron{transform:rotate(180deg);}
+.om-list{display:none;margin-top:6px;display:flex;flex-direction:column;gap:3px;}
+.om-list.hidden{display:none;}
+.om-list-item{padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;}
+.om-list-name{font-size:11.5px;font-weight:700;color:var(--ac);margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+.om-list-desc{font-size:12px;color:var(--t2);line-height:1.65;}
+
+/* ── MODAL ───────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(5px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--sf);border:1px solid var(--bd);border-radius:15px;width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;transform:translateY(10px);transition:transform .22s cubic-bezier(.4,0,.2,1);}
+.overlay.open .modal{transform:translateY(0);}
+.modal-hd{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-title{font-size:14px;font-weight:800;letter-spacing:-.2px;}
+.modal-close{width:26px;height:26px;border-radius:6px;background:var(--s2);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t2);transition:all .13s;}
+.modal-close:hover{background:var(--s3);color:var(--tx);}
+.modal-close svg{width:11px;height:11px;}
+.modal-body{flex:1;overflow-y:auto;padding:20px;}
+.modal-ft{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;flex-shrink:0;}
+
+/* loading state */
+.loading-state{padding:48px 20px;text-align:center;}
+.spin-ring{width:44px;height:44px;border-radius:50%;border:2.5px solid var(--bd);border-top-color:var(--ac);animation:spin .7s linear infinite;margin:0 auto 16px;}
+.loading-title{font-size:14px;font-weight:800;margin-bottom:5px;}
+.loading-sub{font-size:12.5px;color:var(--t2);}
+
+/* results */
+.goal-section{margin-bottom:24px;}
+.goal-section:last-child{margin-bottom:0;}
+.gsec-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.gsec-label svg{width:11px;height:11px;}
+.gsec-label.goal{color:var(--pu);}
+.gsec-label.org{color:var(--ac);}
+
+.score-card{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-radius:11px;margin-bottom:14px;}
+.score-card.great{background:var(--gg);border:1px solid var(--gb);}
+.score-card.ok{background:var(--wg);border:1px solid var(--wb);}
+.score-card.risk{background:var(--dg);border:1px solid var(--db);}
+.score-big{font-size:36px;font-weight:800;letter-spacing:-.8px;line-height:1;}
+.score-denom{font-size:14px;font-weight:600;color:var(--t2);margin-left:1px;}
+.score-tag{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-top:4px;}
+.score-card.great .score-big,.score-card.great .score-tag{color:var(--gn);}
+.score-card.ok .score-big,.score-card.ok .score-tag{color:var(--wn);}
+.score-card.risk .score-big,.score-card.risk .score-tag{color:var(--dn);}
+.score-pills{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+.score-pill{padding:2px 8px;border-radius:4px;font-size:9.5px;font-weight:700;background:rgba(255,255,255,.05);color:var(--t2);}
+
+.reasoning{padding:11px 13px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;font-size:12.5px;color:var(--t2);line-height:1.65;font-style:italic;margin-bottom:12px;}
+
+.crit-section-label{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.cr{padding:9px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;margin-bottom:5px;}
+.cr:last-child{margin-bottom:0;}
+.cr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.cr-name{font-size:11.5px;font-weight:700;}
+.cr-score{font-size:12px;font-weight:800;}
+.cr-score.great{color:var(--gn);}
+.cr-score.ok{color:var(--wn);}
+.cr-score.risk{color:var(--dn);}
+.cr-bar{height:3px;background:var(--s3);border-radius:2px;margin-bottom:7px;}
+.cr-fill{height:100%;border-radius:2px;transition:width .55s cubic-bezier(.4,0,.2,1);}
+.cr-fill.great{background:var(--gn);}
+.cr-fill.ok{background:var(--wn);}
+.cr-fill.risk{background:var(--dn);}
+.cr-reason{font-size:11px;color:var(--t3);line-height:1.55;}
+.cr-evidence{margin-top:5px;padding:5px 9px;background:var(--s3);border-left:2px solid var(--ab);border-radius:0 5px 5px 0;font-size:10.5px;color:var(--t2);font-style:italic;}
+
+.modal-divider{height:1px;background:var(--bd);margin:20px 0;}
+
+/* ── TOAST ───────────────────────────────── */
+.toast{
+  position:fixed;bottom:22px;right:22px;z-index:999;
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:10px;
+  font-size:12.5px;font-weight:700;
+  opacity:0;transform:translateY(8px);
+  transition:all .22s cubic-bezier(.4,0,.2,1);pointer-events:none;
+  box-shadow:0 6px 24px rgba(0,0,0,.35);
+}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.success{background:var(--gn);color:#fff;}
+.toast.error{background:var(--dn);color:#fff;}
+.toast svg{width:12px;height:12px;}
+
+/* ── ANIMS ───────────────────────────────── */
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes up{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fade-up{animation:up .25s ease both;}
+.spinner{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;animation:spin .6s linear infinite;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ── SIDEBAR ─────────────────────────────── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="lmark">Z</div>
+    <span class="lname">Zevian</span>
+  </div>
+  <nav class="nav">
+    <div class="nlabel">Workspace</div>
+    <div class="ni"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>Dashboard</div>
+    <div class="ni"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 3V1h6v2"/></svg>Projects</div>
+    <div class="ni"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg>Goals</div>
+    <div class="ni on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 4h12M2 8h8M2 12h6"/><circle cx="13" cy="12" r="2.5"/><path d="M13 9.5V11"/></svg>Submit Report</div>
+    <div class="ni"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>My Performance</div>
+  </nav>
+  <div class="sfoot">
+    <div class="urow">
+      <div class="av">SR</div>
+      <div style="flex:1;min-width:0">
+        <div class="uname">Sofia Reyes</div>
+        <div class="urole">Engineer · Q1 Sprint</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── CONTENT ──────────────────────────────── -->
+<div class="content">
+  <div class="topbar">
+    <span class="topbar-title">Submit Report</span>
+    <button class="btn btn-s" onclick="saveDraft()" style="font-size:12px;padding:7px 13px;">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 2h9l3 3v9a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M11 14V9H5v5M5 2v4h6"/></svg>
+      Save draft
+    </button>
+  </div>
+
+  <div class="page-body">
+    <div class="page-inner">
+
+      <!-- ── MAIN ── -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <!-- step track -->
+        <div class="step-track">
+          <div class="s-outer"><div class="s-dot" id="sd1">1</div><div class="s-label" id="sl1">Project</div></div>
+          <div class="s-line" id="sl-1"></div>
+          <div class="s-outer"><div class="s-dot" id="sd2">2</div><div class="s-label" id="sl2">Goals</div></div>
+          <div class="s-line" id="sl-2"></div>
+          <div class="s-outer"><div class="s-dot" id="sd3">3</div><div class="s-label" id="sl3">Write</div></div>
+          <div class="s-line" id="sl-3"></div>
+          <div class="s-outer"><div class="s-dot" id="sd4">4</div><div class="s-label" id="sl4">Review</div></div>
+        </div>
+
+        <!-- project selection -->
+        <div class="section" id="projSection">
+          <div class="section-hd">
+            <div class="s-icon blue"></div>
+            <span class="s-title">Project</span>
+          </div>
+          <div class="section-body">
+            <div class="chips" id="projChips"></div>
+          </div>
+        </div>
+
+        <!-- goal selection -->
+        <div class="section" id="goalSection" style="display:none">
+          <div class="section-hd">
+            <div class="s-icon purple"></div>
+            <span class="s-title">Goals</span>
+            <span class="s-hint">Select one or more</span>
+          </div>
+          <div class="section-body">
+            <div class="chips" id="goalChips"></div>
+          </div>
+        </div>
+
+        <!-- editor -->
+        <div class="section" id="editorSection">
+          <div class="section-hd">
+            <div class="s-icon teal"></div>
+            <span class="s-title">Report</span>
+            <span class="s-hint">Min. 50 characters</span>
+          </div>
+
+          <!-- criteria strip -->
+          <div class="cstrip" id="cstrip" style="display:none"></div>
+
+          <!-- placeholder -->
+          <div class="editor-placeholder" id="edPlaceholder">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h12M2 8h9M2 12h6"/></svg>
+            <h3>Select a project &amp; goals first</h3>
+            <p>Then write your report here. The AI will score it against your chosen criteria.</p>
+          </div>
+
+          <!-- textarea -->
+          <textarea class="editor" id="editor" style="display:none"
+            placeholder="Describe your work, results, and impact this period. Be specific — evidence and metrics strengthen your score…"
+            oninput="onEditorInput()"></textarea>
+
+          <!-- files -->
+          <div id="fileWrap" style="display:none"><div class="flist" id="flist"></div></div>
+
+          <!-- bar -->
+          <div class="editor-bar" id="edBar" style="display:none">
+            <button class="attach-btn" onclick="mockAttach()">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 7.5l-6 6a4 4 0 01-5.5-5.5L8 2a2.5 2.5 0 013.5 3.5L5 11.5a1 1 0 01-1.5-1.5l5.5-5.5"/></svg>
+              Attach
+            </button>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="wcount" id="wcount">0 / 3,000</span>
+              <button class="btn btn-p" id="analyzeBtn" onclick="openModal()" disabled>
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1l1.5 4.5H14l-3.75 2.75 1.5 4.5L8 10l-3.75 2.75 1.5-4.5L2 5.5h4.5z"/></svg>
+                Analyse &amp; Submit
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /main -->
+
+      <!-- ── RIGHT SIDEBAR ── -->
+      <div style="position:sticky;top:0;display:flex;flex-direction:column;gap:12px;">
+
+        <!-- due date -->
+        <div class="due">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M2 6h12M5 1v2M11 1v2"/></svg>
+          <div>
+            <div class="due-label">Due in 2 days</div>
+            <div class="due-sub">Weekly · Fri 14 Mar 2026</div>
+          </div>
+        </div>
+
+        <!-- project info -->
+        <div class="panel" id="projPanel">
+          <div class="panel-hd">
+            <span class="panel-title">Project</span>
+          </div>
+          <div class="panel-body" id="projPanelBody">
+            <div class="pempty">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 3V1h6v2"/></svg>
+              <p>No project selected</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- goal guidelines -->
+        <div class="panel" id="goalPanel">
+          <div class="panel-hd">
+            <span class="panel-title">Goal Guidelines</span>
+          </div>
+          <div class="panel-body" id="goalPanelBody">
+            <div class="pempty">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg>
+              <p>Select goals to see guidelines</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- org metrics -->
+        <div class="panel">
+          <div class="panel-hd">
+            <span class="panel-title">Org Metrics</span>
+            <span class="panel-badge" style="background:var(--ag);color:var(--ac);border:1px solid var(--ab);">30% of score</span>
+          </div>
+          <div class="panel-body" id="omBody"></div>
+        </div>
+
+      </div><!-- /sidebar -->
+
+    </div><!-- /page-inner -->
+  </div><!-- /page-body -->
+</div><!-- /content -->
+</div><!-- /shell -->
+
+<!-- ── MODAL ─────────────────────────────────── -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="modalTitle">Analysing…</span>
+      <button class="modal-close" onclick="closeModal()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3l10 10M13 3L3 13"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="loading-state" id="loadingState">
+        <div class="spin-ring"></div>
+        <div class="loading-title">Analysing your report…</div>
+        <div class="loading-sub">Scoring against your criteria. Takes a few seconds.</div>
+      </div>
+      <div id="resultsState" style="display:none"></div>
+    </div>
+    <div class="modal-ft" id="modalFt" style="display:none">
+      <button class="btn btn-s" style="flex:1" onclick="closeModal()">Revise</button>
+      <button class="btn btn-p" style="flex:1" id="confirmBtn" onclick="confirmSubmit()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 4"/></svg>
+        Confirm submission
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 8l3.5 3.5L13 4"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════════════ */
+const PROJECTS = [
+  {id:'p1',name:'Engineering Sprint Alpha',category:'Engineering',freq:'Weekly',kb:true,goals:['g1','g2','g3']},
+  {id:'p2',name:'Design Sprint Q1',category:'Design',freq:'Bi-weekly',kb:false,goals:['g4','g5']},
+  {id:'p3',name:'Q1 Campaign Launch',category:'Marketing',freq:'Weekly',kb:true,goals:['g6']},
+];
+
+const GOALS = {
+  g1:{id:'g1',name:'Code Quality & Delivery',
+    instructions:'Focus on test coverage, PR review turnaround, and documented code. Evidence of regression prevention is valued.',
+    criteria:[{n:'Code Quality',w:40},{n:'On-time Delivery',w:35},{n:'Documentation',w:25}]},
+  g2:{id:'g2',name:'Engineering Team Leadership',
+    instructions:'Highlight mentoring moments, cross-team unblocking, and initiative taken without being asked.',
+    criteria:[{n:'Mentorship',w:45},{n:'Initiative',w:30},{n:'Cross-team Impact',w:25}]},
+  g3:{id:'g3',name:'Backend Performance',
+    instructions:'Share concrete metrics — latency, throughput, error rates. Explain root causes and solutions clearly.',
+    criteria:[{n:'Metric Improvement',w:50},{n:'Root Cause Analysis',w:30},{n:'Documentation',w:20}]},
+  g4:{id:'g4',name:'Design Execution',
+    instructions:'Show fidelity between designs and delivered components. Note any scope changes.',
+    criteria:[{n:'Handoff Quality',w:50},{n:'Iteration Speed',w:30},{n:'Stakeholder Feedback',w:20}]},
+  g5:{id:'g5',name:'Research & Discovery',
+    instructions:'Summarise user research, insights found, and how they shaped design decisions.',
+    criteria:[{n:'Insight Quality',w:50},{n:'Research Thoroughness',w:30},{n:'Decision Impact',w:20}]},
+  g6:{id:'g6',name:'Campaign Execution Q1',
+    instructions:'Report on channels, content shipped, and early performance signals (CTR, reach, leads).',
+    criteria:[{n:'Campaign Reach',w:40},{n:'Content Quality',w:35},{n:'Lead Generation',w:25}]},
+};
+
+const ORG_METRICS = [
+  {id:'communication',name:'Communication',desc:'Clarity, transparency, and proactive sharing of progress and blockers.',emo:'💬'},
+  {id:'ownership',    name:'Ownership',    desc:'Taking full responsibility for outcomes and following through without being chased.',emo:'🎯'},
+  {id:'initiative',   name:'Initiative',   desc:'Identifying and acting on problems or opportunities without being asked.',emo:'⚡'},
+];
+
+const MOCK_GOAL = {
+  g1:{score:8.2,cls:'great',reason:'Strong evidence of delivery discipline. Documentation could go deeper but execution is clear.',
+    crits:[
+      {n:'Code Quality',    s:8.5,cls:'great',r:'Specific refactoring and coverage examples.',         e:'merged 3 PRs with 92% test coverage'},
+      {n:'On-time Delivery',s:8.0,cls:'great',r:'All sprint tickets delivered. One rolled with reason.',e:'5 of 5 sprint tickets closed'},
+      {n:'Documentation',   s:7.9,cls:'great',r:'Good on core changes, lighter on edge cases.',         e:'updated ADR for auth service changes'},
+    ]},
+  g2:{score:7.4,cls:'ok',reason:'Good mentorship examples but leadership impact is hard to quantify. Add specific team outcomes.',
+    crits:[
+      {n:'Mentorship',       s:8.1,cls:'great',r:'Three mentoring sessions with clear context.',              e:'2 pairing sessions with junior devs'},
+      {n:'Initiative',       s:7.2,cls:'ok',  r:'One proactive action — more examples would help.',          e:'flagged DB migration risk early'},
+      {n:'Cross-team Impact',s:6.8,cls:'ok',  r:'Some coordination mentioned but outcomes are vague.',       e:'coordinated with design on modal specs'},
+    ]},
+};
+
+const MOCK_ORG = {
+  communication:{s:8.4,cls:'great',r:'Regular, clear updates throughout the week. Blockers surfaced before being asked.',     e:'posted 3 async status updates proactively'},
+  ownership:    {s:7.8,cls:'great',r:'Tasks tracked to completion. One open item noted with a clear plan.',                    e:'self-assigned unowned API bug, closed in 24h'},
+  initiative:   {s:7.1,cls:'ok',  r:'One proactive improvement acted on. More examples would strengthen this dimension.',     e:'suggested caching layer before performance issue surfaced'},
+};
+
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+const S = { projId:null, goalIds:[], text:'', files:[] };
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+function init() {
+  renderProjChips();
+  renderOrgPanel();
+  syncSteps();
+}
+
+/* ═══════════════════════════════════════════════════
+   PROJECT
+═══════════════════════════════════════════════════ */
+function renderProjChips() {
+  document.getElementById('projChips').innerHTML = PROJECTS.map(p => {
+    const sel = S.projId === p.id;
+    return `<div class="chip${sel?' sel-proj':''}" onclick="pickProj('${p.id}')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 3V1h6v2"/></svg>
+      ${p.name}
+      ${sel ? `<div class="chip-check"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1.5 5l2.5 2.5 4.5-4.5"/></svg></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function pickProj(id) {
+  S.projId = id; S.goalIds = [];
+  renderProjChips();
+  renderGoalChips();
+  syncSideProj();
+  syncSideGoals();
+  syncCstrip();
+  syncEditor();
+  syncSteps();
+  const gs = document.getElementById('goalSection');
+  gs.style.display = 'block';
+  gs.className = 'section fade-up';
+}
+
+/* ═══════════════════════════════════════════════════
+   GOALS
+═══════════════════════════════════════════════════ */
+function renderGoalChips() {
+  const p = PROJECTS.find(x => x.id === S.projId);
+  if (!p) return;
+  document.getElementById('goalChips').innerHTML = p.goals.map(gid => {
+    const g = GOALS[gid], sel = S.goalIds.includes(gid);
+    return `<div class="chip${sel?' sel-goal':''}" onclick="toggleGoal('${gid}')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg>
+      ${g.name}
+      ${sel ? `<div class="chip-check"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1.5 5l2.5 2.5 4.5-4.5"/></svg></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function toggleGoal(id) {
+  const i = S.goalIds.indexOf(id);
+  i >= 0 ? S.goalIds.splice(i,1) : S.goalIds.push(id);
+  renderGoalChips();
+  syncCstrip();
+  syncEditor();
+  syncSideGoals();
+  syncSteps();
+}
+
+/* ═══════════════════════════════════════════════════
+   CRITERIA STRIP
+═══════════════════════════════════════════════════ */
+function syncCstrip() {
+  const el = document.getElementById('cstrip');
+  if (!S.goalIds.length) { el.style.display='none'; return; }
+  const crits = S.goalIds.flatMap(gid => GOALS[gid].criteria);
+  let h = `<span class="cstrip-label">Goal criteria</span>`;
+  crits.forEach(c => { h += `<span class="cp goal">${c.n}<span class="cp-wt">${c.w}%</span></span>`; });
+  h += `<div class="cstrip-div"></div><span class="cstrip-label">Org metrics</span>`;
+  ORG_METRICS.forEach(m => { h += `<span class="cp org">${m.emo} ${m.name}</span>`; });
+  el.innerHTML = h;
+  el.style.display = 'flex';
+}
+
+/* ═══════════════════════════════════════════════════
+   EDITOR
+═══════════════════════════════════════════════════ */
+function syncEditor() {
+  const ready = S.projId && S.goalIds.length > 0;
+  document.getElementById('edPlaceholder').style.display = ready ? 'none' : 'flex';
+  document.getElementById('editor').style.display       = ready ? 'block' : 'none';
+  document.getElementById('edBar').style.display        = ready ? 'flex' : 'none';
+  if (ready) document.getElementById('editor').focus();
+  syncAnalyzeBtn();
+}
+
+function onEditorInput() {
+  S.text = document.getElementById('editor').value;
+  const len = S.text.trim().length;
+  const wc = document.getElementById('wcount');
+  wc.textContent = len.toLocaleString() + ' / 3,000';
+  wc.className = 'wcount' + (len > 2700 ? (len > 2900 ? ' danger' : ' warn') : '');
+  syncAnalyzeBtn();
+  syncSteps();
+}
+
+function syncAnalyzeBtn() {
+  document.getElementById('analyzeBtn').disabled = !(S.goalIds.length && S.text.trim().length >= 50);
+}
+
+/* ═══════════════════════════════════════════════════
+   FILES
+═══════════════════════════════════════════════════ */
+const DEMO_FILES = ['Q1-metrics.pdf','sprint-notes.md','perf-data.xlsx'];
+let fIdx = 0;
+
+function mockAttach() {
+  if (fIdx >= DEMO_FILES.length) return;
+  S.files.push({id:Date.now(),name:DEMO_FILES[fIdx++],size:(Math.random()*180+20).toFixed(0)+' KB'});
+  renderFiles();
+}
+
+function renderFiles() {
+  const w = document.getElementById('fileWrap');
+  if (!S.files.length) { w.style.display='none'; return; }
+  w.style.display = 'block';
+  document.getElementById('flist').innerHTML = S.files.map(f => `
+    <div class="frow">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 2h6l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M10 2v4h4"/></svg>
+      <span class="fname">${f.name}</span>
+      <span class="fsize">${f.size}</span>
+      <div class="fdel" onclick="delFile(${f.id})">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3l10 10M13 3L3 13"/></svg>
+      </div>
+    </div>`).join('');
+}
+
+function delFile(id) { S.files = S.files.filter(f=>f.id!==id); renderFiles(); }
+
+/* ═══════════════════════════════════════════════════
+   SIDEBAR SYNC
+═══════════════════════════════════════════════════ */
+function syncSideProj() {
+  const p = PROJECTS.find(x => x.id === S.projId);
+  const body = document.getElementById('projPanelBody');
+  if (!p) { body.innerHTML = `<div class="pempty"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M5 3V1h6v2"/></svg><p>No project selected</p></div>`; return; }
+  body.innerHTML = `
+    <div class="proj-detail">
+      <div class="pname">${p.name}</div>
+      <div class="pcat">${p.category}</div>
+      <div class="pbadge">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M2 6h12"/></svg>
+        ${p.freq}
+      </div>
+    </div>
+    ${p.kb ? `<div class="kb-btn" onclick="showToast('Opening knowledge base…','success')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 2h8a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z"/><path d="M8 6v4M6 8h4"/></svg>
+      Knowledge Base
+    </div>` : ''}`;
+}
+
+function syncSideGoals() {
+  const body = document.getElementById('goalPanelBody');
+  if (!S.goalIds.length) {
+    body.innerHTML = `<div class="pempty"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg><p>Select goals to see guidelines</p></div>`;
+    return;
+  }
+  body.innerHTML = S.goalIds.map(gid => {
+    const g = GOALS[gid];
+    return `<div class="gguide">
+      <div class="gname">${g.name}</div>
+      <div class="gtext">${g.instructions}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderOrgPanel() {
+  const note = `<div class="om-note">Applied to every report · <span style="color:var(--ac);font-weight:700;cursor:pointer" onclick="showToast('Go to Organization → Reporting','success')">Org Settings ↗</span></div>`;
+
+  // Score rows — always visible
+  const scoreRows = ORG_METRICS.map(m => {
+    const res = MOCK_ORG[m.id] || {s:7.0,cls:'ok'};
+    return `<div class="om-score-row">
+      <span class="om-emo">${m.emo}</span>
+      <span class="om-name">${m.name}</span>
+      <div class="om-score-wrap">
+        <div class="om-mini-bar"><div class="om-mini-fill ${res.cls}" style="width:${res.s*10}%"></div></div>
+        <span class="om-score ${res.cls}">${res.s.toFixed(1)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Metric detail list — hidden until "View all metrics" clicked
+  const metricList = ORG_METRICS.map(m => `
+    <div class="om-list-item">
+      <div class="om-list-name">${m.emo} ${m.name}</div>
+      <div class="om-list-desc">${m.desc}</div>
+    </div>`).join('');
+
+  document.getElementById('omBody').innerHTML = note
+    + `<div class="om-scores">${scoreRows}</div>`
+    + `<button class="om-view-all" id="omViewAll" onclick="toggleOmList()">
+        <span class="om-view-all-label">View all metrics</span>
+        <svg class="om-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 6l4 4 4-4"/></svg>
+       </button>`
+    + `<div class="om-list hidden" id="omList">${metricList}</div>`;
+}
+
+function toggleOmList() {
+  const btn  = document.getElementById('omViewAll');
+  const list = document.getElementById('omList');
+  const open = btn.classList.toggle('open');
+  list.classList.toggle('hidden', !open);
+  btn.querySelector('.om-view-all-label').textContent = open ? 'Hide metrics' : 'View all metrics';
+}
+
+/* ═══════════════════════════════════════════════════
+   STEP INDICATOR
+═══════════════════════════════════════════════════ */
+function syncSteps() {
+  const hasP = !!S.projId, hasG = S.goalIds.length > 0, hasT = S.text.trim().length >= 50;
+  const set = (n, st) => {
+    const d = document.getElementById('sd'+n), l = document.getElementById('sl'+n);
+    d.className = 's-dot' + (st==='done'?' done':st==='act'?' act':'');
+    l.className = 's-label' + (st==='done'?' done':st==='act'?' act':'');
+    d.innerHTML = st==='done' ? '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2.3" width="9" height="9"><path d="M1.5 5l2.5 2.5 4.5-4.5"/></svg>' : n;
+  };
+  const line = (n, done) => { document.getElementById('sl-'+n).className = 's-line'+(done?' done':''); };
+  set(1, hasP?'done':'act'); line(1,hasP);
+  set(2, hasG?'done':hasP?'act':''); line(2,hasG);
+  set(3, hasT?'done':hasG?'act':''); line(3,hasT);
+  set(4, hasT?'act':'');
+}
+
+/* ═══════════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════════ */
+function openModal() {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('resultsState').style.display = 'none';
+  document.getElementById('modalFt').style.display = 'none';
+  document.getElementById('modalTitle').textContent = 'Analysing report…';
+  setTimeout(showResults, 2100);
+}
+
+function showResults() {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('modalTitle').textContent = 'Analysis complete';
+  document.getElementById('modalFt').style.display = 'flex';
+  let h = '';
+
+  // Goal blocks
+  S.goalIds.forEach(gid => {
+    const res = MOCK_GOAL[gid];
+    const g = GOALS[gid];
+    const score = res?.score ?? +(6.5+Math.random()*2).toFixed(1);
+    const cls   = res?.cls   ?? (score>=7.5?'great':'ok');
+    const reason= res?.reason ?? 'Report covers the key criteria. Add concrete metrics to strengthen future scores.';
+    const crits = res?.crits ?? g.criteria.map(c=>({n:c.n,s:+(6+Math.random()*3).toFixed(1),cls:'ok',r:'Standard evaluation applied.',e:''}));
+    h += `
+      <div class="goal-section">
+        <div class="gsec-label goal">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg>
+          ${g.name}
+        </div>
+        <div class="score-card ${cls}">
+          <div>
+            <div><span class="score-big">${score.toFixed(1)}</span><span class="score-denom">/10</span></div>
+            <div class="score-tag">${cls==='great'?'Strong performance':cls==='ok'?'Meets expectations':'Needs improvement'}</div>
+          </div>
+        </div>
+        <div class="reasoning">${reason}</div>
+        <div class="crit-section-label">Criteria breakdown</div>
+        ${crits.map(c=>`
+          <div class="cr">
+            <div class="cr-top">
+              <span class="cr-name">${c.n}</span>
+              <span class="cr-score ${c.cls}">${c.s.toFixed(1)}/10</span>
+            </div>
+            <div class="cr-bar"><div class="cr-fill ${c.cls}" style="width:${c.s*10}%"></div></div>
+            <div class="cr-reason">${c.r}</div>
+            ${c.e?`<div class="cr-evidence">${c.e}</div>`:''}
+          </div>`).join('')}
+      </div>`;
+  });
+
+  // Org metrics block
+  const orgAvg = ORG_METRICS.reduce((sum,m)=>sum+(MOCK_ORG[m.id]?.s||7),0)/ORG_METRICS.length;
+  const orgCls = orgAvg>=7.5?'great':orgAvg>=6?'ok':'risk';
+  h += `<div class="modal-divider"></div>
+    <div class="goal-section">
+      <div class="gsec-label org">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="2"/><circle cx="8" cy="8" r="2"/></svg>
+        Organisational Metrics
+        <span style="margin-left:auto;font-size:9px;font-weight:600;color:var(--t3);text-transform:none;letter-spacing:0">30% of final score</span>
+      </div>
+      <div class="score-card ${orgCls}">
+        <div>
+          <div><span class="score-big">${orgAvg.toFixed(1)}</span><span class="score-denom">/10</span></div>
+          <div class="score-tag">Org metrics average</div>
+        </div>
+        <div class="score-pills">
+          ${ORG_METRICS.map(m=>`<span class="score-pill">${m.emo} ${m.name}</span>`).join('')}
+        </div>
+      </div>
+      <div class="reasoning" style="font-style:normal;font-size:11.5px;">These metrics reflect your conduct and ways of working — independent of which project or goal you're reporting on.</div>
+      <div class="crit-section-label">Breakdown</div>
+      ${ORG_METRICS.map(m => {
+        const s = MOCK_ORG[m.id]||{s:7.0,cls:'ok',r:'Standard evaluation applied.',e:''};
+        return `<div class="cr">
+          <div class="cr-top">
+            <span class="cr-name">${m.emo} ${m.name}</span>
+            <span class="cr-score ${s.cls}">${s.s.toFixed(1)}/10</span>
+          </div>
+          <div class="cr-bar"><div class="cr-fill ${s.cls}" style="width:${s.s*10}%"></div></div>
+          <div class="cr-reason">${s.r}</div>
+          ${s.e?`<div class="cr-evidence">${s.e}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  document.getElementById('resultsState').innerHTML = h;
+  document.getElementById('resultsState').style.display = 'block';
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+
+function confirmSubmit() {
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Submitting…';
+  setTimeout(() => {
+    closeModal();
+    // reset
+    S.projId=null; S.goalIds=[]; S.text=''; S.files=[]; fIdx=0;
+    document.getElementById('editor').value='';
+    document.getElementById('goalSection').style.display='none';
+    renderProjChips(); syncEditor(); syncCstrip(); syncSideProj(); syncSideGoals(); renderFiles(); syncSteps();
+    btn.disabled=false;
+    btn.innerHTML='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M3 8l3.5 3.5L13 4"/></svg> Confirm submission';
+    showToast('Report submitted successfully!','success');
+  }, 1300);
+}
+
+/* ═══════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════ */
+function saveDraft() { showToast('Draft saved','success'); }
+
+let _tt;
+function showToast(msg, type) {
+  clearTimeout(_tt);
+  const el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  el.className = 'toast show ' + (type||'success');
+  _tt = setTimeout(() => { el.className = 'toast '+(type||'success'); }, 2500);
+}
+
+document.getElementById('overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+init();
+</script>
+</body>
+</html>

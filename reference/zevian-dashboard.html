@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zevian — Dashboard Reference Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface-2: #181c24;
+    --surface-3: #1e2330;
+    --border: rgba(255,255,255,0.07);
+    --border-hover: rgba(255,255,255,0.13);
+    --text: #f0f2f7;
+    --text-2: #8b93a8;
+    --text-3: #545d73;
+    --accent: #5b7fff;
+    --accent-glow: rgba(91,127,255,0.18);
+    --accent-2: #00d4aa;
+    --accent-2-glow: rgba(0,212,170,0.12);
+    --warn: #f59e0b;
+    --danger: #f04438;
+    --danger-glow: rgba(240,68,56,0.15);
+    --green: #10b981;
+    --green-glow: rgba(16,185,129,0.12);
+    --sidebar-w: 220px;
+    --header-h: 56px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed; left:0; top:0; bottom:0;
+    width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 100;
+  }
+
+  .logo {
+    padding: 18px 20px 14px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-mark {
+    width: 30px; height: 30px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 14px;
+    color: #fff;
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 17px;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  .nav { padding: 12px 10px; flex: 1; }
+
+  .nav-section-label {
+    font-size: 10px; font-weight: 600;
+    color: var(--text-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 10px 4px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-2);
+    font-size: 13.5px; font-weight: 500;
+    transition: all 0.15s;
+    margin-bottom: 1px;
+  }
+
+  .nav-item:hover { background: var(--surface-2); color: var(--text); }
+  .nav-item.active {
+    background: var(--accent-glow);
+    color: var(--accent);
+    border: 1px solid rgba(91,127,255,0.2);
+  }
+
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px; font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+
+  .nav-badge.warn { background: var(--warn); }
+
+  .sidebar-footer {
+    padding: 12px 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .invite-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 9px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-2); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .invite-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Header */
+  .header {
+    position: fixed; left: var(--sidebar-w); right: 0; top: 0;
+    height: var(--header-h);
+    background: rgba(10,12,16,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+    z-index: 90;
+  }
+
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px; font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+
+  .header-spacer { flex: 1; }
+
+  .date-picker {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12.5px; color: var(--text-2);
+    cursor: pointer;
+  }
+  .date-picker:hover { border-color: var(--border-hover); }
+
+  .header-icon-btn {
+    width: 34px; height: 34px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-2);
+    position: relative;
+  }
+  .header-icon-btn .dot {
+    position: absolute; top: 6px; right: 6px;
+    width: 6px; height: 6px;
+    background: var(--danger); border-radius: 50%;
+  }
+
+  .view-switcher {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12.5px; font-weight: 500;
+    cursor: pointer; color: var(--text-2);
+  }
+  .view-switcher svg { width: 14px; height: 14px; }
+
+  .avatar {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, #5b7fff, #00d4aa);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 12px; color: #fff;
+    cursor: pointer;
+  }
+
+  /* Main */
+  .main {
+    margin-left: var(--sidebar-w);
+    padding-top: var(--header-h);
+    min-height: 100vh;
+  }
+
+  .content {
+    padding: 24px;
+    max-width: 1280px;
+  }
+
+  /* AI Summary Banner */
+  .ai-banner {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px;
+    background: linear-gradient(90deg, rgba(91,127,255,0.08), rgba(0,212,170,0.05));
+    border: 1px solid rgba(91,127,255,0.2);
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+
+  .ai-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--accent-glow);
+    border: 1px solid rgba(91,127,255,0.3);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px; font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .ai-banner-text { font-size: 13px; color: var(--text-2); flex: 1; }
+  .ai-banner-text strong { color: var(--text); }
+
+  .ai-banner-btn {
+    padding: 7px 16px;
+    background: var(--accent);
+    border-radius: 7px;
+    font-size: 12.5px; font-weight: 600;
+    color: #fff; cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 0 20px rgba(91,127,255,0.25);
+    transition: all 0.15s;
+  }
+  .ai-banner-btn:hover { background: #7090ff; box-shadow: 0 0 28px rgba(91,127,255,0.35); }
+
+  /* KPI Row */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: border-color 0.2s;
+    cursor: default;
+  }
+  .kpi-card:hover { border-color: var(--border-hover); }
+
+  .kpi-label {
+    font-size: 11.5px; font-weight: 600;
+    color: var(--text-3);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .kpi-label svg { width: 13px; height: 13px; }
+
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px; font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value.green { color: var(--green); }
+  .kpi-value.warn { color: var(--warn); }
+  .kpi-value.danger { color: var(--danger); }
+  .kpi-value.accent { color: var(--accent); }
+
+  .kpi-meta {
+    font-size: 12px; color: var(--text-3);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .kpi-delta {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 11.5px; font-weight: 600;
+    padding: 2px 7px; border-radius: 5px;
+  }
+  .kpi-delta.up { color: var(--green); background: var(--green-glow); }
+  .kpi-delta.down { color: var(--danger); background: var(--danger-glow); }
+
+  /* Score big display */
+  .kpi-score-display {
+    display: flex; align-items: baseline; gap: 4px;
+  }
+  .kpi-score-display .big { font-size: 36px; font-weight: 800; font-family: 'Syne', sans-serif; letter-spacing: -2px; }
+  .kpi-score-display .denom { font-size: 16px; color: var(--text-3); font-weight: 500; }
+
+  /* Score bar */
+  .score-bar {
+    height: 4px; background: var(--surface-3);
+    border-radius: 2px; margin-top: 8px; overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%; border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  /* Grid layout */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 18px 20px 14px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-title {
+    font-weight: 600; font-size: 14px; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+    flex: 1;
+  }
+  .card-title svg { width: 15px; height: 15px; color: var(--accent); }
+
+  .card-subtitle { font-size: 12px; color: var(--text-3); }
+
+  .card-action {
+    font-size: 12px; color: var(--accent);
+    font-weight: 500; cursor: pointer;
+    padding: 4px 8px; border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .card-action:hover { background: var(--accent-glow); }
+
+  .card-body { padding: 20px; }
+
+  /* Performance chart (SVG line chart) */
+  .chart-container { width: 100%; }
+
+  .chart-legend {
+    display: flex; gap: 16px; margin-bottom: 14px;
+  }
+  .chart-legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-2);
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .chart-labels {
+    display: flex; justify-content: space-between;
+    font-size: 10.5px; color: var(--text-3);
+    font-family: 'DM Mono', monospace;
+    margin-top: 8px;
+    padding: 0 4px;
+  }
+
+  /* Employee rows */
+  .employee-list { display: flex; flex-direction: column; }
+
+  .employee-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .employee-row:last-child { border-bottom: none; }
+
+  .emp-avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 11px; color: #fff;
+    flex-shrink: 0;
+  }
+
+  .emp-name { font-size: 13.5px; font-weight: 500; color: var(--text); }
+  .emp-role { font-size: 11.5px; color: var(--text-3); }
+  .emp-info { flex: 1; }
+
+  .emp-score {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 18px;
+    letter-spacing: -0.5px;
+  }
+
+  .emp-bar-wrap { width: 80px; }
+
+  .mini-bar {
+    height: 3px; background: var(--surface-3);
+    border-radius: 2px; overflow: hidden;
+  }
+  .mini-bar-fill { height: 100%; border-radius: 2px; }
+
+  .status-pill {
+    font-size: 10.5px; font-weight: 600;
+    padding: 3px 8px; border-radius: 20px;
+    white-space: nowrap;
+  }
+  .status-pill.on-track { background: var(--green-glow); color: var(--green); }
+  .status-pill.at-risk { background: var(--danger-glow); color: var(--danger); }
+  .status-pill.warning { background: rgba(245,158,11,0.12); color: var(--warn); }
+
+  /* Metric cards (like Org Metrics) */
+  .metric-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 16px 20px 20px;
+  }
+
+  .metric-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card:hover { border-color: var(--border-hover); background: var(--surface-3); }
+  .metric-card.active {
+    border-color: rgba(91,127,255,0.35);
+    background: rgba(91,127,255,0.05);
+  }
+  .metric-card.active::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  }
+
+  .metric-name { font-size: 12.5px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .metric-sub { font-size: 10.5px; color: var(--text-3); margin-bottom: 8px; }
+
+  .metric-score-row {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .metric-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .metric-sparkline { display: flex; align-items: flex-end; gap: 2px; height: 20px; }
+  .spark-bar {
+    width: 4px; border-radius: 2px 2px 0 0;
+    background: var(--accent);
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+  .metric-card:hover .spark-bar, .metric-card.active .spark-bar { opacity: 0.85; }
+
+  /* Project cards */
+  .project-list { display: flex; flex-direction: column; gap: 10px; padding: 16px 20px 20px; }
+
+  .project-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 14px;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+  .project-card:hover { border-color: var(--border-hover); }
+
+  .project-icon {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+  }
+
+  .project-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .project-meta { font-size: 11.5px; color: var(--text-3); }
+  .project-info { flex: 1; }
+
+  .project-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px; font-weight: 700; letter-spacing: -0.5px;
+    text-align: right;
+  }
+  .project-freq { font-size: 10.5px; color: var(--text-3); text-align: right; }
+
+  /* Late submissions */
+  .late-list { display: flex; flex-direction: column; padding: 16px 20px; gap: 10px; }
+
+  .late-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--danger-glow);
+    border: 1px solid rgba(240,68,56,0.15);
+    border-radius: 8px;
+  }
+
+  .late-name { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+  .late-days { font-size: 11.5px; color: var(--danger); font-weight: 600; }
+  .late-project { font-size: 11px; color: var(--text-3); }
+
+  /* Radar / spider chart */
+  .radar-wrap {
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 20px 20px;
+  }
+
+  /* Tooltip style */
+  .tooltip-label {
+    font-size: 11px;
+    color: var(--text-3);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Section divider label */
+  .section-label {
+    font-size: 11px; font-weight: 600;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .kpi-card { animation: fadeUp 0.4s ease both; }
+  .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+  .card { animation: fadeUp 0.4s ease both; animation-delay: 0.25s; }
+
+  .glow-dot {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  .chip {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    background: var(--surface-3); color: var(--text-2);
+  }
+  .chip.blue { background: var(--accent-glow); color: var(--accent); }
+  .chip.teal { background: var(--accent-2-glow); color: var(--accent-2); }
+
+  /* Trend indicator */
+  .trend-up::before { content: '↑ '; color: var(--green); }
+  .trend-down::before { content: '↓ '; color: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">Z</div>
+    <span class="logo-text">Zevian</span>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-section-label">Workspace</div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M2 6h12"/><path d="M6 6v8"/></svg>
+      Projects
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+      Goals
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
+      Reports
+      <span class="nav-badge warn">3</span>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5h1"/><circle cx="12" cy="11" r="3"/><path d="M12 9v2l1.5 1"/></svg>
+      Employees
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8h6M8 5v6"/></svg>
+      Organization
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="invite-btn">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3 2.5-5 6-5s6 2 6 5"/><path d="M12 3v4M14 5h-4"/></svg>
+      Invite User
+    </div>
+  </div>
+</aside>
+
+<!-- HEADER -->
+<header class="header">
+  <span class="header-title">Dashboard</span>
+  <span style="font-size:12px;color:var(--text-3);margin-left:4px">— Direct Reports</span>
+  <div class="header-spacer"></div>
+
+  <div class="date-picker">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1v3M11 1v3M2 7h12"/></svg>
+    Feb 01, 2026 — Mar 07, 2026
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6l4 4 4-4"/></svg>
+  </div>
+
+  <div class="view-switcher">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5h1"/></svg>
+    Direct Reports
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6l4 4 4-4"/></svg>
+  </div>
+
+  <div class="header-icon-btn">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2a5 5 0 0 1 5 5v2l1.5 2.5h-13L3 9V7a5 5 0 0 1 5-5z"/><path d="M6 13.5a2 2 0 0 0 4 0"/></svg>
+    <span class="dot"></span>
+  </div>
+
+  <div class="avatar">JD</div>
+</header>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+<div class="content">
+
+  <!-- AI Banner -->
+  <div class="ai-banner">
+    <div class="ai-badge">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l1.5 4H14l-3.5 2.5 1.3 4L8 9.2 4.2 11.5l1.3-4L2 5h4.5L8 1z"/></svg>
+      Zevian AI
+    </div>
+    <div class="ai-banner-text">
+      <strong>Team performance is up 12% this period.</strong> Sofia M. is your top performer. 2 reports are pending review — Kai L. is 4 days overdue on Design Sprint.
+    </div>
+    <div class="ai-banner-btn">Generate Full Summary</div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
+        Total Reports
+      </div>
+      <div class="kpi-value accent">47</div>
+      <div class="kpi-meta">
+        <span class="kpi-delta up">↑ 8</span>
+        vs. last period
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-label">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        Late Submissions
+      </div>
+      <div class="kpi-value danger">3</div>
+      <div class="kpi-meta">
+        <span class="kpi-delta down">↑ 1</span>
+        vs. last period
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-label">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1l1.5 4H14l-3.5 2.5 1.3 4L8 9.2 4.2 11.5l1.3-4L2 5h4.5L8 1z"/></svg>
+        Avg Score (Org Metrics)
+      </div>
+      <div class="kpi-score-display">
+        <span class="big green">7.4</span>
+        <span class="denom">/10</span>
+      </div>
+      <div class="score-bar"><div class="score-bar-fill" style="width:74%;background:var(--green)"></div></div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-label">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1l1.5 4H14l-3.5 2.5 1.3 4L8 9.2 4.2 11.5l1.3-4L2 5h4.5L8 1z"/></svg>
+        Average Score
+      </div>
+      <div class="kpi-score-display">
+        <span class="big" style="color:var(--accent)">8.1</span>
+        <span class="denom">/10</span>
+      </div>
+      <div class="score-bar"><div class="score-bar-fill" style="width:81%;background:var(--accent)"></div></div>
+    </div>
+  </div>
+
+  <!-- Row 1: Performance trend + Employee scores -->
+  <div class="grid-2">
+
+    <!-- Line Chart: Team Score Trend -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="1,12 5,7 9,9 15,3"/></svg>
+          Team Score Trend
+          <span class="chip blue">5 members</span>
+        </div>
+        <div class="card-action">Export ↗</div>
+      </div>
+      <div class="card-body">
+        <div class="chart-legend">
+          <div class="chart-legend-item">
+            <div class="legend-dot" style="background:var(--accent)"></div>
+            Avg Score
+          </div>
+          <div class="chart-legend-item">
+            <div class="legend-dot" style="background:var(--accent-2)"></div>
+            Org Metrics Score
+          </div>
+        </div>
+        <svg width="100%" height="160" viewBox="0 0 480 160" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#5b7fff" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#5b7fff" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="lineGrad2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00d4aa" stop-opacity="0.14"/>
+              <stop offset="100%" stop-color="#00d4aa" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <!-- Grid lines -->
+          <line x1="0" y1="20" x2="480" y2="20" stroke="#1e2330" stroke-width="1"/>
+          <line x1="0" y1="60" x2="480" y2="60" stroke="#1e2330" stroke-width="1"/>
+          <line x1="0" y1="100" x2="480" y2="100" stroke="#1e2330" stroke-width="1"/>
+          <line x1="0" y1="140" x2="480" y2="140" stroke="#1e2330" stroke-width="1"/>
+          <!-- Axis labels -->
+          <text x="0" y="17" fill="#545d73" font-size="9" font-family="DM Mono">10</text>
+          <text x="0" y="57" fill="#545d73" font-size="9" font-family="DM Mono">7.5</text>
+          <text x="0" y="97" fill="#545d73" font-size="9" font-family="DM Mono">5</text>
+          <text x="0" y="137" fill="#545d73" font-size="9" font-family="DM Mono">2.5</text>
+          <!-- Fill area: avg score -->
+          <path d="M40,100 C80,90 120,75 160,72 C200,69 240,60 280,58 C320,56 360,48 420,40 L420,140 L40,140 Z" fill="url(#lineGrad)"/>
+          <!-- Fill area: org score -->
+          <path d="M40,115 C80,105 120,95 160,88 C200,81 240,78 280,74 C320,70 360,65 420,60 L420,140 L40,140 Z" fill="url(#lineGrad2)"/>
+          <!-- Lines -->
+          <polyline points="40,100 160,72 280,58 420,40" fill="none" stroke="#5b7fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="40,115 160,88 280,74 420,60" fill="none" stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="0"/>
+          <!-- Dots for avg score -->
+          <circle cx="40" cy="100" r="4" fill="#5b7fff" stroke="#0a0c10" stroke-width="2"/>
+          <circle cx="160" cy="72" r="4" fill="#5b7fff" stroke="#0a0c10" stroke-width="2"/>
+          <circle cx="280" cy="58" r="4" fill="#5b7fff" stroke="#0a0c10" stroke-width="2"/>
+          <circle cx="420" cy="40" r="5" fill="#5b7fff" stroke="#0a0c10" stroke-width="2"/>
+          <!-- Highlight dot with label -->
+          <circle cx="420" cy="40" r="8" fill="none" stroke="#5b7fff" stroke-width="1.5" opacity="0.4"/>
+          <text x="430" y="37" fill="#5b7fff" font-size="10" font-weight="600" font-family="DM Sans">8.1</text>
+        </svg>
+        <div class="chart-labels">
+          <span>W1 Feb</span><span>W2 Feb</span><span>W3 Feb</span><span>Mar 07</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employee Score Table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+          Team Performance
+        </div>
+        <div class="card-action">See All</div>
+      </div>
+      <div class="card-body" style="padding:12px 20px 16px">
+        <div class="employee-list">
+
+          <div class="employee-row">
+            <div class="emp-avatar" style="background:linear-gradient(135deg,#5b7fff,#818cf8)">SM</div>
+            <div class="emp-info">
+              <div class="emp-name">Sofia Mercer</div>
+              <div class="emp-role">Senior Designer</div>
+            </div>
+            <div class="emp-bar-wrap">
+              <div class="mini-bar"><div class="mini-bar-fill" style="width:93%;background:var(--green)"></div></div>
+            </div>
+            <div class="emp-score" style="color:var(--green)">9.3</div>
+            <div class="status-pill on-track">On Track</div>
+          </div>
+
+          <div class="employee-row">
+            <div class="emp-avatar" style="background:linear-gradient(135deg,#00d4aa,#0ea5e9)">JC</div>
+            <div class="emp-info">
+              <div class="emp-name">James Cole</div>
+              <div class="emp-role">Frontend Dev</div>
+            </div>
+            <div class="emp-bar-wrap">
+              <div class="mini-bar"><div class="mini-bar-fill" style="width:82%;background:var(--accent)"></div></div>
+            </div>
+            <div class="emp-score" style="color:var(--accent)">8.2</div>
+            <div class="status-pill on-track">On Track</div>
+          </div>
+
+          <div class="employee-row">
+            <div class="emp-avatar" style="background:linear-gradient(135deg,#f59e0b,#fb923c)">RA</div>
+            <div class="emp-info">
+              <div class="emp-name">Riya Ahmed</div>
+              <div class="emp-role">Product Manager</div>
+            </div>
+            <div class="emp-bar-wrap">
+              <div class="mini-bar"><div class="mini-bar-fill" style="width:74%;background:var(--warn)"></div></div>
+            </div>
+            <div class="emp-score" style="color:var(--warn)">7.4</div>
+            <div class="status-pill warning">Review</div>
+          </div>
+
+          <div class="employee-row">
+            <div class="emp-avatar" style="background:linear-gradient(135deg,#8b5cf6,#ec4899)">TN</div>
+            <div class="emp-info">
+              <div class="emp-name">Tom Nakamura</div>
+              <div class="emp-role">Backend Dev</div>
+            </div>
+            <div class="emp-bar-wrap">
+              <div class="mini-bar"><div class="mini-bar-fill" style="width:65%;background:var(--warn)"></div></div>
+            </div>
+            <div class="emp-score" style="color:var(--warn)">6.5</div>
+            <div class="status-pill warning">Review</div>
+          </div>
+
+          <div class="employee-row">
+            <div class="emp-avatar" style="background:linear-gradient(135deg,#f04438,#f97316)">KL</div>
+            <div class="emp-info">
+              <div class="emp-name">Kai Larsson</div>
+              <div class="emp-role">QA Engineer</div>
+            </div>
+            <div class="emp-bar-wrap">
+              <div class="mini-bar"><div class="mini-bar-fill" style="width:41%;background:var(--danger)"></div></div>
+            </div>
+            <div class="emp-score" style="color:var(--danger)">4.1</div>
+            <div class="status-pill at-risk">At Risk</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Org Metrics + Projects + Late -->
+  <div class="section-label">Performance Vectors</div>
+  <div class="grid-3" style="margin-bottom:16px">
+
+    <!-- Org Metrics (star reference) -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="2,12 6,6 10,9 14,3"/></svg>
+          Organizational Metrics
+        </div>
+        <span class="chip teal">7 Active</span>
+      </div>
+      <div class="metric-grid">
+
+        <div class="metric-card active">
+          <div class="metric-name">Work Excellence</div>
+          <div class="metric-sub">Quality Score</div>
+          <div class="metric-score-row">
+            <div class="metric-score" style="color:var(--green)">8.4</div>
+            <div class="metric-sparkline">
+              <div class="spark-bar" style="height:40%;background:var(--green)"></div>
+              <div class="spark-bar" style="height:60%;background:var(--green)"></div>
+              <div class="spark-bar" style="height:50%;background:var(--green)"></div>
+              <div class="spark-bar" style="height:80%;background:var(--green)"></div>
+              <div class="spark-bar" style="height:100%;background:var(--green)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-name">Delivery Speed</div>
+          <div class="metric-sub">Cycle Time</div>
+          <div class="metric-score-row">
+            <div class="metric-score" style="color:var(--accent)">7.8</div>
+            <div class="metric-sparkline">
+              <div class="spark-bar" style="height:60%"></div>
+              <div class="spark-bar" style="height:55%"></div>
+              <div class="spark-bar" style="height:70%"></div>
+              <div class="spark-bar" style="height:75%"></div>
+              <div class="spark-bar" style="height:78%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-name">Goal Progress</div>
+          <div class="metric-sub">Scope Completion</div>
+          <div class="metric-score-row">
+            <div class="metric-score" style="color:var(--accent)">7.2</div>
+            <div class="metric-sparkline">
+              <div class="spark-bar" style="height:40%"></div>
+              <div class="spark-bar" style="height:50%"></div>
+              <div class="spark-bar" style="height:60%"></div>
+              <div class="spark-bar" style="height:68%"></div>
+              <div class="spark-bar" style="height:72%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-name">Teamwork</div>
+          <div class="metric-sub">Collaboration</div>
+          <div class="metric-score-row">
+            <div class="metric-score" style="color:var(--accent-2)">8.1</div>
+            <div class="metric-sparkline">
+              <div class="spark-bar" style="height:65%;background:var(--accent-2)"></div>
+              <div class="spark-bar" style="height:70%;background:var(--accent-2)"></div>
+              <div class="spark-bar" style="height:75%;background:var(--accent-2)"></div>
+              <div class="spark-bar" style="height:80%;background:var(--accent-2)"></div>
+              <div class="spark-bar" style="height:81%;background:var(--accent-2)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-name">Consistency</div>
+          <div class="metric-sub">Reliability</div>
+          <div class="metric-score-row">
+            <div class="metric-score" style="color:var(--warn)">6.5</div>
+            <div class="metric-sparkline">
+              <div class="spark-bar" style="height:80%;background:var(--warn)"></div>
+              <div class="spark-bar" style="height:60%;background:var(--warn)"></div>
+              <div class="spark-bar" style="height:70%;background:var(--warn)"></div>
+              <div class="spark-bar" style="height:55%;background:var(--warn)"></div>
+              <div class="spark-bar" style="height:65%;background:var(--warn)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-name">Impact Level</div>
+          <div class="metric-sub">Business Value</div>
+          <div class="metric-score-row">
+            <div class="metric-score" style="color:var(--accent)">7.6</div>
+            <div class="metric-sparkline">
+              <div class="spark-bar" style="height:50%"></div>
+              <div class="spark-bar" style="height:60%"></div>
+              <div class="spark-bar" style="height:70%"></div>
+              <div class="spark-bar" style="height:72%"></div>
+              <div class="spark-bar" style="height:76%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-name">Fix-it Rate</div>
+          <div class="metric-sub">MTTR</div>
+          <div class="metric-score-row">
+            <div class="metric-score" style="color:var(--danger)">5.3</div>
+            <div class="metric-sparkline">
+              <div class="spark-bar" style="height:70%;background:var(--danger)"></div>
+              <div class="spark-bar" style="height:55%;background:var(--danger)"></div>
+              <div class="spark-bar" style="height:60%;background:var(--danger)"></div>
+              <div class="spark-bar" style="height:50%;background:var(--danger)"></div>
+              <div class="spark-bar" style="height:53%;background:var(--danger)"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right column: Projects + Late -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- Ongoing Projects -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M2 6h12"/><path d="M6 6v8"/></svg>
+            Ongoing Projects
+          </div>
+          <div class="card-action">View All</div>
+        </div>
+        <div class="project-list">
+          <div class="project-card">
+            <div class="project-icon" style="background:rgba(91,127,255,0.12)">🖥️</div>
+            <div class="project-info">
+              <div class="project-name">Sprint Alpha</div>
+              <div class="project-meta">Engineering · 3 members · Weekly</div>
+            </div>
+            <div>
+              <div class="project-score" style="color:var(--green)">8.6</div>
+              <div class="project-freq"><span class="glow-dot"></span> Active</div>
+            </div>
+          </div>
+          <div class="project-card">
+            <div class="project-icon" style="background:rgba(0,212,170,0.1)">🎨</div>
+            <div class="project-info">
+              <div class="project-name">Design Sprint</div>
+              <div class="project-meta">Design · 2 members · Weekly</div>
+            </div>
+            <div>
+              <div class="project-score" style="color:var(--danger)">4.1</div>
+              <div class="project-freq" style="color:var(--danger)">● At Risk</div>
+            </div>
+          </div>
+          <div class="project-card">
+            <div class="project-icon" style="background:rgba(245,158,11,0.1)">📣</div>
+            <div class="project-info">
+              <div class="project-name">Q1 Marketing</div>
+              <div class="project-meta">Marketing · 1 member · Bi-weekly</div>
+            </div>
+            <div>
+              <div class="project-score" style="color:var(--warn)">6.9</div>
+              <div class="project-freq">● Review</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Late Submissions -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" style="color:var(--danger)">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+            Late Submissions
+          </div>
+          <span class="chip" style="background:var(--danger-glow);color:var(--danger)">3 overdue</span>
+        </div>
+        <div class="late-list">
+          <div class="late-item">
+            <div class="emp-avatar" style="background:linear-gradient(135deg,#f04438,#f97316);width:28px;height:28px;font-size:10px;border-radius:6px">KL</div>
+            <div style="flex:1">
+              <div class="late-name">Kai Larsson</div>
+              <div class="late-project">Design Sprint</div>
+            </div>
+            <div class="late-days">4 days late</div>
+          </div>
+          <div class="late-item">
+            <div class="emp-avatar" style="background:linear-gradient(135deg,#f59e0b,#fb923c);width:28px;height:28px;font-size:10px;border-radius:6px">RA</div>
+            <div style="flex:1">
+              <div class="late-name">Riya Ahmed</div>
+              <div class="late-project">Q1 Marketing</div>
+            </div>
+            <div class="late-days">2 days late</div>
+          </div>
+          <div class="late-item">
+            <div class="emp-avatar" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);width:28px;height:28px;font-size:10px;border-radius:6px">TN</div>
+            <div style="flex:1">
+              <div class="late-name">Tom Nakamura</div>
+              <div class="late-project">Sprint Alpha</div>
+            </div>
+            <div class="late-days">1 day late</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Row 3: Spider + Goal Alignment -->
+  <div class="section-label">Goal Alignment & Distribution</div>
+  <div class="grid-2">
+
+    <!-- Spider / Radar Chart -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5"/></svg>
+          Performance Radar
+          <span class="chip">Team Average</span>
+        </div>
+      </div>
+      <div class="radar-wrap">
+        <svg width="280" height="260" viewBox="0 0 280 260">
+          <defs>
+            <linearGradient id="radarFill" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#5b7fff" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#00d4aa" stop-opacity="0.15"/>
+            </linearGradient>
+          </defs>
+          <!-- Background rings -->
+          <g transform="translate(140,130)">
+            <!-- 5 rings -->
+            <polygon points="0,-90 77.94,-45 77.94,45 0,90 -77.94,45 -77.94,-45" fill="none" stroke="#1e2330" stroke-width="1"/>
+            <polygon points="0,-72 62.35,-36 62.35,36 0,72 -62.35,36 -62.35,-36" fill="none" stroke="#1e2330" stroke-width="1"/>
+            <polygon points="0,-54 46.76,-27 46.76,27 0,54 -46.76,27 -46.76,-27" fill="none" stroke="#1e2330" stroke-width="1"/>
+            <polygon points="0,-36 31.18,-18 31.18,18 0,36 -31.18,18 -31.18,-18" fill="none" stroke="#1e2330" stroke-width="1"/>
+            <polygon points="0,-18 15.59,-9 15.59,9 0,18 -15.59,9 -15.59,-9" fill="none" stroke="#1e2330" stroke-width="1"/>
+            <!-- Axis lines -->
+            <line x1="0" y1="0" x2="0" y2="-90" stroke="#1e2330" stroke-width="1"/>
+            <line x1="0" y1="0" x2="77.94" y2="-45" stroke="#1e2330" stroke-width="1"/>
+            <line x1="0" y1="0" x2="77.94" y2="45" stroke="#1e2330" stroke-width="1"/>
+            <line x1="0" y1="0" x2="0" y2="90" stroke="#1e2330" stroke-width="1"/>
+            <line x1="0" y1="0" x2="-77.94" y2="45" stroke="#1e2330" stroke-width="1"/>
+            <line x1="0" y1="0" x2="-77.94" y2="-45" stroke="#1e2330" stroke-width="1"/>
+            <!-- Data area (scores: 8.4, 7.8, 7.2, 6.5, 5.3, 8.1 → scaled 0-90) -->
+            <!-- 8.4 → 75.6, 7.8→70.2, 7.2→64.8, 6.5→58.5, 5.3→47.7, 8.1→72.9 -->
+            <polygon 
+              points="0,-75.6 60.69,-35.1 56.64,32.4 0,58.5 -41.3,23.85 -63.1,-36.45"
+              fill="url(#radarFill)" stroke="#5b7fff" stroke-width="2" stroke-linejoin="round"/>
+            <!-- Dots -->
+            <circle cx="0" cy="-75.6" r="4" fill="#5b7fff" stroke="#0a0c10" stroke-width="2"/>
+            <circle cx="60.69" cy="-35.1" r="4" fill="#5b7fff" stroke="#0a0c10" stroke-width="2"/>
+            <circle cx="56.64" cy="32.4" r="4" fill="#00d4aa" stroke="#0a0c10" stroke-width="2"/>
+            <circle cx="0" cy="58.5" r="4" fill="#f59e0b" stroke="#0a0c10" stroke-width="2"/>
+            <circle cx="-41.3" cy="23.85" r="4" fill="#f04438" stroke="#0a0c10" stroke-width="2"/>
+            <circle cx="-63.1" cy="-36.45" r="4" fill="#00d4aa" stroke="#0a0c10" stroke-width="2"/>
+            <!-- Labels -->
+            <text x="0" y="-96" text-anchor="middle" fill="#8b93a8" font-size="10" font-family="DM Sans" font-weight="500">Work Excellence</text>
+            <text x="88" y="-48" text-anchor="start" fill="#8b93a8" font-size="10" font-family="DM Sans">Delivery Speed</text>
+            <text x="88" y="56" text-anchor="start" fill="#8b93a8" font-size="10" font-family="DM Sans">Goal Progress</text>
+            <text x="0" y="108" text-anchor="middle" fill="#8b93a8" font-size="10" font-family="DM Sans">Consistency</text>
+            <text x="-90" y="56" text-anchor="end" fill="#8b93a8" font-size="10" font-family="DM Sans">Fix-it Rate</text>
+            <text x="-90" y="-48" text-anchor="end" fill="#8b93a8" font-size="10" font-family="DM Sans">Teamwork</text>
+            <!-- Score labels on dots -->
+            <text x="8" y="-78" fill="#5b7fff" font-size="9" font-weight="600" font-family="DM Mono">8.4</text>
+            <text x="66" y="-32" fill="#5b7fff" font-size="9" font-weight="600" font-family="DM Mono">7.8</text>
+            <text x="62" y="36" fill="#00d4aa" font-size="9" font-weight="600" font-family="DM Mono">7.2</text>
+            <text x="4" y="70" fill="#f59e0b" font-size="9" font-weight="600" font-family="DM Mono">6.5</text>
+            <text x="-54" y="30" fill="#f04438" font-size="9" font-weight="600" font-family="DM Mono">5.3</text>
+            <text x="-76" y="-40" fill="#00d4aa" font-size="9" font-weight="600" font-family="DM Mono">8.1</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Goal Alignment (bar chart) -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="3"/><circle cx="8" cy="8" r="0.5" fill="currentColor"/></svg>
+          Goal Alignment
+          <span class="chip">Quality distribution</span>
+        </div>
+        <div class="card-action">See All</div>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;flex-direction:column;gap:14px">
+
+          <!-- Goal bars -->
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:12.5px;font-weight:500;color:var(--text)">Redesign Component Library</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--green);font-weight:600">9.1</span>
+            </div>
+            <div class="score-bar" style="height:6px;border-radius:3px">
+              <div class="score-bar-fill" style="width:91%;background:linear-gradient(90deg,var(--green),var(--accent-2))"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px">Sofia M. · 8 reports submitted</div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:12.5px;font-weight:500;color:var(--text)">API Performance Optimization</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);font-weight:600">8.0</span>
+            </div>
+            <div class="score-bar" style="height:6px;border-radius:3px">
+              <div class="score-bar-fill" style="width:80%;background:linear-gradient(90deg,var(--accent),#818cf8)"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px">James C. · 6 reports submitted</div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:12.5px;font-weight:500;color:var(--text)">Q1 Campaign Launch</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--warn);font-weight:600">6.7</span>
+            </div>
+            <div class="score-bar" style="height:6px;border-radius:3px">
+              <div class="score-bar-fill" style="width:67%;background:linear-gradient(90deg,var(--warn),#fb923c)"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px">Riya A. · 5 reports submitted</div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:12.5px;font-weight:500;color:var(--text)">Backend Refactor — Auth</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--warn);font-weight:600">6.2</span>
+            </div>
+            <div class="score-bar" style="height:6px;border-radius:3px">
+              <div class="score-bar-fill" style="width:62%;background:linear-gradient(90deg,var(--warn),#f59e0b)"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px">Tom N. · 4 reports submitted</div>
+          </div>
+
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:12.5px;font-weight:500;color:var(--text)">QA Test Coverage Sprint</span>
+              <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--danger);font-weight:600">4.1</span>
+            </div>
+            <div class="score-bar" style="height:6px;border-radius:3px">
+              <div class="score-bar-fill" style="width:41%;background:linear-gradient(90deg,var(--danger),#f97316)"></div>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px">Kai L. · 2 reports submitted · <span style="color:var(--danger)">Report overdue</span></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="height:32px"></div>
+
+</div>
+</main>
+
+</body>
+</html>
