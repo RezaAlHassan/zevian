@@ -1,6 +1,8 @@
 const https = require('https');
 
-const RESEND_API_KEY = 're_U7CG1t4U_LrEFAvKvU4EyHSmg7jxmccbV';
+// Securely access the Resend API Key from environment variables.
+// In local development, you can use a .env file with a tool like dotenv.
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const FROM_EMAIL = 'Zevian <no-reply@zevian.co>';
 const TO_EMAIL = 'rezah@example.com'; // Change this to your real email if you want to test receiving
 
@@ -25,6 +27,11 @@ const options = {
 
 // Actually, let's use standard HTTPS on 443 for API
 options.port = 443;
+
+if (!RESEND_API_KEY) {
+    console.error('Error: RESEND_API_KEY environment variable is not set.');
+    process.exit(1);
+}
 
 console.log('Sending test email to:', TO_EMAIL);
 console.log('From:', FROM_EMAIL);

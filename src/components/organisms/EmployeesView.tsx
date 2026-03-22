@@ -36,7 +36,6 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
     const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
     const [searchQuery, setSearchQuery] = useState('')
     const [roleFilter, setRoleFilter] = useState('')
-    const [deptFilter, setDeptFilter] = useState('')
     const [perfFilter, setPerfFilter] = useState('')
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [leaveModalData, setLeaveModalData] = useState<{ isOpen: boolean; empId: string; empName: string }>({
@@ -50,7 +49,6 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
             const matchesSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (emp.title || '').toLowerCase().includes(searchQuery.toLowerCase())
             const matchesRole = roleFilter ? emp.role === roleFilter : true
-            // const matchesDept = deptFilter ? emp.dept === deptFilter : true
             const matchesPerf = perfFilter ? (
                 perfFilter === 'hi' ? emp.avgScore >= 7.5 :
                     perfFilter === 'mid' ? (emp.avgScore >= 6 && emp.avgScore < 7.5) :
@@ -148,8 +146,6 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
                         <option value="manager">Manager</option>
                         <option value="employee">Employee</option>
                     </select>
-
-                    {/* Department filter hidden per current schema */}
 
                     <select
                         value={perfFilter}
