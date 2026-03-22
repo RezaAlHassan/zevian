@@ -1,10 +1,12 @@
 'use server'
 
 import { createServerClient, createAdminClient } from '@/lib/supabase/server'
-import { reportService, employeeService, projectService, goalService, customMetricService, organizationService } from '@/../databaseService2'
+import { reportService, employeeService, projectService, goalService, customMetricService, organizationService, notificationService } from '@/../databaseService2'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { revalidatePath } from 'next/cache'
+import { getPeriodKey } from '@/utils/reportPeriod'
 
-export async function getReportsByManagerAction() {
+export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', startDate?: string, endDate?: string) {
     try {
         const supabase = createServerClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -20,14 +22,12 @@ export async function getReportsByManagerAction() {
             return { error: 'Employee record not found' }
         }
 
-        if (employee.role !== 'manager') {
+        if (employee.role !== 'manager' && employee.role !== 'admin' && !employee.isAccountOwner) {
             // For non-managers, they might only see their own reports 
-            // but the user's request specificially asked for "manager's direct report there"
-            // So for now we focus on the manager view.
             return { reports: [], kpis: { totalReports: 0, avgScore: 0, pendingReview: 0, overrides: 0 } }
         }
 
-        const reports: any[] = await reportService.getManagerReports(employee.id)
+        const reports: any[] = await reportService.getManagerReports(employee.id, view, employee.organizationId, startDate, endDate)
 
         // Calculate KPIs
         const totalReports = reports.length
@@ -53,7 +53,7 @@ export async function getReportsByManagerAction() {
     }
 }
 
-export async function getMyReportsAction() {
+export async function getMyReportsAction(startDate?: string, endDate?: string) {
     try {
         const supabase = createServerClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -67,7 +67,7 @@ export async function getMyReportsAction() {
             return { error: 'Employee record not found' }
         }
 
-        const reports = await reportService.getEmployeeReports(employee.id)
+        const reports = await reportService.getEmployeeReports(employee.id, startDate, endDate)
 
         const scoredReports = reports.filter((r: any) => r.evaluationScore !== null)
         const avgScore = scoredReports.length > 0
@@ -117,6 +117,81 @@ export async function getReportDetailAction(reportId: string) {
     }
 }
 
+export async function getEligibleGoalsAction(employeeId: string, projectId: string, submissionDate: string) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) return { error: 'Not authenticated' }
+
+        // 1. Get all assigned goals for this employee
+        const allGoals = await goalService.getByEmployeeId(employeeId)
+        
+        // 2. Filter by project and active status
+        const projectGoals = allGoals.filter((g: any) => g.projectId === projectId && g.status === 'active')
+        if (projectGoals.length === 0) return { success: true, data: [] }
+
+        // 3. Find if any reports exist for these goals on this exact submittedForDate
+        const { data: existingReports } = await (supabase as any)
+            .from('reports')
+            .select('goal_id')
+            .eq('employee_id', employeeId)
+            .in('goal_id', projectGoals.map((g: any) => g.id))
+            .eq('submitted_for_date', submissionDate)
+
+        const submittedForDateGoalIds = new Set(existingReports?.map((r: any) => r.goal_id) || [])
+
+        // 4. Determine if it's backdated (using exact boundary logic from submitReportAction)
+        const nowIso = new Date().toISOString()
+        const todayStr = nowIso.slice(0, 10)
+        const isBackdated = submissionDate < todayStr
+        const selectedDate = submissionDate.includes('T') ? new Date(submissionDate) : new Date(submissionDate + 'T00:00:00Z')
+
+        const { findMatchingPeriod, findPeriodForBackdatedSubmission } = await import('@/lib/reportingPeriods')
+
+        // 5. Use the exact matching logic for each goal
+        const eligibleGoals = []
+
+        for (const goal of projectGoals) {
+            // If they already submitted a report specifically on this day, hide it
+            if (submittedForDateGoalIds.has(goal.id)) continue
+
+            if (isBackdated) {
+                const managerId = goal.managerId || ''
+                const result = await findPeriodForBackdatedSubmission(
+                    goal.id,
+                    employeeId,
+                    managerId,
+                    selectedDate,
+                )
+                // If it resolves to a valid period, check if it's already submitted
+                if (result.ok && !result.period.reportId) {
+                    eligibleGoals.push(goal)
+                }
+            } else {
+                const { data: msData } = await (supabase as any)
+                    .from('manager_settings')
+                    .select('allow_late_submissions, grace_period_days')
+                    .eq('manager_id', goal.managerId || '')
+                    .maybeSingle()
+                
+                const graceDays = msData?.grace_period_days ?? 0
+                const match = await findMatchingPeriod(goal.id, employeeId, new Date(), graceDays)
+                
+                // If match is found and reportId is null, it's eligible!
+                // Even if "match.period.status === 'submitted'", we trust reportId as the source of truth
+                if (match && !match.period.reportId) {
+                    eligibleGoals.push(goal)
+                }
+            }
+        }
+
+        return { success: true, data: eligibleGoals }
+    } catch (error) {
+        console.error('getEligibleGoalsAction Error:', error)
+        return { error: 'Failed to fetch eligible goals' }
+    }
+}
+
 export async function getSubmitReportDataAction() {
     try {
         const supabase = createServerClient()
@@ -128,15 +203,45 @@ export async function getSubmitReportDataAction() {
 
         if (!employee.organizationId) return { error: 'Employee organization not found' }
 
-        const [projects, goals, customMetrics] = await Promise.all([
+        const [projects, goals, customMetrics, organization] = await Promise.all([
             projectService.getByEmployeeId(employee.id),
             goalService.getByEmployeeId(employee.id),
-            customMetricService.getByOrganizationId(employee.organizationId)
+            customMetricService.getByOrganizationId(employee.organizationId),
+            organizationService.getById(employee.organizationId)
         ])
 
         // Only include projects that actually have goals assigned to this employee
         const employeeGoalProjectIds = new Set(goals.map((g: any) => g.projectId))
         const filteredProjects = projects.filter((p: any) => employeeGoalProjectIds.has(p.id))
+
+        // Fetch active periods (pending or recently submitted) for accurate deadline display
+        const { data: pendingPeriods } = await (supabase as any)
+            .from('reporting_periods')
+            .select('*')
+            .eq('employee_id', employee.id)
+            .in('status', ['pending', 'submitted', 'late'])
+            .order('period_end', { ascending: true })
+
+        // Fetch manager backdate settings for the employee's manager
+        let backdateSettings: { allowLateSubmissions: boolean; backdateLimitDays: number | null, gracePeriodDays: number } = {
+            allowLateSubmissions: true,
+            backdateLimitDays: null,
+            gracePeriodDays: 0,
+        }
+        if (employee.managerId) {
+            const { data: ms } = await (supabase as any)
+                .from('manager_settings')
+                .select('allow_late_submissions, backdate_limit_days, grace_period_days')
+                .eq('manager_id', employee.managerId)
+                .maybeSingle()
+            if (ms) {
+                backdateSettings = {
+                    allowLateSubmissions: ms.allow_late_submissions ?? true,
+                    backdateLimitDays: ms.backdate_limit_days ?? null,
+                    gracePeriodDays: ms.grace_period_days ?? 0,
+                }
+            }
+        }
 
         return {
             success: true,
@@ -144,7 +249,10 @@ export async function getSubmitReportDataAction() {
                 projects: filteredProjects,
                 goals: goals,
                 metrics: customMetrics,
-                employeeId: employee.id
+                employeeId: employee.id,
+                aiConfig: organization.aiConfig,
+                backdateSettings: backdateSettings,
+                pendingPeriods: pendingPeriods || []
             }
         }
     } catch (error) {
@@ -154,30 +262,170 @@ export async function getSubmitReportDataAction() {
 }
 
 export async function submitReportAction(reportData: {
-    goalId: string,
-    reportText: string,
-    employeeId: string,
-    evaluationScore: number,
-    evaluationReasoning: string,
-    criterionScores: any[]
+    goalIds: string[];
+    reportText: string;
+    employeeId: string;
+    submissionDate?: string;   // YYYY-MM-DD or ISO — the date the employee selected
+    evaluationScore: number;
+    evaluationReasoning: string;
+    criterionScores: { goalId: string; criterionName: string; score: number; reasoning: string; evidence?: string }[];
 }) {
     try {
         const supabase = createServerClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (authError || !user) return { error: 'Not authenticated' }
 
-        const report = await reportService.create({
-            id: `report-${Date.now()}`,
-            goalId: reportData.goalId,
-            employeeId: reportData.employeeId,
-            reportText: reportData.reportText,
-            submissionDate: new Date().toISOString(),
-            evaluationScore: reportData.evaluationScore,
-            evaluationReasoning: reportData.evaluationReasoning,
-            criterionScores: reportData.criterionScores
-        })
+        const nowIso = new Date().toISOString()
+        // The date the employee selected (defaults to today)
+        const selectedDateStr = reportData.submissionDate || nowIso.slice(0, 10)
+        const selectedDate = selectedDateStr.includes('T') ? new Date(selectedDateStr) : new Date(selectedDateStr + 'T00:00:00Z')
 
-        return { success: true, report }
+        // Determine if this is a backdated submission (selected date < today in UTC)
+        const todayStr = nowIso.slice(0, 10)
+        const isBackdated = selectedDateStr < todayStr
+
+        const { findMatchingPeriod, findPeriodForBackdatedSubmission, markPeriodSubmitted } = await import('@/lib/reportingPeriods')
+
+        // ── 1. Period validation for each goal ────────────────────────────────
+        type PeriodMatch = { periodId: string; isLate: boolean; goalId: string; backdatedAfterMissed: boolean }
+        const periodMatches: PeriodMatch[] = []
+
+        for (const goalId of reportData.goalIds) {
+            const goal = await goalService.getById(goalId)
+            if (!goal) continue
+
+            // EXTRA DOUBLE-CLICK/RACE-CONDITION CHECK (New Requirement)
+            // If a submitted period is found covering the submitted date, reject.
+            const isoCheckDate = selectedDateStr + 'T00:00:00Z'
+            const { data: dupPeriods } = await (supabase as any)
+                .from('reporting_periods')
+                .select('id')
+                .eq('employee_id', reportData.employeeId)
+                .eq('goal_id', goalId)
+                .not('report_id', 'is', null)
+                .lte('period_start', isoCheckDate)
+                .gt('period_end', isoCheckDate)
+                .limit(1)
+
+            if (dupPeriods && dupPeriods.length > 0) {
+                 return { error: `A report already exists for this goal in the current reporting period.` }
+            }
+
+            if (isBackdated) {
+                // ── BACKDATED PATH ─────────────────────────────────
+                const managerId = goal.managerId || ''
+                const result = await findPeriodForBackdatedSubmission(
+                    goalId,
+                    reportData.employeeId,
+                    managerId,
+                    selectedDate,
+                )
+                if (!result.ok) {
+                    return { error: result.error }
+                }
+                periodMatches.push({
+                    periodId: result.period.id,
+                    isLate: result.isLate,
+                    goalId,
+                    backdatedAfterMissed: result.wasAlreadyMissed,
+                })
+            } else {
+                // ── CURRENT SUBMISSION PATH ────────────────────────
+                // Fetch manager settings first to get grace_period_days
+                const { data: msData } = await (supabase as any)
+                    .from('manager_settings')
+                    .select('allow_late_submissions, grace_period_days')
+                    .eq('manager_id', goal?.managerId || '')
+                    .maybeSingle()
+
+                const graceDays = msData?.grace_period_days ?? 0
+                const allowLate = msData?.allow_late_submissions ?? true
+
+                // Use real submission time for current-period matching
+                const match = await findMatchingPeriod(goalId, reportData.employeeId, new Date(), graceDays)
+                if (!match) continue
+
+                if (match.isLate && !allowLate) {
+                    return { error: `Late submissions are not accepted for "${goal?.name}". The deadline for this period has passed.` }
+                }
+
+                if (match.period.status === 'submitted') {
+                    return { error: `A report for "${goal?.name || goalId}" has already been submitted for this period.` }
+                }
+                
+                if (match.period.reportId) {
+                     return { error: `Duplicate submission detected for "${goal?.name || goalId}".` }
+                }
+                
+                // Let's also check if a report exists for this employee, goal, and submittedForDate
+                const { data: existing } = await (supabase as any)
+                    .from('reports')
+                    .select('id')
+                    .eq('employee_id', reportData.employeeId)
+                    .eq('goal_id', goalId)
+                    .eq('submitted_for_date', selectedDateStr)
+                    .limit(1)
+                
+                if (existing && existing.length > 0) {
+                     return { error: `A report for "${goal?.name || goalId}" has already been submitted on ${selectedDateStr}.` }
+                }
+
+                periodMatches.push({ periodId: match.period.id, isLate: match.isLate, goalId, backdatedAfterMissed: false })
+            }
+        }
+
+        // ── 2. Create reports for each goal ───────────────────────────────────
+        // For backdated: submission_date = the start of the selected day (for period matching)
+        // submitted_at = real now; submitted_for_date = selected date; is_backdated = true
+        const results = await Promise.all(reportData.goalIds.map(async (goalId) => {
+            const goalSpecificScores = reportData.criterionScores.filter(s => s.goalId === goalId)
+
+            const reportRecord: any = {
+                id: `report-${goalId}-${Date.now()}`,
+                goalId,
+                employeeId: reportData.employeeId,
+                reportText: reportData.reportText,
+                // Always use real now as the canonical submission_date on the DB record
+                submissionDate: nowIso,
+                submittedForDate: selectedDateStr,
+                evaluationScore: reportData.evaluationScore,
+                evaluationReasoning: reportData.evaluationReasoning,
+                criterionScores: goalSpecificScores,
+            }
+
+            // Patch report for backdated audit trail — store direct via supabase
+            // after reportService.create returns (can't extend the generic create easily)
+            const saved = await reportService.create(reportRecord)
+
+            if (isBackdated && saved?.id) {
+                await (supabase as any)
+                    .from('reports')
+                    .update({
+                        submitted_for_date: selectedDateStr,
+                        submitted_at: nowIso,
+                        is_backdated: true,
+                    })
+                    .eq('id', saved.id)
+            }
+
+            return saved
+        }))
+
+        // ── 3. Update matched periods ──────────────────────────────────────────
+        for (const { periodId, isLate, goalId, backdatedAfterMissed } of periodMatches) {
+            const savedReport = results.find((r: any) => r?.goalId === goalId || r?.goal_id === goalId)
+            if (savedReport) {
+                await markPeriodSubmitted(periodId, savedReport.id, isLate, backdatedAfterMissed)
+            }
+        }
+
+        // ── 4. Clear cache ──────────────────────────────────────────────────
+        revalidatePath('/(employee)/my-reports', 'layout')
+        revalidatePath('/(employee)/my-reports/submit', 'page')
+        revalidatePath('/(employee)/my-dashboard', 'layout')
+        revalidatePath('/(app)/employees', 'layout')
+
+        return { success: true, count: results.length }
     } catch (error) {
         console.error('submitReportAction Error:', error)
         return { error: 'Failed to submit report' }
@@ -328,5 +576,48 @@ Return ONLY a JSON object in this format:
         }
         
         return { error: 'Analysis failed' }
+    }
+}
+
+export async function overrideReportScoreAction(reportId: string, newScore: number, reason: string) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) return { error: 'Not authenticated' }
+
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee || employee.role !== 'manager') {
+            return { error: 'Unauthorized: Only managers can override scores' }
+        }
+
+        const report = await reportService.getById(reportId)
+        if (!report) return { error: 'Report not found' }
+
+        // Security check: Make sure this manager actually manages the employee who wrote the report
+        const reportOwner = await employeeService.getById(report.employeeId!)
+        if (reportOwner.managerId !== employee.id) {
+            return { error: 'Unauthorized: You are not the manager for this employee' }
+        }
+
+        const updatedReport = await reportService.update(reportId, {
+            managerOverallScore: newScore,
+            managerOverrideReasoning: reason,
+            reviewedBy: employee.id
+        })
+
+        // Create notification for employee using admin client to bypass RLS
+        const adminSupabase = createAdminClient()
+        await (adminSupabase as any).from('notifications').insert({
+            user_id: report.employeeId!,
+            type: 'alert',
+            title: 'Report Score Adjusted',
+            message: `Your manager has reviewed and overridden the AI score for your report on "${report.goals?.name || 'a goal'}".`,
+            link_url: `/my-reports/${reportId}`
+        })
+
+        return { success: true, report: updatedReport }
+    } catch (error) {
+        console.error('overrideReportScoreAction Error:', error)
+        return { error: 'Failed to save score override' }
     }
 }

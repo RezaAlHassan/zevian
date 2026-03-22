@@ -11,7 +11,6 @@ export default async function SubmitReportPage() {
     const result = await getSubmitReportDataAction()
 
     if ('error' in result) {
-        // Handle error or redirect
         return (
             <div style={{ padding: '40px', textAlign: 'center' }}>
                 <h1 style={{ fontSize: '24px', fontWeight: 800 }}>Error loading submission data</h1>
@@ -20,7 +19,7 @@ export default async function SubmitReportPage() {
         )
     }
 
-    const { projects, goals, metrics, employeeId } = result.data
+    const { projects, goals, metrics, employeeId, aiConfig, backdateSettings, pendingPeriods } = result.data
 
     return (
         <div style={{ padding: '24px' }}>
@@ -33,6 +32,9 @@ export default async function SubmitReportPage() {
                 initialGoals={goals}
                 initialMetrics={metrics}
                 employeeId={employeeId}
+                aiConfig={aiConfig}
+                backdateSettings={backdateSettings}
+                pendingPeriods={pendingPeriods}
             />
         </div>
     )

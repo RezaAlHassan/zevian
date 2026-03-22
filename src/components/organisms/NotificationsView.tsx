@@ -23,6 +23,27 @@ export function NotificationsView() {
     const [loading, setLoading] = useState(true)
     const [userId, setUserId] = useState<string | null>(null)
 
+    const [userRole, setUserRole] = useState<string | null>(null)
+    
+    const getRoleBasedUrl = (url?: string) => {
+        if (!url || userRole !== 'employee') return url
+        
+        // Map manager routes to employee routes
+        if (url.startsWith('/reports')) {
+            return url.replace('/reports', '/my-reports')
+        }
+        if (url.startsWith('/goals')) {
+            return url.replace('/goals', '/my-goals')
+        }
+        if (url.startsWith('/projects')) {
+            return url.replace('/projects', '/my-projects')
+        }
+        if (url.startsWith('/dashboard')) {
+            return '/my-dashboard'
+        }
+        return url
+    }
+
     useEffect(() => {
         fetchNotifications()
     }, [])
@@ -33,6 +54,7 @@ export function NotificationsView() {
         if (result.success && result.data) {
             setNotifications(result.data as any)
             setUserId(result.userId || null)
+            setUserRole(result.role || null)
         }
         setLoading(false)
     }
@@ -138,8 +160,10 @@ export function NotificationsView() {
                 {filteredNotifications.length > 0 ? (
                     filteredNotifications.map((n) => {
                         const style = getTypeStyles(n.type)
+                        const finalUrl = getRoleBasedUrl(n.linkUrl) || '#'
+
                         return (
-                            <Link key={n.id} href={n.linkUrl || '#'} style={{ textDecoration: 'none' }}>
+                            <Link key={n.id} href={finalUrl} style={{ textDecoration: 'none' }}>
                                 <div
                                     style={{
                                         display: 'flex',
@@ -170,7 +194,10 @@ export function NotificationsView() {
                                     <div style={{ flex: 1 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                                             <div style={{ fontSize: '14.5px', fontWeight: 700, color: colors.text }}>{n.title}</div>
-                                            <div style={{ fontSize: '11px', color: colors.text3 }}>{new Date(n.createdAt).toLocaleDateString()}</div>
+                                            <div style={{ fontSize: '11px', color: colors.text3, textAlign: 'right' }}>
+                                                <div>{new Date(n.createdAt).toLocaleDateString()}</div>
+                                                <div style={{ opacity: 0.8 }}>{new Date(n.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+                                            </div>
                                         </div>
                                         <p style={{ fontSize: '13px', color: colors.text2, margin: 0, lineHeight: 1.5 }}>{n.message}</p>
                                     </div>

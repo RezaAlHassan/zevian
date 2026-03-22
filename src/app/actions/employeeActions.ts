@@ -26,9 +26,9 @@ export async function getEmployeesAction() {
             const empGoals = allGoals.filter((g: any) => g.managerId === emp.id || (g as any).assignees?.includes(emp.id))
 
             // Calculate avg score
-            const scoredReports = empReports.filter((r: any) => r.evaluationScore !== null && r.evaluationScore !== undefined)
+            const scoredReports = empReports.filter((r: any) => (r.managerOverallScore ?? r.evaluationScore) !== null)
             const avgScore = scoredReports.length > 0
-                ? scoredReports.reduce((acc: number, r: any) => acc + (r.evaluationScore || 0), 0) / scoredReports.length
+                ? scoredReports.reduce((acc: number, r: any) => acc + (r.managerOverallScore ?? r.evaluationScore ?? 0), 0) / scoredReports.length
                 : 0
 
             // Last report date
@@ -108,5 +108,30 @@ export async function updatePasswordAction(password: string) {
     } catch (error) {
         console.error('updatePasswordAction Error:', error)
         return { success: false, error: 'Failed to update password' }
+    }
+}
+
+export async function updateEmployeePermissionsAction(id: string, permissions: any) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            return { success: false, error: 'Not authenticated' }
+        }
+
+        const currentUser = await employeeService.getByAuthId(user.id)
+        if (!currentUser || (currentUser.role !== 'manager' && !currentUser.isAccountOwner)) {
+            return { success: false, error: 'Unauthorized' }
+        }
+
+        await employeeService.update(id, { permissions })
+
+        revalidatePath('/organization')
+
+        return { success: true }
+    } catch (error) {
+        console.error('updateEmployeePermissionsAction Error:', error)
+        return { success: false, error: 'Failed to update permissions' }
     }
 }

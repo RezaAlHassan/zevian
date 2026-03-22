@@ -62,9 +62,8 @@ export function EmployeeShellClient({ userName, employeeId, orgName, children }:
             {/* ── Sidebar ──────────────────────────── */}
             <aside style={t.root}>
                 {/* Logo */}
-                <div style={t.logo}>
-                    <div style={t.logoMark}>Z</div>
-                    <span style={t.logoText}>Zevian</span>
+                <div style={{ ...t.logo, padding: '12px 20px' }}>
+                    <img src="/logo.png" alt="Zevian" style={{ height: '32px', width: 'auto', display: 'block' }} />
                 </div>
 
                 {/* Org name */}

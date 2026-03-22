@@ -38,6 +38,16 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
     const [goalList, setGoalList] = useState<Goal[]>([])
     const [searchTerm, setSearchTerm] = useState('')
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+    const [permissionTemplate, setPermissionTemplate] = useState<'standard' | 'senior' | 'read-only' | 'custom'>('standard')
+    const [customPermissions, setCustomPermissions] = useState<any>({
+        canViewOrganizationWide: false,
+        canManageSettings: false,
+        canSetGlobalFrequency: false,
+        canCreateProjects: true,
+        canCreateGoals: true,
+        canOverrideAIScores: true,
+        canInviteUsers: true
+    })
 
     // Reset when modal opens/closes
     useEffect(() => {
@@ -53,6 +63,16 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
             setErrorMsg('')
             setSearchTerm('')
             setIsDropdownOpen(false)
+            setPermissionTemplate('standard')
+            setCustomPermissions({
+                canViewOrganizationWide: false,
+                canManageSettings: false,
+                canSetGlobalFrequency: false,
+                canCreateProjects: true,
+                canCreateGoals: true,
+                canOverrideAIScores: true,
+                canInviteUsers: true
+            })
             loadData()
         }
     }, [isOpen])
@@ -132,6 +152,41 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
         else setGoals([...goals, id])
     }
 
+    const updateTemplate = (t: 'standard' | 'senior' | 'read-only' | 'custom') => {
+        setPermissionTemplate(t)
+        if (t === 'standard') {
+            setCustomPermissions({
+                canViewOrganizationWide: false,
+                canManageSettings: false,
+                canSetGlobalFrequency: false,
+                canCreateProjects: true,
+                canCreateGoals: true,
+                canOverrideAIScores: true,
+                canInviteUsers: true
+            })
+        } else if (t === 'senior') {
+            setCustomPermissions({
+                canViewOrganizationWide: true,
+                canManageSettings: true,
+                canSetGlobalFrequency: true,
+                canCreateProjects: true,
+                canCreateGoals: true,
+                canOverrideAIScores: true,
+                canInviteUsers: true
+            })
+        } else if (t === 'read-only') {
+            setCustomPermissions({
+                canViewOrganizationWide: true,
+                canManageSettings: false,
+                canSetGlobalFrequency: false,
+                canCreateProjects: false,
+                canCreateGoals: false,
+                canOverrideAIScores: false,
+                canInviteUsers: false
+            })
+        }
+    }
+
     const nextStep = () => {
         if (step === 1) {
             if (emails.length === 0 && emailInput.trim() === '') {
@@ -159,7 +214,9 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
             emails,
             role,
             managerId,
-            assignments
+            assignments,
+            permissionTemplate,
+            customPermissions
         })
 
         setIsSubmitting(false)
@@ -363,6 +420,29 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                         {isManager ? 'Assign to Projects' : 'Search & Select Goals'}
                                     </div>
 
+                                    {isManager && (
+                                        <div style={{ marginBottom: '20px' }}>
+                                            <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text2, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Icon name="key" size={12} />
+                                                Permission Template
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                                                {['standard', 'senior', 'read-only'].map(t => (
+                                                    <div key={t} onClick={() => updateTemplate(t as any)} style={{
+                                                        padding: '10px 8px', borderRadius: '10px', border: `1.5px solid ${permissionTemplate === t ? colors.accent : colors.border}`,
+                                                        background: permissionTemplate === t ? colors.accentGlow : colors.surface2, cursor: 'pointer', transition: 'all 0.15s',
+                                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'
+                                                    }}>
+                                                        <div style={{ fontSize: '11.5px', fontWeight: 800, color: permissionTemplate === t ? colors.accent : colors.text, textTransform: 'capitalize' }}>{t.replace('-', ' ')}</div>
+                                                        <div style={{ fontSize: '9px', color: colors.text3, fontWeight: 500 }}>
+                                                            {t === 'standard' ? 'Standard Access' : t === 'senior' ? 'Full Control' : 'View Only'}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {isManager ? (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                             {projectList.map((item: any) => {
@@ -516,6 +596,22 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                                 ) : <span style={{ color: colors.text3, fontWeight: 400, fontStyle: 'italic' }}>None assigned</span>}
                                             </td>
                                         </tr>
+                                        {isManager && (
+                                            <tr>
+                                                <td style={{ fontSize: '12px', color: colors.text3, width: '120px', padding: '9px 12px 9px 0', verticalAlign: 'top', borderTop: `1px solid ${colors.border}` }}>Permissions</td>
+                                                <td style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text, padding: '9px 0', verticalAlign: 'top', borderTop: `1px solid ${colors.border}` }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: colors.accent }}>
+                                                        <Icon name="key" size={13} />
+                                                        <span style={{ textTransform: 'capitalize' }}>{permissionTemplate.replace('-', ' ')} Template</span>
+                                                    </div>
+                                                    <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px', fontWeight: 400 }}>
+                                                        {permissionTemplate === 'standard' && 'Can invite users, create projects/goals, and override AI scores.'}
+                                                        {permissionTemplate === 'senior' && 'Full administrative access to all settings and data.'}
+                                                        {permissionTemplate === 'read-only' && 'Can view organization-wide data but cannot make changes.'}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
 

@@ -19,7 +19,7 @@ export async function getNotificationsAction() {
         }
 
         const notifications = await notificationService.getAll(employee.id);
-        return { success: true, data: notifications, userId: employee.id };
+        return { success: true, data: notifications, userId: employee.id, role: employee.role };
     } catch (error: any) {
         console.error('Error fetching notifications:', error);
         return { success: false, error: error.message };

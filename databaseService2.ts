@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
-import type { Project, Goal, Report, Employee, Organization, Notification, CustomMetric } from './src/types';
+import type { Project, Goal, Report, Employee, Organization, Notification, CustomMetric, Leave } from './src/types';
 import { isReportLate, getNextReportDueDate } from './src/utils/reportDueDate';
+import { calculateComplianceStreak } from './src/lib/complianceHelpers';
 
 // ============================================================================
 // ORGANIZATIONS SERVICE (Multi-Tenancy)
@@ -169,6 +170,7 @@ function dbProjectToProject(dbProject: any): Project {
         knowledgeBaseCache: dbProject.knowledge_base_cache,
         createdBy: dbProject.created_by,
         createdAt: dbProject.created_at,
+        status: dbProject.status,
         assignees: [], // Assignees are loaded separately
     };
 }
@@ -180,7 +182,7 @@ export const projectService = {
             .select(`
                 *, 
                 project_assignees(assignee_id, assignee_type, employees(name)),
-                goals(id, status, deadline, reports(id, evaluation_score))
+                goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score))
             `)
             .order('created_at', { ascending: false });
 
@@ -195,7 +197,7 @@ export const projectService = {
             .select(`
                 *, 
                 project_assignees(assignee_id, assignee_type, employees(name)),
-                goals(id, status, deadline, reports(id, evaluation_score))
+                goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score))
             `)
             .eq('id', id)
             .single();
@@ -219,8 +221,9 @@ export const projectService = {
             reportCount += reports.length;
 
             reports.forEach((report: any) => {
-                if (typeof report.evaluation_score === 'number' && !isNaN(report.evaluation_score)) {
-                    totalScore += report.evaluation_score;
+                const effectiveScore = report.manager_overall_score ?? report.evaluation_score;
+                if (typeof effectiveScore === 'number' && !isNaN(effectiveScore)) {
+                    totalScore += effectiveScore;
                     scoredReports++;
                 }
             });
@@ -253,7 +256,7 @@ export const projectService = {
             total_goals: goals.length,
             report_count: reportCount,
             avg_score: avgScore,
-            status: derivedStatus,
+            status: dbProject.status || derivedStatus,
             emoji: '🖥️' // Fallback emoji
         };
     },
@@ -272,6 +275,7 @@ export const projectService = {
                 knowledge_base_link: project.knowledgeBaseLink,
                 ai_context: project.aiContext,
                 created_by: project.createdBy,
+                status: project.status || 'active',
                 created_at: project.createdAt || new Date().toISOString(),
             });
         // Removed .select() to avoid RLS 403 race condition
@@ -281,9 +285,24 @@ export const projectService = {
             throw error;
         }
 
+        // Ensure creator is an assignee
+        const assignees = [...(project.assignees || [])];
+        if (project.createdBy && !assignees.some(a => a.id === project.createdBy)) {
+            assignees.push({ id: project.createdBy, type: 'manager' });
+        }
+
         // Insert assignees
-        if (project.assignees && project.assignees.length > 0) {
-            const assigneesToInsert = project.assignees.map(a => ({
+        if (assignees.length > 0) {
+            // Validate all assignees are managers
+            const managerCheckPromises = assignees.map(async (a: any) => {
+                const emp = await employeeService.getById(a.id);
+                if (emp.role !== 'manager') {
+                    throw new Error(`Employee ${emp.name} cannot be assigned to a project because they are not a manager.`);
+                }
+            });
+            await Promise.all(managerCheckPromises);
+
+            const assigneesToInsert = assignees.map(a => ({
                 project_id: project.id,
                 assignee_id: a.id,
                 assignee_type: a.type
@@ -310,6 +329,7 @@ export const projectService = {
         if (updates.knowledgeBaseLink !== undefined) dbUpdates.knowledge_base_link = updates.knowledgeBaseLink;
         if (updates.aiContext !== undefined) dbUpdates.ai_context = updates.aiContext;
         if (updates.knowledgeBaseCache !== undefined) dbUpdates.knowledge_base_cache = updates.knowledgeBaseCache;
+        if (updates.status !== undefined) dbUpdates.status = updates.status;
 
         const { data, error } = await supabase
             .from('projects')
@@ -318,9 +338,20 @@ export const projectService = {
             .select()
             .single();
         if (error) throw error;
+        
+        const projectId = id;
 
         // Update assignees if provided
         if (updates.assignees) {
+            // Validate all assignees are managers
+            const managerCheckPromises = updates.assignees.map(async (a: any) => {
+                const emp = await employeeService.getById(a.id);
+                if (emp.role !== 'manager') {
+                    throw new Error(`Employee ${emp.name} cannot be assigned to a project because they are not a manager.`);
+                }
+            });
+            await Promise.all(managerCheckPromises);
+
             // Delete existing assignees
             const { error: deleteError } = await supabase
                 .from('project_assignees')
@@ -364,6 +395,12 @@ export const projectService = {
     },
 
     async assignEmployee(projectId: string, employeeId: string, assigneeType: 'employee' | 'manager') {
+        // Validate role: PROJECTS only allow managers
+        const employee = await employeeService.getById(employeeId);
+        if (employee.role !== 'manager') {
+            throw new Error('Only managers can be assigned to projects.');
+        }
+
         const { data, error } = await supabase
             .from('project_assignees')
             .insert({
@@ -456,7 +493,17 @@ export const projectService = {
         
         if (dpError) console.error('[projectService.getByEmployeeId] directProjects error:', dpError);
         const directProjIds = (directProjects || []).map((p: any) => p.project_id);
-        console.log('[projectService.getByEmployeeId] directProjIds:', directProjIds);
+
+        // 1b. Get projects created by the employee
+        const { data: createdProjects, error: cpError } = await supabase
+            .from('projects')
+            .select('id')
+            .eq('created_by', employeeId);
+        
+        if (cpError) console.error('[projectService.getByEmployeeId] createdProjects error:', cpError);
+        const createdProjIds = (createdProjects || []).map((p: any) => p.id);
+        
+        console.log('[projectService.getByEmployeeId] directProjIds:', directProjIds, 'createdProjIds:', createdProjIds);
 
         // 2. Get goals where employee is assigned (fetch goal_id separately, then get project_id)
         const { data: goalAssignments, error: gaError } = await supabase
@@ -484,7 +531,7 @@ export const projectService = {
 
         console.log('[projectService.getByEmployeeId] goalProjIds:', goalProjIds);
 
-        const allProjIds = Array.from(new Set([...directProjIds, ...goalProjIds]));
+        const allProjIds = Array.from(new Set([...directProjIds, ...createdProjIds, ...goalProjIds]));
         console.log('[projectService.getByEmployeeId] allProjIds:', allProjIds);
 
         if (allProjIds.length === 0) return [];
@@ -494,7 +541,7 @@ export const projectService = {
             .select(`
                 *, 
                 project_assignees(assignee_id, assignee_type, employees(name)),
-                goals(id, status, deadline, reports(id, evaluation_score))
+                goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score))
             `)
             .in('id', allProjIds)
             .order('created_at', { ascending: false });
@@ -590,7 +637,7 @@ export const goalService = {
     async getAll() {
         const { data, error } = await supabase
             .from('goals')
-            .select('*, projects(*), criteria(*)')
+            .select('*, projects(*), criteria(*), reports(id, evaluation_score, manager_overall_score, submission_date, submitted_for_date)')
             .order('created_at', { ascending: false });
         if (error) throw error;
         if (!data) return [];
@@ -598,35 +645,56 @@ export const goalService = {
         const goalIds = data.map((g: any) => g.id);
         const goalMembersMap = await fetchGoalMembersMap(goalIds);
 
-        return data.map((g: any) => ({
-            ...dbGoalToGoal(g),
-            project: g.projects ? projectService.mapProjectWithMetrics({ ...g.projects, goals: [], reports: [] }) : null,
-            goal_members: goalMembersMap[g.id] || []
-        }));
+        return data.map((g: any) => {
+            const reports: any[] = g.reports || [];
+            const scoredReports = reports.filter((r: any) => (r.manager_overall_score ?? r.evaluation_score) != null);
+            const avg_score = scoredReports.length > 0
+                ? scoredReports.reduce((sum: number, r: any) => sum + (r.manager_overall_score ?? r.evaluation_score), 0) / scoredReports.length
+                : null;
+
+            return {
+                ...dbGoalToGoal(g),
+                project: g.projects ? projectService.mapProjectWithMetrics({ ...g.projects, goals: [], reports: [] }) : null,
+                goal_members: goalMembersMap[g.id] || [],
+                reports: reports.map(dbReportToReport),
+                report_count: reports.length,
+                avg_score: avg_score ? Number(avg_score.toFixed(1)) : null,
+                avgScore: avg_score ? Number(avg_score.toFixed(1)) : null,
+            };
+        });
     },
 
     async getById(id: string) {
         const { data, error } = await supabase
             .from('goals')
-            .select('*, projects(*), criteria(*)')
+            .select('*, projects(*), criteria(*), reports(id, evaluation_score, manager_overall_score, submission_date, submitted_for_date)')
             .eq('id', id)
             .single();
         if (error) throw error;
         if (!data) return null;
 
         const goalMembersMap = await fetchGoalMembersMap([id]);
+        const reports = data.reports || [];
+        const scoredReports = reports.filter((r: any) => (r.manager_overall_score ?? r.evaluation_score) != null);
+        const avg_score = scoredReports.length > 0
+            ? scoredReports.reduce((sum: number, r: any) => sum + (r.manager_overall_score ?? r.evaluation_score), 0) / scoredReports.length
+            : null;
 
         return {
             ...dbGoalToGoal(data),
             project: data.projects ? projectService.mapProjectWithMetrics({ ...data.projects, goals: [], reports: [] }) : null,
-            goal_members: goalMembersMap[id] || []
+            goal_members: goalMembersMap[id] || [],
+            reports: reports.map(dbReportToReport),
+            report_count: reports.length,
+            avg_score: avg_score ? Number(avg_score.toFixed(1)) : null,
+            avgScore: avg_score ? Number(avg_score.toFixed(1)) : null
         };
     },
 
     async getByProjectId(projectId: string) {
         const { data, error } = await supabase
             .from('goals')
-            .select('*, criteria(*)')
+            .select('*, criteria(*), reports(id, evaluation_score, manager_overall_score, submission_date, submitted_for_date)')
             .eq('project_id', projectId)
             .order('created_at', { ascending: false });
         if (error) throw error;
@@ -635,10 +703,64 @@ export const goalService = {
         const goalIds = data.map((g: any) => g.id);
         const goalMembersMap = await fetchGoalMembersMap(goalIds);
 
-        return data.map((g: any) => ({
-            ...dbGoalToGoal(g),
-            goal_members: goalMembersMap[g.id] || []
-        }));
+        return data.map((g: any) => {
+            const reports = g.reports || [];
+            const scoredReports = reports.filter((r: any) => (r.manager_overall_score ?? r.evaluation_score) != null);
+            const avg_score = scoredReports.length > 0
+                ? scoredReports.reduce((sum: number, r: any) => sum + (r.manager_overall_score ?? r.evaluation_score), 0) / scoredReports.length
+                : null;
+
+            return {
+                ...dbGoalToGoal(g),
+                goal_members: goalMembersMap[g.id] || [],
+                reports: reports.map(dbReportToReport),
+                report_count: reports.length,
+                avg_score: avg_score ? Number(avg_score.toFixed(1)) : null,
+                avgScore: avg_score ? Number(avg_score.toFixed(1)) : null // For UI components using avgScore
+            };
+        });
+    },
+
+    async getByEmployeeId(employeeId: string) {
+        // Only return goals where the employee is explicitly assigned (via goal_assignees)
+        const { data: directGoalAssignees } = await supabase
+            .from('goal_assignees')
+            .select('goal_id')
+            .eq('assignee_id', employeeId);
+        const directGoalIds = (directGoalAssignees || []).map((ga: any) => ga.goal_id);
+
+        // If not assigned to any goals, return empty
+        if (directGoalIds.length === 0) return [];
+
+        const { data, error } = await supabase
+            .from('goals')
+            .select('*, projects(*), criteria(*), reports(id, evaluation_score, manager_overall_score, submission_date, submitted_for_date)')
+            .in('id', directGoalIds)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (!data) return [];
+
+        const goalIds = data.map((g: any) => g.id);
+        const goalMembersMap = await fetchGoalMembersMap(goalIds);
+
+        return data.map((g: any) => {
+            const reports: any[] = g.reports || [];
+            const scoredReports = reports.filter((r: any) => (r.manager_overall_score ?? r.evaluation_score) != null);
+            const avg_score = scoredReports.length > 0
+                ? scoredReports.reduce((sum: number, r: any) => sum + (r.manager_overall_score ?? r.evaluation_score), 0) / scoredReports.length
+                : null;
+
+            return {
+                ...dbGoalToGoal(g),
+                project: g.projects ? projectService.mapProjectWithMetrics({ ...g.projects, goals: [], reports: [] }) : null,
+                goal_members: goalMembersMap[g.id] || [],
+                reports: reports.map(dbReportToReport),
+                report_count: reports.length,
+                avg_score: avg_score ? Number(avg_score.toFixed(1)) : null,
+                avgScore: avg_score ? Number(avg_score.toFixed(1)) : null,
+            };
+        });
     },
 
     async create(goal: Omit<Goal, 'createdAt' | 'updatedAt'>) {
@@ -677,14 +799,21 @@ export const goalService = {
 
         // Insert goal assignees
         if (goal.assignees && goal.assignees.length > 0) {
-            const assigneesToInsert = goal.assignees.map((idOrObj: any) => {
+            const assigneesToInsert = await Promise.all(goal.assignees.map(async (idOrObj: any) => {
                 const assigneeId = typeof idOrObj === 'string' ? idOrObj : (idOrObj.id || idOrObj.employee_id);
+                
+                // Validate role: GOALS only allow employees
+                const emp = await employeeService.getById(assigneeId);
+                if (emp.role !== 'employee') {
+                    throw new Error(`Manager ${emp.name} cannot be assigned to a goal.`);
+                }
+
                 return {
                     goal_id: goal.id,
                     assignee_id: assigneeId,
                     assignee_type: 'employee' // Default to employee
                 };
-            });
+            }));
 
             const { error: assigneesError } = await supabase
                 .from('goal_assignees')
@@ -750,76 +879,33 @@ export const goalService = {
         if (error) throw error;
     },
 
-    async getByEmployeeId(employeeId: string) {
-        console.log('[goalService.getByEmployeeId] Fetching for employee:', employeeId);
-        
-        // 1. Get projects where employee is assigned
-        const { data: directProjects } = await supabase
-            .from('project_assignees')
-            .select('project_id')
-            .eq('assignee_id', employeeId);
-        const directProjIds = (directProjects || []).map((p: any) => p.project_id);
-
-        // 2. Get goals where employee is explicitly assigned
-        const { data: goalAssignments, error: gaError } = await supabase
+    /**
+     * Atomically replace all assignees for a goal.
+     * Deletes every existing row in goal_assignees for this goal,
+     * then inserts the new list of employee IDs.
+     */
+    async updateGoalAssignees(goalId: string, assigneeIds: string[]) {
+        // 1. Remove all existing assignees for this goal
+        const { error: deleteError } = await supabase
             .from('goal_assignees')
-            .select('goal_id')
-            .eq('assignee_id', employeeId);
-        
-        if (gaError) throw gaError;
+            .delete()
+            .eq('goal_id', goalId);
+        if (deleteError) throw deleteError;
 
-        const empAssignedGoalIds = (goalAssignments || []).map((g: any) => g.goal_id);
-
-        // 3. Fetch goals from both sources
-        let query = supabase
-            .from('goals')
-            .select(`
-                *, 
-                projects(*), 
-                criteria(*),
-                reports(id, evaluation_score)
-            `);
-
-        // Union: goals in assigned projects OR goals explicitly assigned
-        if (directProjIds.length > 0 && empAssignedGoalIds.length > 0) {
-            query = query.or(`project_id.in.("${directProjIds.join('","')}"),id.in.("${empAssignedGoalIds.join('","')}")`);
-        } else if (directProjIds.length > 0) {
-            query = query.in('project_id', directProjIds);
-        } else if (empAssignedGoalIds.length > 0) {
-            query = query.in('id', empAssignedGoalIds);
-        } else {
-            return [];
+        // 2. Insert the new list (skip if empty)
+        if (assigneeIds.length > 0) {
+            const rows = assigneeIds.map(id => ({
+                goal_id: goalId,
+                assignee_id: id,
+                assignee_type: 'employee',
+            }));
+            const { error: insertError } = await supabase
+                .from('goal_assignees')
+                .insert(rows);
+            if (insertError) throw insertError;
         }
-
-        const { data: goalsData, error: goalsError } = await query.order('created_at', { ascending: false });
-
-        if (goalsError) throw goalsError;
-
-        if (!goalsData || goalsData.length === 0) return [];
-
-        // 4. Fetch goal assignees separately (no FK join possible between goal_assignees and employees)
-        const goalIds = goalsData.map((g: any) => g.id);
-        const goalMembersMap = await fetchGoalMembersMap(goalIds);
-
-        return (goalsData || []).map((g: any) => {
-            const reports = g.reports || [];
-            const avgScore = reports.length > 0 
-                ? reports.reduce((acc: number, r: any) => acc + Number(r.evaluation_score), 0) / reports.length 
-                : 0;
-
-            return {
-                ...dbGoalToGoal(g),
-                project: g.projects ? projectService.mapProjectWithMetrics({
-                    ...g.projects,
-                    goals: [],
-                    reports: []
-                }) : null,
-                report_count: reports.length,
-                avg_score: Number(avgScore.toFixed(1)),
-                goal_members: goalMembersMap[g.id] || []
-            };
-        });
     },
+
 };
 
 // ============================================================================
@@ -834,6 +920,7 @@ function dbReportToReport(dbReport: any): Report {
         employeeId: dbReport.employee_id,
         reportText: dbReport.report_text,
         submissionDate: dbReport.submission_date,
+        submittedForDate: dbReport.submitted_for_date,
         evaluationScore: dbReport.evaluation_score,
         managerOverallScore: dbReport.manager_overall_score,
         managerOverrideReasoning: dbReport.manager_override_reasoning,
@@ -911,6 +998,7 @@ export const reportService = {
                 employee_id: report.employeeId,
                 report_text: report.reportText,
                 submission_date: report.submissionDate || new Date().toISOString(),
+                submitted_for_date: report.submittedForDate,
                 evaluation_score: typeof report.evaluationScore !== 'number' || isNaN(report.evaluationScore) ? 0 : report.evaluationScore,
                 evaluation_reasoning: report.evaluationReasoning || 'No reasoning provided.',
             };
@@ -1030,32 +1118,59 @@ export const reportService = {
         if (error) throw error;
     },
 
-    async getManagerReports(managerId: string) {
-        // First get direct report IDs
-        const { data: directReports } = await supabase
-            .from('employees')
-            .select('id')
-            .eq('manager_id', managerId);
+    async getManagerReports(managerId: string, view: 'org' | 'direct' = 'org', organizationId?: string, startDate?: string, endDate?: string) {
+        let employeeIds: string[] = [];
 
-        const employeeIds = (directReports || []).map((e: any) => e.id);
+        if (view === 'direct') {
+            // Get direct report IDs
+            const { data: directReports } = await supabase
+                .from('employees')
+                .select('id')
+                .eq('manager_id', managerId);
+            employeeIds = (directReports || []).map((e: any) => e.id);
+        } else if (organizationId) {
+            // Get all employees in organization
+            const { data: orgEmployees } = await supabase
+                .from('employees')
+                .select('id')
+                .eq('organization_id', organizationId);
+            employeeIds = (orgEmployees || []).map((e: any) => e.id);
+        }
+
         if (employeeIds.length === 0) return [];
 
-        const { data, error } = await supabase
+        let query = supabase
             .from('reports')
             .select('*, goals(id, name, projects(id, name)), employees!reports_employee_id_fkey(id, name, title, avatar_url), report_criterion_scores(*)')
-            .in('employee_id', employeeIds)
-            .order('submission_date', { ascending: false });
+            .in('employee_id', employeeIds);
+        
+        if (startDate) {
+            query = query.gte('submission_date', startDate);
+        }
+        if (endDate) {
+            query = query.lte('submission_date', endDate);
+        }
+
+        const { data, error } = await query.order('submission_date', { ascending: false });
 
         if (error) throw error;
         return data ? data.map(dbReportToReport) : [];
     },
 
-    async getEmployeeReports(employeeId: string) {
-        const { data, error } = await supabase
+    async getEmployeeReports(employeeId: string, startDate?: string, endDate?: string) {
+        let query = supabase
             .from('reports')
             .select('*, goals(id, name, projects(id, name)), employees!reports_employee_id_fkey(id, name, title, avatar_url), report_criterion_scores(*)')
-            .eq('employee_id', employeeId)
-            .order('submission_date', { ascending: false });
+            .eq('employee_id', employeeId);
+
+        if (startDate) {
+            query = query.gte('submission_date', startDate);
+        }
+        if (endDate) {
+            query = query.lte('submission_date', endDate);
+        }
+
+        const { data, error } = await query.order('submission_date', { ascending: false });
 
         if (error) throw error;
         return data ? data.map(dbReportToReport) : [];
@@ -1087,6 +1202,10 @@ function dbEmployeeToEmployee(dbEmployee: any): Employee {
             canSetGlobalFrequency: dbEmployee.employee_permissions.can_set_global_frequency,
             canViewOrganizationWide: dbEmployee.employee_permissions.can_view_organization_wide,
             canManageSettings: dbEmployee.employee_permissions.can_manage_settings,
+            canCreateProjects: dbEmployee.employee_permissions.can_create_projects,
+            canCreateGoals: dbEmployee.employee_permissions.can_create_goals,
+            canInviteUsers: dbEmployee.employee_permissions.can_invite_users,
+            canOverrideAIScores: dbEmployee.employee_permissions.can_override_ai_scores,
         } : undefined,
         skillAnalysis: dbEmployee.skill_analysis || undefined,
     };
@@ -1203,6 +1322,10 @@ export const employeeService = {
                     can_set_global_frequency: employee.permissions.canSetGlobalFrequency,
                     can_view_organization_wide: employee.permissions.canViewOrganizationWide,
                     can_manage_settings: employee.permissions.canManageSettings,
+                    can_create_projects: employee.permissions.canCreateProjects,
+                    can_create_goals: employee.permissions.canCreateGoals,
+                    can_invite_users: employee.permissions.canInviteUsers,
+                    can_override_ai_scores: employee.permissions.canOverrideAIScores,
                 });
             if (permError) throw permError;
         }
@@ -1241,6 +1364,10 @@ export const employeeService = {
                     can_set_global_frequency: updates.permissions.canSetGlobalFrequency,
                     can_view_organization_wide: updates.permissions.canViewOrganizationWide,
                     can_manage_settings: updates.permissions.canManageSettings,
+                    can_create_projects: updates.permissions.canCreateProjects,
+                    can_create_goals: updates.permissions.canCreateGoals,
+                    can_invite_users: updates.permissions.canInviteUsers,
+                    can_override_ai_scores: updates.permissions.canOverrideAIScores,
                 });
             if (permError) throw permError;
         }
@@ -1405,6 +1532,14 @@ export const notificationService = {
             const lastReportDate = recentReports && recentReports.length > 0 ? recentReports[0].submission_date : null;
 
             if (isReportLate(lastReportDate, frequency)) {
+                // Check if employee is on leave around the due date.
+                const today = new Date();
+                const activeLeaves = await leaveService.getActiveLeavesByDateRange(employeeId, today, today);
+                
+                if (activeLeaves.length > 0) {
+                    continue; // Skip alerting if on leave
+                }
+                
                 // 3. Check if a late report notification already exists for this goal in the last 24h
                 const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
                 const { data: existingNotif, error: notifError } = await supabase
@@ -1435,7 +1570,7 @@ export const notificationService = {
 // DASHBOARD SERVICE
 // ============================================================================
 export const dashboardService = {
-    async getEmployeeDashboardData(employeeId: string) {
+    async getEmployeeDashboardData(employeeId: string, startDate?: string, endDate?: string) {
         // 1. Get Employee Profile with manager details
         const { data: employeeData, error: empError } = await supabase
             .from('employees')
@@ -1448,11 +1583,19 @@ export const dashboardService = {
         const manager = employeeData.manager ? dbEmployeeToEmployee(employeeData.manager) : null;
 
         // 2. Get Employee's Reports with criteria scores and goal names
-        const { data: reportsData, error: reportsError } = await supabase
+        let reportsQuery = supabase
             .from('reports')
             .select('*, goals(id, name, project_id), report_criterion_scores(*)')
-            .eq('employee_id', employeeId)
-            .order('submission_date', { ascending: false });
+            .eq('employee_id', employeeId);
+
+        if (startDate) {
+            reportsQuery = reportsQuery.gte('submission_date', startDate);
+        }
+        if (endDate) {
+            reportsQuery = reportsQuery.lte('submission_date', endDate);
+        }
+
+        const { data: reportsData, error: reportsError } = await reportsQuery.order('submission_date', { ascending: false });
 
         if (reportsError) throw reportsError;
         const reports = (reportsData || []).map(dbReportToReport);
@@ -1478,7 +1621,7 @@ export const dashboardService = {
         if (empAssignedProjIds.length > 0) {
             const { data: pGoals, error: pgError } = await supabase
                 .from('goals')
-                .select('*, projects(id, name), criteria(*)')
+                .select('*, projects(id, name, report_frequency), criteria(*)')
                 .in('project_id', empAssignedProjIds);
             if (pgError) throw pgError;
             if (pGoals) goalsData = [...goalsData, ...pGoals];
@@ -1492,7 +1635,7 @@ export const dashboardService = {
             if (newGoalIds.length > 0) {
                 const { data: directGoals, error: dgError } = await supabase
                     .from('goals')
-                    .select('*, projects(id, name), criteria(*)')
+                    .select('*, projects(id, name, report_frequency), criteria(*)')
                     .in('id', newGoalIds);
                 if (dgError) throw dgError;
                 if (directGoals) goalsData = [...goalsData, ...directGoals];
@@ -1501,12 +1644,13 @@ export const dashboardService = {
 
         const goals = (goalsData || []).map(g => ({
             ...dbGoalToGoal(g),
-            projectName: g.projects?.name || 'Unknown Project'
+            projectName: g.projects?.name || 'Unknown Project',
+            projectFrequency: g.projects?.report_frequency || 'weekly'
         }));
 
         // 4. Aggregations
-        const currentScore = reports.length > 0 ? reports[0].evaluationScore : 0;
-        const prevScore = reports.length > 1 ? reports[1].evaluationScore : currentScore;
+        const currentScore = reports.length > 0 ? (reports[0].managerOverallScore ?? reports[0].evaluationScore) : 0;
+        const prevScore = reports.length > 1 ? (reports[1].managerOverallScore ?? reports[1].evaluationScore) : currentScore;
         const delta = Number((currentScore - prevScore).toFixed(1));
 
         const activeGoalsCount = goals.filter(g => g.status === 'active').length;
@@ -1549,7 +1693,7 @@ export const dashboardService = {
 
         // Trend (last 8 reports)
         const trendReports = [...reports].slice(0, 8).reverse();
-        const trend = trendReports.map((r: any) => Number(Number(r.evaluationScore).toFixed(1)));
+        const trend = trendReports.map((r: any) => Number(Number(r.managerOverallScore ?? r.evaluationScore).toFixed(1)));
         const weeks = trendReports.map((r: any, i: number) => `R${i + 1}`);
 
         // Goals for UI
@@ -1557,7 +1701,7 @@ export const dashboardService = {
             const goalReports = reports.filter((r: any) => r.goalId === g.id);
 
             const avgScore = goalReports.length > 0
-                ? goalReports.reduce((acc: any, r: any) => acc + Number(r.evaluationScore), 0) / goalReports.length
+                ? goalReports.reduce((acc: any, r: any) => acc + Number(r.managerOverallScore ?? r.evaluationScore), 0) / goalReports.length
                 : 0;
 
             // Average per criterion for this goal
@@ -1577,11 +1721,21 @@ export const dashboardService = {
                 id: g.id,
                 name: g.name,
                 project: g.projectName,
+                projectFrequency: g.projectFrequency || 'weekly', // Frequency from project for due date calc
                 icon: '🎯',
                 score: Number(avgScore.toFixed(1)),
                 reports: goalReports.length,
-                criteria: goalCriteria
+                criteria: goalCriteria,
+                deadline: g.deadline,
+                status: g.status
             };
+        });
+
+        // Sort goals by deadline
+        uiGoals.sort((a, b) => {
+            if (!a.deadline) return 1;
+            if (!b.deadline) return -1;
+            return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
         });
 
         // History
@@ -1590,7 +1744,7 @@ export const dashboardService = {
             return {
                 date: new Date(r.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
                 goal: goal ? goal.name : 'Unknown Goal',
-                score: Number(Number(r.evaluationScore).toFixed(1)),
+                score: Number(Number(r.managerOverallScore ?? r.evaluationScore).toFixed(1)),
                 status: 'reviewed'
             };
         });
@@ -1602,6 +1756,7 @@ export const dashboardService = {
                 role: employee.title || 'Team Member',
                 team: goals.length > 0 ? goals[0].projectName : 'No Team Assigned',
                 currentScore: Number(currentScore.toFixed(1)),
+                baselineRequired: reports.length < 3,
                 delta,
                 trend,
                 weeks,
@@ -1613,15 +1768,16 @@ export const dashboardService = {
                 { 
                     label: 'Next report due', 
                     value: (() => {
-                        if (goals.length === 0) return 'N/A';
-                        const dueDates = goals.map(g => {
-                            const lastReport = reports.find((r: any) => r.goalId === g.id);
-                            const frequency = 'weekly'; // Defaulting to weekly for now as projects are mapped differently
-                            return getNextReportDueDate(lastReport?.submissionDate, frequency);
-                        });
-                        const soonest = new Date(Math.min(...dueDates.map(d => d.getTime())));
-                        const days = Math.ceil((soonest.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                        return days > 0 ? `${days}d` : 'Today';
+                        const activeGoalsWithDeadlines = goals.filter(g => g.deadline && g.status !== 'completed' && g.status !== 'archived');
+                        if (activeGoalsWithDeadlines.length === 0) return 'N/A';
+                        
+                        const dueDates = activeGoalsWithDeadlines.map(g => new Date(g.deadline!).getTime());
+                        const soonest = new Date(Math.min(...dueDates));
+                        const diffMs = soonest.getTime() - Date.now();
+                        const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+                        
+                        if (diffMs < 0) return 'Overdue';
+                        return days === 0 ? 'Today' : `${days}d`;
                     })(),
                     meta: 'Check goals', 
                     icon: 'clock' 
@@ -1638,7 +1794,7 @@ export const dashboardService = {
         };
     },
 
-    async getManagerDashboardData(managerId: string) {
+    async getManagerDashboardData(managerId: string, view: 'org' | 'direct' = 'org', startDate?: string, endDate?: string) {
         // 1. Get Manager Profile and Org ID
         const { data: managerData, error: managerError } = await supabase
             .from('employees')
@@ -1649,54 +1805,118 @@ export const dashboardService = {
         if (managerError) throw managerError;
         const orgId = managerData.organization_id;
 
-        // 2. Get all projects for the organization
-        const { data: projectsData, error: projectsError } = await supabase
+        // 2. Get projects
+        let projectsQuery = supabase
             .from('projects')
-            .select('id, name, category, report_frequency, project_assignees(assignee_id, employees(name))')
+            .select('id, name, category, report_frequency, status, created_by, project_assignees(assignee_id, ramp_up_ends_at, employees(name))')
             .eq('organization_id', orgId);
+        
+        if (view === 'direct') {
+            // For direct view, we need projects created by manager OR where manager is assigned
+            // But Supabase 'OR' across tables/filters can be tricky.
+            // Let's get assigned projects first.
+            const { data: assigned } = await supabase
+                .from('project_assignees')
+                .select('project_id')
+                .eq('assignee_id', managerId);
+            const assignedIds = (assigned || []).map((a: any) => a.project_id);
+            
+            projectsQuery = projectsQuery.or(`created_by.eq.${managerId}${assignedIds.length > 0 ? `,id.in.("${assignedIds.join('","')}")` : ''}`);
+        }
 
+        const { data: projectsData, error: projectsError } = await projectsQuery;
         if (projectsError) throw projectsError;
+        const projectIds = (projectsData || []).map((p: any) => p.id);
 
-        // 3. Get all employees for the organization
-        const { data: employeesData, error: employeesError } = await supabase
+        // 3. Get employees
+        let employeesQuery = supabase
             .from('employees')
             .select('*')
             .eq('organization_id', orgId);
-
+        
+        if (view === 'direct') {
+            employeesQuery = employeesQuery.eq('manager_id', managerId);
+        }
+        
+        const { data: employeesData, error: employeesError } = await employeesQuery;
         if (employeesError) throw employeesError;
+        const directReportIds = (employeesData || []).map((e: any) => e.id);
 
-        // 4. Get all reports for the organization
-        const { data: reportsData, error: reportsError } = await supabase
+        // 4. Get reports
+        let reportsQuery = supabase
             .from('reports')
-            .select('*, employees!reports_employee_id_fkey!inner(organization_id, name), goals(project_id, name)')
-            .eq('employees.organization_id', orgId)
-            .order('submission_date', { ascending: false });
+            .select('*, employees!reports_employee_id_fkey!inner(organization_id, name, manager_id), goals(project_id, name), report_criterion_scores(*)')
+            .eq('employees.organization_id', orgId);
+        
+        if (view === 'direct') {
+            // Reports from people this manager manages
+            if (directReportIds.length > 0) {
+                reportsQuery = reportsQuery.in('employee_id', directReportIds);
+            } else {
+                // If no direct reports, we shouldn't show any reports in direct view
+                reportsQuery = reportsQuery.eq('employee_id', 'none'); 
+            }
+        }
 
+        if (startDate) {
+            reportsQuery = reportsQuery.gte('submission_date', startDate);
+        }
+        if (endDate) {
+            reportsQuery = reportsQuery.lte('submission_date', endDate);
+        }
+
+        const { data: reportsData, error: reportsError } = await reportsQuery.order('submission_date', { ascending: false });
         if (reportsError) throw reportsError;
 
-        // 5. Get all goals for the organization's projects
-        const projectIds = (projectsData || []).map((p: any) => p.id);
+        // 5. Get goals
         let goalsData: any[] = [];
         if (projectIds.length > 0) {
-            const { data: gData, error: goalsError } = await supabase
+            let goalsQuery = supabase
                 .from('goals')
                 .select('*, criteria(*)')
                 .in('project_id', projectIds);
+            
+            if (view === 'direct') {
+                // For direct view, user said: "only show goals created by the manager or show goals from the project the manager is assigned to"
+                // Since projectIds already only contains created/assigned projects, 
+                // we just need to optionally add goals created by manager that might not be in those projects (though usually they are).
+                goalsQuery = goalsQuery.or(`created_by.eq.${managerId},project_id.in.("${projectIds.join('","')}")`);
+            }
+
+            const { data: gData, error: goalsError } = await goalsQuery;
             if (!goalsError && gData) goalsData = gData;
         }
 
         // 6. Aggregations
         const totalReports = reportsData?.length || 0;
         const avgScore = totalReports > 0
-            ? reportsData.reduce((acc: any, r: any) => acc + (r.evaluation_score || 0), 0) / totalReports
+            ? reportsData.reduce((acc: any, r: any) => acc + (r.manager_overall_score ?? r.evaluation_score ?? 0), 0) / totalReports
             : 0;
+
+        // Organization Metrics average score
+        const selectedMetrics = managerData.organizations?.selected_metrics || [];
+        let orgTotalScore = 0;
+        let orgScoreCount = 0;
+
+        if (reportsData && selectedMetrics.length > 0) {
+            reportsData.forEach((r: any) => {
+                const scores = r.report_criterion_scores || [];
+                scores.forEach((s: any) => {
+                    if (selectedMetrics.includes(s.criterion_name)) {
+                        orgTotalScore += Number(s.score);
+                        orgScoreCount++;
+                    }
+                });
+            });
+        }
+        const orgAvgScore = orgScoreCount > 0 ? orgTotalScore / orgScoreCount : avgScore;
 
         // Projects for UI
         const uiProjects = (projectsData || []).map((p: any) => {
             const projectReports = (reportsData || []).filter((r: any) => r.goals?.project_id === p.id);
             const projectGoals = goalsData.filter((g: any) => g.project_id === p.id);
             const projectScore = projectReports.length > 0
-                ? projectReports.reduce((acc: any, r: any) => acc + (r.evaluation_score || 0), 0) / projectReports.length
+                ? projectReports.reduce((acc: any, r: any) => acc + (r.manager_overall_score ?? r.evaluation_score ?? 0), 0) / projectReports.length
                 : 0;
 
             return {
@@ -1704,7 +1924,7 @@ export const dashboardService = {
                 name: p.name,
                 category: p.category,
                 frequency: p.report_frequency,
-                status: projectScore >= 7.5 ? 'active' : projectScore >= 6.0 ? 'review' : 'at-risk',
+                status: p.status || (projectReports.length === 0 ? 'no-reports' : (projectScore >= 7.5 ? 'on-track' : projectScore >= 6.0 ? 'review' : 'at-risk')),
                 score: Number(projectScore.toFixed(1)),
                 reportCount: projectReports.length,
                 goalCount: projectGoals.length,
@@ -1716,28 +1936,81 @@ export const dashboardService = {
             };
         });
 
+        // 5.5 Fetch reporting periods for compliance
+        const targetEmpIds = view === 'direct' ? directReportIds : (employeesData || []).map((e: any) => e.id);
+        let periodsData: any[] = [];
+        if (targetEmpIds.length > 0) {
+            const { data: pData } = await supabase
+                .from('reporting_periods')
+                .select('*')
+                .in('employee_id', targetEmpIds)
+                .order('period_start', { ascending: false });
+            if (pData) periodsData = pData;
+        }
+
         // Team Performance (Employees)
-        const teamPerformance = (employeesData || []).map((e: any) => {
+        // In Org view, show everyone. In Direct view, show only direct reports.
+        const teamPerformance = (employeesData || [])
+            .filter((e: any) => e.id !== managerId) // Exclude self
+            .map((e: any) => {
             const empReports = (reportsData || []).filter((r: any) => r.employee_id === e.id);
             const empScore = empReports.length > 0
-                ? empReports.reduce((acc: any, r: any) => acc + (r.evaluation_score || 0), 0) / empReports.length
+                ? empReports.reduce((acc: any, r: any) => acc + (r.manager_overall_score ?? r.evaluation_score ?? 0), 0) / empReports.length
                 : 0;
 
+            const baselineRequired = empReports.length < 3;
+
+            const empPeriods = periodsData
+                .filter(p => p.employee_id === e.id)
+                .map(p => ({
+                    id: p.id,
+                    goalId: p.goal_id,
+                    employeeId: p.employee_id,
+                    periodStart: p.period_start,
+                    periodEnd: p.period_end,
+                    status: p.status,
+                    lateSubmitted: p.late_submitted,
+                    reportId: p.report_id,
+                    createdAt: p.created_at,
+                    updatedAt: p.updated_at
+                }));
+                
+            const getRampUpEndsAt = (period: any) => {
+                const goal = goalsData.find((g: any) => g.id === period.goalId);
+                if (!goal) return null;
+                const project = (projectsData || []).find((p: any) => p.id === goal.project_id);
+                if (!project) return null;
+                const assignee = (project.project_assignees || []).find((pa: any) => pa.assignee_id === e.id);
+                return assignee?.ramp_up_ends_at ? new Date(assignee.ramp_up_ends_at) : null;
+            };
+
+            const compliance = calculateComplianceStreak(empPeriods, getRampUpEndsAt, 10);
+
             return {
+                id: e.id,
                 name: e.name,
                 role: e.title || 'Team Member',
-                score: Number(empScore.toFixed(1)),
-                status: empScore >= 7.5 ? 'on-track' : empScore >= 6.0 ? 'review' : 'at-risk'
+                score: baselineRequired ? null : Number(empScore.toFixed(1)),
+                baselineRequired,
+                compliance,
+                status: empReports.length === 0 ? 'no-data' : (empScore >= 7.5 ? 'on-track' : empScore >= 6.0 ? 'review' : 'at-risk')
             };
-        }).sort((a: any, b: any) => b.score - a.score);
+        }).sort((a: any, b: any) => {
+            if (a.score === null && b.score !== null) return 1;
+            if (a.score !== null && b.score === null) return -1;
+            return b.score - a.score;
+        });
 
         // Goal Alignment data
         const uiGoals = goalsData.map((g: any) => {
             const goalReports = (reportsData || []).filter((r: any) => r.goal_id === g.id);
             const goalScore = goalReports.length > 0
-                ? goalReports.reduce((acc: any, r: any) => acc + (r.evaluation_score || 0), 0) / goalReports.length
+                ? goalReports.reduce((acc: any, r: any) => acc + (r.manager_overall_score ?? r.evaluation_score ?? 0), 0) / goalReports.length
                 : 0;
-            // Find the employee who submitted most reports for this goal
+            
+            // For total submissions, we might need all reports for this goal if it's shared
+            // but in Direct view, we only show reports from direct reports.
+            
             const ownerCounts: Record<string, { name: string, count: number }> = {};
             goalReports.forEach((r: any) => {
                 const empName = r.employees?.name || 'Unknown';
@@ -1747,34 +2020,47 @@ export const dashboardService = {
             const topOwner = Object.values(ownerCounts).sort((a: any, b: any) => b.count - a.count)[0];
 
             return {
+                id: g.id,
                 name: g.name,
                 score: Number(goalScore.toFixed(1)),
                 owner: topOwner ? topOwner.name : 'Unassigned',
                 reports: goalReports.length,
                 overdue: false,
             };
-        }).filter((g: any) => g.reports > 0 || goalsData.length <= 10) // Show all if few goals, or only those with reports
+        }).filter((g: any) => g.reports > 0 || goalsData.length <= 10)
             .sort((a: any, b: any) => b.score - a.score)
             .slice(0, 8);
 
-        // Trend scores (average per week/period)
+        // Trend scores
         const trendScores = (() => {
             if (!reportsData || reportsData.length === 0) return [];
             const sorted = [...reportsData].sort((a: any, b: any) => new Date(a.submission_date).getTime() - new Date(b.submission_date).getTime());
-            // Group into chunks of ~5 reports for trend points
-            const chunkSize = Math.max(1, Math.floor(sorted.length / 6));
+            
+            let runningTotal = 0;
+            let runningCount = 0;
             const points: number[] = [];
-            for (let i = 0; i < sorted.length; i += chunkSize) {
-                const chunk = sorted.slice(i, i + chunkSize);
-                const avg = chunk.reduce((acc: any, r: any) => acc + (r.evaluation_score || 0), 0) / chunk.length;
-                points.push(Number(avg.toFixed(1)));
+            
+            sorted.forEach((r: any) => {
+                const score = r.manager_overall_score ?? r.evaluation_score ?? 0;
+                runningTotal += score;
+                runningCount++;
+                points.push(Number((runningTotal / runningCount).toFixed(1)));
+            });
+            
+            if (points.length <= 8) return points;
+            const sampled = [];
+            const step = (points.length - 1) / 7;
+            for (let i = 0; i < 7; i++) {
+                sampled.push(points[Math.floor(i * step)]);
             }
-            return points.slice(0, 8);
+            sampled.push(points[points.length - 1]);
+            return sampled;
         })();
 
         return {
             totalReports,
             avgScore: Number(avgScore.toFixed(1)),
+            orgAvgScore: Number(orgAvgScore.toFixed(1)),
             projects: uiProjects,
             teamPerformance,
             goals: uiGoals,
@@ -1782,9 +2068,9 @@ export const dashboardService = {
             lateSubmissions: [],
             recentReports: (reportsData || []).slice(0, 5).map((r: any) => ({
                 id: r.id,
-                employeeName: (employeesData || []).find((e: any) => e.id === r.employee_id)?.name || 'Unknown',
+                employeeName: r.employees?.name || 'Unknown',
                 date: new Date(r.submission_date).toLocaleDateString(),
-                score: r.evaluation_score
+                score: r.manager_overall_score ?? r.evaluation_score
             }))
         };
     }
@@ -1807,6 +2093,8 @@ export interface Invitation {
     initialProjectIds?: string[];
     initialGoalIds?: string[];
     initialManagerId?: string;
+    permissionTemplate?: string;
+    customPermissions?: any;
 }
 
 export const invitationService = {
@@ -1822,7 +2110,9 @@ export const invitationService = {
             expires_at: invitation.expiresAt,
             status: 'pending',
             initial_project_ids: invitation.initialProjectIds || [],
-            initial_goal_ids: invitation.initialGoalIds || []
+            initial_goal_ids: invitation.initialGoalIds || [],
+            permission_template: invitation.permissionTemplate,
+            custom_permissions: invitation.customPermissions
         };
 
         if (invitation.initialManagerId) {
@@ -1863,7 +2153,9 @@ export const invitationService = {
             status: data.status,
             initialProjectIds: data.initial_project_ids,
             initialGoalIds: data.initial_goal_ids,
-            initialManagerId: data.initial_manager_id
+            initialManagerId: data.initial_manager_id,
+            permissionTemplate: data.permission_template,
+            customPermissions: data.custom_permissions
         } as Invitation;
     },
 
@@ -1880,3 +2172,94 @@ export const invitationService = {
     }
 };
 
+// ============================================================================
+// LEAVE SERVICE
+// ============================================================================
+export const leaveService = {
+    async getByEmployeeId(employeeId: string) {
+        const { data, error } = await supabase
+            .from('leaves')
+            .select('*')
+            .eq('employee_id', employeeId)
+            .order('start_date', { ascending: false });
+
+        if (error) throw error;
+        return data.map((l: any) => ({
+            id: l.id,
+            employeeId: l.employee_id,
+            organizationId: l.organization_id,
+            startDate: l.start_date,
+            endDate: l.end_date,
+            leaveType: l.leave_type,
+            note: l.note,
+            approvedBy: l.approved_by,
+            createdAt: l.created_at,
+            updatedAt: l.updated_at
+        })) as Leave[];
+    },
+
+    async getByOrganizationId(organizationId: string) {
+        const { data, error } = await supabase
+            .from('leaves')
+            .select('*')
+            .eq('organization_id', organizationId)
+            .order('start_date', { ascending: false });
+
+        if (error) throw error;
+        return data.map((l: any) => ({
+            id: l.id,
+            employeeId: l.employee_id,
+            organizationId: l.organization_id,
+            startDate: l.start_date,
+            endDate: l.end_date,
+            leaveType: l.leave_type,
+            note: l.note,
+            approvedBy: l.approved_by,
+            createdAt: l.created_at,
+            updatedAt: l.updated_at
+        })) as Leave[];
+    },
+
+    async getActiveLeavesByDateRange(employeeId: string, startDate: Date, endDate: Date) {
+        const leaves = await this.getByEmployeeId(employeeId);
+        return leaves.filter(l => {
+            const lStart = new Date(l.startDate);
+            const lEnd = new Date(l.endDate);
+            // Overlaps if l.start <= period.end AND l.end >= period.start
+            return lStart <= endDate && lEnd >= startDate;
+        });
+    },
+
+    async create(leave: Omit<Leave, 'createdAt' | 'updatedAt' | 'id'>) {
+        const insertData: any = {
+            id: `leave-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            employee_id: leave.employeeId,
+            organization_id: leave.organizationId,
+            start_date: leave.startDate,
+            end_date: leave.endDate,
+            leave_type: leave.leaveType,
+            note: leave.note,
+            approved_by: leave.approvedBy
+        };
+
+        const { data, error } = await supabase
+            .from('leaves')
+            .insert(insertData)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return {
+            id: data.id,
+            employeeId: data.employee_id,
+            organizationId: data.organization_id,
+            startDate: data.start_date,
+            endDate: data.end_date,
+            leaveType: data.leave_type,
+            note: data.note,
+            approvedBy: data.approved_by,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at
+        } as Leave;
+    }
+};

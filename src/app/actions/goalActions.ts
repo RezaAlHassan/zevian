@@ -11,8 +11,12 @@ export async function upsertGoalAction(formData: any) {
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
-        if (!employee || employee.role !== 'manager') {
+        if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) {
             return { error: 'Unauthorized: Only managers can manage goals' }
+        }
+
+        if (!employee.isAccountOwner && !employee.permissions?.canCreateGoals) {
+            return { error: 'Unauthorized: You do not have permission to manage goals' }
         }
 
         const goalData = {
@@ -55,8 +59,12 @@ export async function deleteGoalAction(goalId: string, projectId?: string) {
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
-        if (!employee || employee.role !== 'manager') {
+        if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) {
             return { error: 'Unauthorized' }
+        }
+
+        if (!employee.isAccountOwner && !employee.permissions?.canCreateGoals) {
+            return { error: 'Unauthorized: You do not have permission to manage goals' }
         }
 
         await goalService.delete(goalId)
@@ -115,9 +123,46 @@ export async function getEmployeeGoalsAction() {
         }
 
         const goals = await goalService.getByEmployeeId(employee.id)
-        return { success: true, data: goals }
+
+        // Fetch active reporting periods to calculate true next deadline in the UI
+        const { data: periods } = await supabase
+            .from('reporting_periods')
+            .select('*')
+            .eq('employee_id', employee.id)
+            .in('status', ['pending', 'submitted', 'late'])
+            
+        // Attach periods to goals
+        const enrichedGoals = goals.map((g: any) => ({
+            ...g,
+            reporting_periods: periods?.filter(p => p.goal_id === g.id) || []
+        }))
+
+        return { success: true, data: enrichedGoals }
     } catch (error: any) {
         console.error('getEmployeeGoalsAction Error:', error)
         return { success: false, error: error.message }
+    }
+}
+
+export async function updateGoalMembersAction(goalId: string, memberIds: string[], projectId?: string) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Not authenticated' }
+
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) {
+            return { error: 'Unauthorized: Only managers can manage goal assignments' }
+        }
+
+        await goalService.updateGoalAssignees(goalId, memberIds)
+
+        revalidatePath('/goals')
+        revalidatePath('/dashboard')
+        if (projectId) revalidatePath(`/projects/${projectId}`)
+        return { success: true }
+    } catch (error: any) {
+        console.error('updateGoalMembersAction Error:', error)
+        return { error: error.message || 'Failed to update goal members' }
     }
 }

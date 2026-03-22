@@ -17,9 +17,9 @@ interface AccountViewProps {
 export function AccountView({ role = 'manager', initialEmployee }: AccountViewProps) {
     const router = useRouter()
     const [activeTab, setActiveTab] = useState('profile')
-    const [userName, setUserName] = useState(initialEmployee?.name || (role === 'employee' ? 'Sofia Reyes' : 'James Mitchell'))
-    const [userEmail, setUserEmail] = useState(initialEmployee?.email || (role === 'employee' ? 'sofia@acme.io' : 'james@acme.io'))
-    const [jobTitle, setJobTitle] = useState(initialEmployee?.title || (role === 'employee' ? 'Senior Engineer' : 'Engineering Manager'))
+    const [userName, setUserName] = useState(initialEmployee?.name || '')
+    const [userEmail, setUserEmail] = useState(initialEmployee?.email || '')
+    const [jobTitle, setJobTitle] = useState(initialEmployee?.title || '')
     const [dept, setDept] = useState(initialEmployee?.dept || '')
 
     const [isSaving, setIsSaving] = useState(false)
@@ -152,7 +152,7 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: '11px', color: colors.text3, textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Member since</div>
                                     <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>
-                                        {initialEmployee?.joinDate ? new Date(initialEmployee.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'January 2023'}
+                                        {initialEmployee?.joinDate ? new Date(initialEmployee.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—'}
                                     </div>
                                 </div>
                             </div>

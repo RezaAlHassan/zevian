@@ -26,6 +26,14 @@ export const metadata: Metadata = {
     description: 'AI-powered performance management for remote teams.',
     type: 'website',
   },
+  icons: {
+    icon: [
+      { url: '/favicon.png?v=1', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/favicon.png?v=1', type: 'image/png' },
+    ],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

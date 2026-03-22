@@ -17,10 +17,11 @@ interface Props {
     onClose: () => void
     goal: any
     employees: any[]
+    isSaving?: boolean
     onSave?: (members: Member[]) => void
 }
 
-export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, onSave }: Props) {
+export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving = false, onSave }: Props) {
     const [members, setMembers] = useState<Member[]>(goal.goal_members || [])
     const [searchQuery, setSearchQuery] = useState('')
 
@@ -211,11 +212,16 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, onSave }
                 </div>
 
                 <div style={{ padding: '16px 24px', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'flex-end', gap: '10px', flexShrink: 0 }}>
-                    <Button variant="secondary" onClick={onClose}>Cancel</Button>
-                    <Button variant="primary" onClick={() => {
-                        if (onSave) onSave(members)
-                        onClose()
-                    }}>Save Changes</Button>
+                    <Button variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Button>
+                    <Button
+                        variant="primary"
+                        disabled={isSaving}
+                        onClick={() => {
+                            if (onSave) onSave(members)
+                        }}
+                    >
+                        {isSaving ? 'Saving…' : 'Save Changes'}
+                    </Button>
                 </div>
             </div>
             <style jsx>{`

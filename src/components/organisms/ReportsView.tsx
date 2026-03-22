@@ -5,8 +5,9 @@ import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { ScoreDisplay, MiniBar } from '@/components/atoms/Score'
+import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import React, { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { Report } from '@/types'
 
 interface ReportsViewProps {
@@ -22,13 +23,21 @@ interface ReportsViewProps {
 
 export function ReportsView({ initialReports, kpiData, role = 'manager' }: ReportsViewProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const view = searchParams.get('view') || 'org'
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [scoreFilter, setScoreFilter] = useState('all')
+  const [projectFilter, setProjectFilter] = useState('all')
+  const [sortBy, setSortBy] = useState<'due' | 'score'>('due')
 
-  const filteredReports = useMemo(() => {
-    return initialReports.filter(report => {
+  const projectOptions = useMemo(() => {
+    const projects = new Set(initialReports.map(r => r.goals?.projects?.name).filter(Boolean))
+    return Array.from(projects).sort()
+  }, [initialReports])
+
+  const filteredAndSortedReports = useMemo(() => {
+    let result = initialReports.filter(report => {
       const employeeName = report.employees?.name || 'Unknown'
       const goalName = report.goals?.name || 'Unknown'
       const projectName = report.goals?.projects?.name || 'Unknown'
@@ -39,16 +48,25 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
 
       const status = report.reviewedBy ? 'reviewed' : (report.evaluationScore !== null ? 'scored' : 'pending')
       const matchesStatus = statusFilter === 'all' || status === statusFilter
+      const matchesProject = projectFilter === 'all' || projectName === projectFilter
 
-      const effectiveScore = report.managerOverallScore ?? report.evaluationScore
-      let matchesScore = true
-      if (scoreFilter === 'high') matchesScore = !!effectiveScore && effectiveScore >= 7.5
-      if (scoreFilter === 'mid') matchesScore = !!effectiveScore && effectiveScore >= 6 && effectiveScore < 7.5
-      if (scoreFilter === 'low') matchesScore = !!effectiveScore && effectiveScore < 6
-
-      return matchesSearch && matchesStatus && matchesScore
+      return matchesSearch && matchesStatus && matchesProject
     })
-  }, [searchQuery, statusFilter, scoreFilter, initialReports])
+
+    // Sorting
+    result.sort((a, b) => {
+      if (sortBy === 'score') {
+        const scoreA = a.managerOverallScore ?? a.evaluationScore ?? 0
+        const scoreB = b.managerOverallScore ?? b.evaluationScore ?? 0
+        return scoreB - scoreA
+      } else {
+        // Default: Sort by date (Submission date/Due date)
+        return new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime()
+      }
+    })
+
+    return result
+  }, [searchQuery, statusFilter, projectFilter, sortBy, initialReports])
 
   const kpis = [
     { label: role === 'manager' ? 'Total Reports' : 'My Reports', value: kpiData.totalReports.toString(), icon: 'fileText' as const, sub: role === 'manager' ? 'Direct reports total' : 'All your submissions', color: colors.accent },
@@ -91,6 +109,17 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
 
           <select
             style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12.5px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+          >
+            <option value="all">All Projects</option>
+            {projectOptions.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+
+          <select
+            style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12.5px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -100,22 +129,36 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
             <option value="reviewed">Reviewed</option>
           </select>
 
-          <select
-            style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12.5px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
-            value={scoreFilter}
-            onChange={(e) => setScoreFilter(e.target.value)}
-          >
-            <option value="all">All Scores</option>
-            <option value="high">On Track (7.5+)</option>
-            <option value="mid">Needs Review (6-7.4)</option>
-            <option value="low">At Risk (&lt;6)</option>
-          </select>
+          <div style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Sort:</span>
+            <select
+              style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12.5px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+            >
+              <option value="due">Most Recent</option>
+              <option value="score">Avg Score (High to Low)</option>
+            </select>
+          </div>
         </div>
 
         {/* Right: Count & View Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <DateRangeSelector 
+            startDate={searchParams.get('start') || undefined}
+            endDate={searchParams.get('end') || undefined}
+            onRangeChange={(start, end) => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.set('start', start);
+              params.set('end', end);
+              router.push(`?${params.toString()}`);
+            }}
+          />
+
           <div className="font-numeric" style={{ fontSize: '12.5px', color: colors.text3, fontWeight: 500 }}>
-            {filteredReports.length} reports
+            {filteredAndSortedReports.length} reports
           </div>
 
           <div style={{ display: 'flex', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '2px', gap: '2px' }}>
@@ -170,31 +213,32 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
                 {role === 'manager' && <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Employee</th>}
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Goal</th>
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Project</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Date</th>
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Score</th>
                 <th style={{ padding: '10px 20px', textAlign: 'right', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredReports.map(report => {
+              {filteredAndSortedReports.map(report => {
                 const employeeName = report.employees?.name || 'Unknown'
                 const goalName = report.goals?.name || 'Unknown'
                 const projectName = report.goals?.projects?.name || 'Unknown'
                 const score = report.managerOverallScore ?? report.evaluationScore
-                const status = report.reviewedBy ? 'reviewed' : (report.evaluationScore !== null ? 'scored' : 'pending')
+                const status = report.isOnLeave ? 'on-leave' : (report.reviewedBy ? 'reviewed' : (report.evaluationScore !== null ? 'scored' : 'pending'))
 
                 return (
                   <tr
                     key={report.id}
-                    onClick={() => router.push(role === 'manager' ? `/reports/${report.id}` : `/my-reports/${report.id}`)}
+                    onClick={() => report.isOnLeave ? null : router.push(role === 'manager' ? `/reports/${report.id}?${searchParams.toString()}` : `/my-reports/${report.id}?${searchParams.toString()}`)}
                     style={{
                       borderBottom: `1px solid ${colors.border}`,
-                      cursor: 'pointer',
+                      cursor: report.isOnLeave ? 'default' : 'pointer',
                       transition: `background ${animation.fast}`,
                       background: (score || 10) < 6 ? 'rgba(240,68,56,0.02)' : 'transparent'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = (score || 10) < 6 ? 'rgba(240,68,56,0.04)' : colors.surface2}
-                    onMouseLeave={(e) => e.currentTarget.style.background = (score || 10) < 6 ? 'rgba(240,68,56,0.02)' : 'transparent'}
+                    onMouseEnter={(e) => { if (!report.isOnLeave) e.currentTarget.style.background = (score || 10) < 6 ? 'rgba(240,68,56,0.04)' : colors.surface2; }}
+                    onMouseLeave={(e) => { if (!report.isOnLeave) e.currentTarget.style.background = (score || 10) < 6 ? 'rgba(240,68,56,0.02)' : 'transparent'; }}
                   >
                     {role === 'manager' && (
                       <td style={{ padding: '14px 20px' }}>
@@ -212,6 +256,14 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
                     <td style={{ padding: '14px 14px', fontSize: '13px', fontWeight: 500, color: colors.text2 }}>{goalName}</td>
                     <td style={{ padding: '14px 14px' }}>
                       <span style={{ padding: '3px 8px', background: colors.surface3, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: colors.text2 }}>{projectName}</span>
+                    </td>
+                    <td style={{ padding: '14px 14px' }}>
+                      <div style={{ fontSize: '12.5px', color: colors.text, fontWeight: 500 }}>
+                        {new Date(report.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
+                      <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>
+                        {new Date(report.submissionDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </td>
                     <td style={{ padding: '14px 14px' }}>
                       <StatusPill status={status} score={score} />
@@ -236,9 +288,11 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
                       )}
                     </td>
                     <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                      <Button variant="secondary" size="sm">
-                        {role === 'manager' ? 'Review' : 'View'} <Icon name="chevronRight" size={10} style={{ marginLeft: '4px' }} />
-                      </Button>
+                      {!report.isOnLeave && (
+                          <Button variant="secondary" size="sm">
+                            {role === 'manager' ? 'Review' : 'View'} <Icon name="chevronRight" size={10} style={{ marginLeft: '4px' }} />
+                          </Button>
+                      )}
                     </td>
                   </tr>
                 )
@@ -248,28 +302,33 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
-          {filteredReports.map(report => {
+          {filteredAndSortedReports.map(report => {
             const employeeName = report.employees?.name || 'Unknown'
             const goalName = report.goals?.name || 'Unknown'
             const projectName = report.goals?.projects?.name || 'Unknown'
             const score = report.managerOverallScore ?? report.evaluationScore
-            const status = report.reviewedBy ? 'reviewed' : (report.evaluationScore !== null ? 'scored' : 'pending')
+            const status = report.isOnLeave ? 'on-leave' : (report.reviewedBy ? 'reviewed' : (report.evaluationScore !== null ? 'scored' : 'pending'))
 
             return (
               <div
                 key={report.id}
-                onClick={() => router.push(role === 'manager' ? `/reports/${report.id}` : `/my-reports/${report.id}`)}
+                onClick={() => report.isOnLeave ? null : router.push(role === 'manager' ? `/reports/${report.id}?${searchParams.toString()}` : `/my-reports/${report.id}?${searchParams.toString()}`)}
                 style={{
                   background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, padding: '18px',
-                  cursor: 'pointer', transition: `all ${animation.base}`,
+                  cursor: report.isOnLeave ? 'default' : 'pointer', transition: `all ${animation.base}`,
+                  opacity: report.isOnLeave ? 0.7 : 1
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = colors.borderHover
-                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  if (!report.isOnLeave) {
+                      e.currentTarget.style.borderColor = colors.borderHover
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = colors.border
-                  e.currentTarget.style.transform = 'translateY(0)'
+                  if (!report.isOnLeave) {
+                      e.currentTarget.style.borderColor = colors.border
+                      e.currentTarget.style.transform = 'translateY(0)'
+                  }
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
@@ -301,8 +360,9 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
                   ) : (
                     <span style={{ fontSize: '13px', color: colors.text3 }}>Not scored</span>
                   )}
-                  <div style={{ fontSize: '11px', color: colors.text3 }}>
-                    {new Date(report.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  <div style={{ fontSize: '11px', color: colors.text3, textAlign: 'right' }}>
+                    <div>{new Date(report.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                    <div style={{ opacity: 0.8 }}>{new Date(report.submissionDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
                   </div>
                 </div>
               </div>

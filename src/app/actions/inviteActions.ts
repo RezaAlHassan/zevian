@@ -30,7 +30,9 @@ export async function inviteEmployeesAction(data: {
     emails: string[],
     role: 'employee' | 'manager',
     managerId: string,
-    assignments: string[] // IDs of projects/goals
+    assignments: string[],
+    permissionTemplate?: string,
+    customPermissions?: any
 }) {
     try {
         const supabase = createServerClient()
@@ -69,7 +71,9 @@ export async function inviteEmployeesAction(data: {
                 expiresAt: expiresAt.toISOString(),
                 initialProjectIds,
                 initialGoalIds,
-                initialManagerId: data.managerId // The manager selected in the dropdown
+                initialManagerId: data.managerId, // The manager selected in the dropdown
+                permissionTemplate: data.permissionTemplate,
+                customPermissions: data.customPermissions
             })
 
             // Construct the accept link
@@ -170,6 +174,12 @@ export async function acceptInviteAction(token: string, data: { name: string, ti
             }))
             const { error: paError } = await supabaseAdmin.from('project_assignees').insert(paInsert as any)
             if (paError) throw paError
+            
+            // Generate periods for new assignment
+            const { setupPeriodsForNewAssignment } = await import('@/lib/reportingPeriods')
+            for (const pid of invitation.initialProjectIds) {
+                await setupPeriodsForNewAssignment(newEmployeeId, pid).catch(err => console.error(err))
+            }
         }
 
         // 5. Handle initial goals (for employees)
@@ -184,6 +194,70 @@ export async function acceptInviteAction(token: string, data: { name: string, ti
             const { error: gaError } = await supabaseAdmin.from('goal_assignees').insert(gaInsert as any).select().maybeSingle()
             if (gaError && gaError.code !== '42P01') {
                 throw gaError // Throw unless table doesn't exist yet
+            }
+            
+            // Generate periods for new assignment
+            const { setupPeriodsForNewAssignment } = await import('@/lib/reportingPeriods')
+            for (const gid of invitation.initialGoalIds) {
+                await setupPeriodsForNewAssignment(newEmployeeId, undefined, gid).catch(err => console.error(err))
+            }
+        }
+
+        // 6. Handle permissions (for managers)
+        if (invitation.role === 'manager') {
+            const templates: Record<string, any> = {
+                'standard': {
+                    can_invite_users: true,
+                    can_create_projects: true,
+                    can_create_goals: true,
+                    can_override_ai_scores: true,
+                    can_view_organization_wide: false,
+                    can_manage_settings: false,
+                    can_set_global_frequency: false
+                },
+                'senior': {
+                    can_invite_users: true,
+                    can_create_projects: true,
+                    can_create_goals: true,
+                    can_override_ai_scores: true,
+                    can_view_organization_wide: true,
+                    can_manage_settings: true,
+                    can_set_global_frequency: true
+                },
+                'read-only': {
+                    can_invite_users: false,
+                    can_create_projects: false,
+                    can_create_goals: false,
+                    can_override_ai_scores: false,
+                    can_view_organization_wide: true,
+                    can_manage_settings: false,
+                    can_set_global_frequency: false
+                }
+            };
+
+            let perms = templates[invitation.permissionTemplate || 'standard'] || templates['standard'];
+            
+            if (invitation.permissionTemplate === 'custom' && invitation.customPermissions) {
+                // Map custom permissions from frontend keys to DB column names
+                perms = {
+                    can_invite_users: !!invitation.customPermissions.canInviteUsers,
+                    can_create_projects: !!invitation.customPermissions.canCreateProjects,
+                    can_create_goals: !!invitation.customPermissions.canCreateGoals,
+                    can_override_ai_scores: !!invitation.customPermissions.canOverrideAIScores,
+                    can_view_organization_wide: !!invitation.customPermissions.canViewOrganizationWide,
+                    can_manage_settings: !!invitation.customPermissions.canManageSettings,
+                    can_set_global_frequency: !!invitation.customPermissions.canSetGlobalFrequency
+                };
+            }
+
+            const { error: permError } = await supabaseAdmin.from('employee_permissions').insert({
+                employee_id: newEmployeeId,
+                ...perms
+            });
+            
+            if (permError) {
+                console.error('Failed to set manager permissions:', permError);
+                // We don't throw here to avoid failing the whole flow if permissions table has issues
             }
         }
 

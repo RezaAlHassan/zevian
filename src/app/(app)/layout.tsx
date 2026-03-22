@@ -32,7 +32,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     full_name: employee.name,
     role: employee.role ?? 'employee',
     organization_id: employee.organizationId || '',
-    organizations: organization ? { name: organization.name } : null
+    organizations: organization ? { name: organization.name } : null,
+    canManageSettings: employee.isAccountOwner || (employee.permissions?.canManageSettings ?? false),
+    canViewOrganizationWide: employee.isAccountOwner || (employee.permissions?.canViewOrganizationWide ?? false)
   }
 
   return <AppShellServer profile={profile}>{children}</AppShellServer>

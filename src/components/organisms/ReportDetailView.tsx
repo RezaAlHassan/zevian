@@ -11,13 +11,15 @@ import Link from 'next/link'
 
 import { Report } from '@/types'
 import { useScoreReport } from '@/hooks/useScoreReport'
+import { overrideReportScoreAction } from '@/app/actions/reportActions'
 
 interface ReportDetailProps {
     report: Report
     role?: 'manager' | 'employee'
+    canOverride?: boolean
 }
 
-export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps) {
+export function ReportDetailView({ report, role = 'manager', canOverride = true }: ReportDetailProps) {
     const router = useRouter()
     const { loading: isScoring, error: scoringError, scoreReport } = useScoreReport()
     
@@ -32,12 +34,38 @@ export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps
         summary: report.aiSummary || report.evaluationReasoning || ''
     } : null)
 
+    const [overrideScore, setOverrideScore] = useState<string>('')
+    const [overrideReason, setOverrideReason] = useState<string>('')
+    const [isSavingOverride, setIsSavingOverride] = useState(false)
+
     const handleScore = async () => {
         if (!report.id || evaluationData) return
         
         const result = await scoreReport(report.id)
         if (result) {
             setEvaluationData(result)
+        }
+    }
+
+    const handleSaveOverride = async () => {
+        if (!report.id || !overrideScore || !overrideReason) return
+        
+        const numScore = parseFloat(overrideScore)
+        if (isNaN(numScore) || numScore < 0 || numScore > 10) {
+            alert("Please enter a valid score between 0 and 10.")
+            return
+        }
+
+        setIsSavingOverride(true)
+        const result = await overrideReportScoreAction(report.id, numScore, overrideReason)
+        setIsSavingOverride(false)
+
+        if (result.success) {
+            setOverrideScore('')
+            setOverrideReason('')
+            router.refresh()
+        } else {
+            alert(result.error || "Failed to save override")
         }
     }
 
@@ -111,7 +139,7 @@ export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: colors.text2 }}>
                         <Icon name="clock" size={14} color={colors.text3} />
-                        {report.submissionDate ? new Date(report.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                        {report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                     </div>
                 </div>
 
@@ -132,13 +160,50 @@ export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps
             </div>
 
             {/* AI Summary Section */}
-            {hasScored && evaluationData?.summary && (
-                <div style={{ padding: '14px 26px', background: colors.tealGlow, borderBottom: `1px solid ${colors.border}`, display: 'flex', gap: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: colors.tealGlow, border: `1px solid ${colors.teal}40`, borderRadius: '6px', padding: '4px 10px', fontSize: '11px', fontWeight: 700, color: colors.teal, height: 'fit-content' }}>
-                        <span style={{ fontSize: '14px' }}>✨</span>
-                        Zevian AI
+            {hasScored && evaluationData?.summary && (() => {
+                const summaryText = evaluationData.summary;
+                const flagsMatch = summaryText.match(/^\[FLAGS:\s*(.*?)\]/);
+                const flags = flagsMatch ? flagsMatch[1].split(',').map(f => f.trim()) : [];
+                const cleanSummary = flagsMatch ? summaryText.replace(flagsMatch[0], '').trim() : summaryText;
+
+                return (
+                    <>
+                        <div style={{ padding: '14px 26px', background: colors.tealGlow, borderBottom: `1px solid ${colors.border}`, display: 'flex', gap: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: colors.tealGlow, border: `1px solid ${colors.teal}40`, borderRadius: '6px', padding: '4px 10px', fontSize: '11px', fontWeight: 700, color: colors.teal, height: 'fit-content' }}>
+                                <span style={{ fontSize: '14px' }}>✨</span>
+                                Zevian AI
+                            </div>
+                            <div style={{ fontSize: '13px', color: colors.text2, lineHeight: 1.65 }}>{cleanSummary}</div>
+                        </div>
+                        {flags.length > 0 && (
+                            <div style={{ padding: '12px 26px', background: `${colors.warn}10`, borderBottom: `1px solid ${colors.border}`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: colors.warn, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Icon name="alert" size={14} color={colors.warn} />
+                                    AI Evaluation Warnings
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                    {flags.map((flag, idx) => (
+                                        <div key={idx} style={{ padding: '4px 10px', background: `${colors.warn}20`, border: `1px solid ${colors.warn}40`, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: colors.warn, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            {flag.replace(/_/g, ' ')}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )
+            })()}
+
+            {/* Manager Override Reasoning */}
+            {report.managerOverrideReasoning && (
+                <div style={{ padding: '16px 26px', background: colors.accentGlow, borderBottom: `1px solid ${colors.border}`, display: 'flex', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '4px 10px', fontSize: '11px', fontWeight: 700, color: colors.accent, height: 'fit-content' }}>
+                        <Icon name="edit" size={13} color={colors.accent} />
+                        Manager Override
                     </div>
-                    <div style={{ fontSize: '13px', color: colors.text2, lineHeight: 1.65 }}>{evaluationData.summary}</div>
+                    <div style={{ fontSize: '13px', color: colors.text, lineHeight: 1.65, fontWeight: 500 }}>
+                        {report.managerOverrideReasoning}
+                    </div>
                 </div>
             )}
 
@@ -147,7 +212,7 @@ export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps
                 {[
                     { id: 'breakdown', label: 'Criteria Breakdown' },
                     { id: 'content', label: 'Report Content' },
-                    ...(role === 'manager' ? [{ id: 'override', label: 'Manager Override' }] : []),
+                    ...(role === 'manager' && canOverride ? [{ id: 'override', label: 'Manager Override' }] : []),
                     { id: 'activity', label: 'Activity' }
                 ].map(tab => (
                     <div
@@ -248,6 +313,8 @@ export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps
                                         type="number"
                                         min="0" max="10" step="0.1"
                                         placeholder={report.evaluationScore?.toFixed(1) || '0.0'}
+                                        value={overrideScore}
+                                        onChange={(e) => setOverrideScore(e.target.value)}
                                         style={{ width: '100%', padding: '10px 14px', background: colors.surface3, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, fontSize: '15px', fontWeight: 600, outline: 'none' }}
                                     />
                                 </div>
@@ -255,12 +322,20 @@ export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps
                                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, marginBottom: '8px', textTransform: 'uppercase' }}>Reason (Required)</label>
                                     <textarea
                                         placeholder="Explain why you're adjusting the score..."
+                                        value={overrideReason}
+                                        onChange={(e) => setOverrideReason(e.target.value)}
                                         style={{ width: '100%', padding: '10px 14px', background: colors.surface3, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, fontSize: '13px', lineHeight: 1.5, resize: 'none', minHeight: '80px', outline: 'none' }}
                                     />
                                 </div>
                             </div>
                             <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                                <Button variant="primary">Save Override</Button>
+                                <Button 
+                                    variant="primary" 
+                                    onClick={handleSaveOverride} 
+                                    disabled={isSavingOverride || !overrideScore || !overrideReason}
+                                >
+                                    {isSavingOverride ? 'Saving...' : 'Save Override'}
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -273,14 +348,34 @@ export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps
                             Activity Log
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                            {report.managerOverallScore && (
+                                <div style={{ display: 'flex', gap: '15px', position: 'relative' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors.accent, marginTop: '6px', zIndex: 1 }} />
+                                        <div style={{ width: '1px', flex: 1, background: colors.border, margin: '4px 0' }} />
+                                    </div>
+                                    <div style={{ paddingBottom: '20px', flex: 1 }}>
+                                        <div style={{ fontSize: '13px', color: colors.text2 }}><strong>Manager</strong> overrode the score to <strong>{report.managerOverallScore.toFixed(1)}</strong></div>
+                                        {report.managerOverrideReasoning && (
+                                            <div style={{ marginTop: '6px', padding: '8px 12px', background: colors.surface2, borderRadius: '6px', fontSize: '12px', color: colors.text3, fontStyle: 'italic' }}>
+                                                "{report.managerOverrideReasoning}"
+                                            </div>
+                                        )}
+                                        <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px' }}>Overrides supersede AI evaluation</div>
+                                    </div>
+                                </div>
+                            )}
                             <div style={{ display: 'flex', gap: '15px', position: 'relative' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors.accent, marginTop: '6px', zIndex: 1 }} />
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: report.managerOverallScore ? colors.text3 : colors.accent, marginTop: '6px', zIndex: 1 }} />
                                     <div style={{ width: '1px', flex: 1, background: colors.border, margin: '4px 0' }} />
                                 </div>
                                 <div style={{ paddingBottom: '20px', flex: 1 }}>
-                                    <div style={{ fontSize: '13px', color: colors.text2 }}><strong>Zevian AI</strong> scored this report — overall {report.evaluationScore?.toFixed(1) || '—'}</div>
-                                    <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>{report.submissionDate ? new Date(report.submissionDate).toLocaleDateString() : ''}</div>
+                                    <div style={{ fontSize: '13px', color: colors.text2 }}>
+                                        <strong>Zevian AI</strong> scored this report — overall {report.evaluationScore?.toFixed(1) || '—'}
+                                        {report.managerOverallScore && <span style={{ color: colors.text3, fontStyle: 'italic', marginLeft: '6px' }}>(Overridden)</span>}
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>{report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: '15px', position: 'relative' }}>
@@ -289,7 +384,7 @@ export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps
                                 </div>
                                 <div style={{ paddingBottom: '20px', flex: 1 }}>
                                     <div style={{ fontSize: '13px', color: colors.text2 }}><strong>{employeeName}</strong> submitted the report</div>
-                                    <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>{report.submissionDate ? new Date(report.submissionDate).toLocaleDateString() : ''}</div>
+                                    <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>{report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>
                                 </div>
                             </div>
                         </div>
@@ -300,7 +395,7 @@ export function ReportDetailView({ report, role = 'manager' }: ReportDetailProps
             {/* Footer Meta */}
             <div style={{ padding: '14px 26px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: colors.text3, background: colors.surface }}>
                 <Icon name="clock" size={13} color={colors.text3} />
-                Submitted {report.submissionDate ? new Date(report.submissionDate).toLocaleDateString() : 'N/A'}
+                Submitted {report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
             </div>
         </div>
     )

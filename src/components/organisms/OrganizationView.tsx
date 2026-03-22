@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState } from 'react'
 import { DEFAULT_ORG_METRICS } from '@/constants/metrics'
 import { colors, radius, typography, animation, layout, shadows, getAvatarGradient, getInitials } from '@/design-system'
@@ -7,18 +9,35 @@ import { Card, InviteModal } from '@/components/molecules'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { Organization, Employee, CustomMetric } from '@/types'
 import { updateOrganizationAction, createCustomMetricAction, updateCustomMetricAction, deleteCustomMetricAction } from '@/app/actions/organizationActions'
+import { updateEmployeePermissionsAction } from '@/app/actions/employeeActions'
+import { ManagePermissionsModal } from '@/components/organisms/ManagePermissionsModal'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-type TabId = 'general' | 'metrics' | 'users' | 'reporting' | 'hierarchy' | 'advanced'
+type TabId = 'general' | 'metrics' | 'users' | 'advanced'
 
-export function OrganizationView({ organization, employees, customMetrics }: { organization?: Organization, employees: Employee[], customMetrics: CustomMetric[] }) {
+interface Props {
+    organization?: Organization
+    employees: any[]
+    customMetrics: any[]
+    currentUserPermissions: {
+        canInviteUsers?: boolean
+        canManageSettings?: boolean
+        canSetGlobalFrequency?: boolean
+        isAccountOwner?: boolean
+    }
+    managerSettings?: any
+}
+
+export function OrganizationView({ organization, employees, customMetrics, currentUserPermissions, managerSettings }: Props) {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const [activeTab, setActiveTab] = useState<TabId>((searchParams.get('tab') as TabId) || 'general')
+    const canManageSettings = currentUserPermissions?.isAccountOwner || currentUserPermissions?.canManageSettings
+    const defaultTab = canManageSettings ? 'general' : 'users'
+    const [activeTab, setActiveTab] = useState<TabId>((searchParams.get('tab') as TabId) || defaultTab)
 
     React.useEffect(() => {
         const tab = searchParams.get('tab') as TabId
-        if (tab && ['general', 'metrics', 'users', 'reporting', 'hierarchy', 'advanced'].includes(tab)) {
+        if (tab && ['general', 'metrics', 'users', 'advanced'].includes(tab)) {
             setActiveTab(tab)
         }
     }, [searchParams])
@@ -27,6 +46,7 @@ export function OrganizationView({ organization, employees, customMetrics }: { o
     const [orgName, setOrgName] = useState(organization?.name ?? "Acme Inc")
     const [isSaving, setIsSaving] = useState(false)
     const [showInviteModal, setShowInviteModal] = useState(false)
+    const [selectedEmployeeForPermissions, setSelectedEmployeeForPermissions] = useState<Employee | null>(null)
     const memberCount = 7
 
     const metrics = DEFAULT_ORG_METRICS
@@ -104,27 +124,39 @@ export function OrganizationView({ organization, employees, customMetrics }: { o
 
     const [submissionPolicy, setSubmissionPolicy] = useState({
         allowLate: organization?.aiConfig?.allowLate ?? true,
+        allowLateSubmissions: managerSettings?.allow_late_submissions ?? organization?.aiConfig?.allowLateSubmissions ?? true,
         requireReport: organization?.aiConfig?.requireReport ?? true,
-        notifyManager: organization?.aiConfig?.notifyManager ?? false
+        notifyManager: organization?.aiConfig?.notifyManager ?? false,
+        gracePeriodDays: managerSettings?.grace_period_days ?? 0,
+        backdateLimitDays: managerSettings?.backdate_limit_days ?? 7
     })
 
     const handleSave = async () => {
         setIsSaving(true)
         try {
-            const updates: Partial<Organization> = {
+            // 1. Update Organization Settings
+            await updateOrganizationAction({ 
                 name: orgName,
-                goalWeight,
-                aiConfig: submissionPolicy
-            }
-            const result = await updateOrganizationAction(updates)
-            if (result.success) {
-                // router.refresh() // Next.js revalidatePath should handle it
-            } else {
-                alert(result.error || 'Failed to save changes')
-            }
-        } catch (error) {
-            console.error('Save error:', error)
-            alert('An unexpected error occurred')
+                goalWeight: goalWeight,
+                aiConfig: {
+                    ...organization?.aiConfig,
+                    ...submissionPolicy
+                }
+            })
+
+            // 2. Update Manager Settings
+            const { updateManagerSettingsAction } = await import('@/app/actions/managerSettingsActions')
+            await updateManagerSettingsAction({
+                allow_late_submissions: submissionPolicy.allowLateSubmissions,
+                grace_period_days: submissionPolicy.gracePeriodDays,
+                backdate_limit_days: submissionPolicy.backdateLimitDays
+            })
+
+            router.refresh()
+            alert('Settings saved successfully')
+        } catch (error: any) {
+            console.error('Failed to save settings:', error)
+            alert('Failed to save settings: ' + (error.message || 'Unknown error'))
         } finally {
             setIsSaving(false)
         }
@@ -144,10 +176,13 @@ export function OrganizationView({ organization, employees, customMetrics }: { o
                     { id: 'general', label: 'General', icon: 'settings' },
                     { id: 'metrics', label: 'Metrics', icon: 'target' },
                     { id: 'users', label: 'Users', icon: 'users' },
-                    { id: 'reporting', label: 'Reporting', icon: 'fileText' },
-                    { id: 'hierarchy', label: 'Hierarchy', icon: 'refresh' },
                     { id: 'advanced', label: 'Advanced', icon: 'sparkles', danger: true },
-                ].map(tab => (
+                ].filter(tab => {
+                    if (tab.id === 'general' || tab.id === 'metrics' || tab.id === 'advanced') {
+                        return currentUserPermissions?.isAccountOwner || currentUserPermissions?.canManageSettings
+                    }
+                    return true
+                }).map(tab => (
                     <div
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as TabId)}
@@ -228,10 +263,59 @@ export function OrganizationView({ organization, employees, customMetrics }: { o
                                     <div style={{ fontSize: '10px', color: colors.text3, marginTop: '4px' }}>Dynamic total · 10% - 40%</div>
                                 </div>
                             </div>
-                            <div style={{ marginTop: '20px', padding: '12px', background: colors.surface2, borderRadius: '12px', border: `1px solid ${colors.border}`, display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                                <Icon name="sparkles" size={16} color={colors.purple} style={{ marginTop: '2px' }} />
-                                <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.5 }}>
-                                    <strong style={{ color: colors.purple }}>Knowledgebase Grounding:</strong> AI evaluations are grounded in your project knowledgebase. Lexicons, benchmarks, and constraints from the KB will be used to calibrate the scores for both goals and organizational metrics.
+                        </Card>
+
+                        <Card title="Reporting" icon="calendar">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+                                    <div>
+                                        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>Allow Late Submissions</div>
+                                        <div style={{ fontSize: '12px', color: colors.text3 }}>Enable employees to submit reports for past dates (up to 7 days).</div>
+                                    </div>
+                                    <div 
+                                        onClick={() => setSubmissionPolicy(prev => ({ ...prev, allowLateSubmissions: !prev.allowLateSubmissions }))}
+                                        style={{ 
+                                            width: '40px', height: '22px', borderRadius: '11px', background: submissionPolicy.allowLateSubmissions ? colors.accent : colors.border,
+                                            position: 'relative', cursor: 'pointer', transition: `all ${animation.fast}`
+                                        }}
+                                    >
+                                        <div style={{ 
+                                            position: 'absolute', top: '2px', left: submissionPolicy.allowLateSubmissions ? '20px' : '2px',
+                                            width: '18px', height: '18px', borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                            transition: `all ${animation.fast}`
+                                        }} />
+                                    </div>
+                                </div>
+
+                                {submissionPolicy.allowLateSubmissions && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', marginLeft: '12px', borderLeft: `2px solid ${colors.border}`, paddingLeft: '16px' }}>
+                                        <div>
+                                            <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>Reporting Grace Period</div>
+                                            <div style={{ fontSize: '12px', color: colors.text3 }}>Delay missed report flagging. Capped based on frequency.</div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                max="15"
+                                                value={submissionPolicy.gracePeriodDays}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 0;
+                                                    // Clamping logic will happen on save or we can do it here if we know the frequency
+                                                    setSubmissionPolicy(prev => ({ ...prev, gracePeriodDays: val }));
+                                                }}
+                                                style={{ width: '60px', padding: '6px 10px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '6px', color: colors.text, textAlign: 'center', fontWeight: 700 }}
+                                            />
+                                            <span style={{ fontSize: '12px', color: colors.text3, fontWeight: 600 }}>days</span>
+                                        </div>
+                                    </div>
+                                )}
+                                <div style={{ height: '1px', background: colors.border }} />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: colors.surface2, padding: '12px', borderRadius: '12px', border: `1px solid ${colors.border}` }}>
+                                    <Icon name="alert" size={16} color={colors.text3} />
+                                    <div style={{ fontSize: '12px', color: colors.text3 }}>
+                                        Employees are restricted to <strong>one report per goal</strong> per reporting period (daily, weekly, etc).
+                                    </div>
                                 </div>
                             </div>
                         </Card>
@@ -390,13 +474,17 @@ export function OrganizationView({ organization, employees, customMetrics }: { o
 
                 {activeTab === 'users' && (
                     <div className="fade-in">
-                        <Card title={`Active Members (${employees.length})`} icon="users" action={<Button variant="primary" size="sm" icon="plus" onClick={() => setShowInviteModal(true)}>Invite Member</Button>}>
+                        <Card title={`Active Members (${employees.length})`} icon="users" action={
+                        (currentUserPermissions?.isAccountOwner || currentUserPermissions?.canInviteUsers) ? (
+                            <Button variant="primary" size="sm" icon="plus" onClick={() => setShowInviteModal(true)}>Invite Member</Button>
+                        ) : null
+                    }>
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
                                         <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Member</th>
                                         <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Role</th>
-                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Department</th>
+                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Reports To</th>
                                         <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Joined</th>
                                         <th style={{ textAlign: 'right', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Actions</th>
                                     </tr>
@@ -424,101 +512,40 @@ export function OrganizationView({ organization, employees, customMetrics }: { o
                                                     {e.isAccountOwner ? 'Owner' : e.role}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '12px', fontSize: '12px', color: colors.text2 }}>{e.title || 'N/A'}</td>
-                                            <td style={{ padding: '12px', fontSize: '12px', color: colors.text3 }}>{e.joinDate ? new Date(e.joinDate).toLocaleDateString() : 'N/A'}</td>
-                                            <td style={{ padding: '12px', textAlign: 'right' }}>
-                                                {!e.isAccountOwner && <Button variant="secondary" size="sm">Remove</Button>}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </Card>
-                    </div>
-                )}
-
-                {activeTab === 'reporting' && (
-                    <div className="fade-in">
-                        <Card title="Submission Policy" icon="fileText">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {[
-                                    { id: 'allowLate', name: 'Allow Late Submissions', desc: 'Employees can submit reports after deadline. Marked as late.' },
-                                    { id: 'requireReport', name: 'Require Report Before Scoring', desc: 'AI scoring only runs after submission. No empty reports.' },
-                                    { id: 'notifyManager', name: 'Notify Manager on Submission', desc: 'Send email to manager each time a report is submitted.' }
-                                ].map(toggle => (
-                                    <div key={toggle.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: colors.surface2, borderRadius: '12px', border: `1px solid ${colors.border}` }}>
-                                        <div>
-                                            <div style={{ fontSize: '14px', fontWeight: 600 }}>{toggle.name}</div>
-                                            <div style={{ fontSize: '12px', color: colors.text3 }}>{toggle.desc}</div>
-                                        </div>
-                                        <div
-                                            onClick={() => setSubmissionPolicy(prev => ({ ...prev, [toggle.id]: !prev[toggle.id as keyof typeof submissionPolicy] }))}
-                                            style={{
-                                                width: '38px', height: '21px', borderRadius: '11px', cursor: 'pointer', position: 'relative',
-                                                background: submissionPolicy[toggle.id as keyof typeof submissionPolicy] ? colors.accent : colors.surface3,
-                                                transition: 'background 0.2s'
-                                            }}
-                                        >
-                                            <div style={{
-                                                position: 'absolute', top: '3px', left: submissionPolicy[toggle.id as keyof typeof submissionPolicy] ? '20px' : '3px',
-                                                width: '15px', height: '15px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s'
-                                            }} />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-                            <Button
-                                variant="primary"
-                                icon={isSaving ? "refresh" : "check"}
-                                onClick={handleSave}
-                                disabled={isSaving}
-                            >
-                                {isSaving ? 'Saving...' : 'Save Changes'}
-                            </Button>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'hierarchy' && (
-                    <div className="fade-in">
-                        <Card title="Direct Reports & Hierarchy" icon="refresh">
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Employee</th>
-                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Reports To</th>
-                                        <th style={{ textAlign: 'right', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Access Level</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {employees.map(e => (
-                                        <tr key={e.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
-                                            <td style={{ padding: '12px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: getAvatarGradient(e.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#fff' }}>
-                                                        {getInitials(e.name)}
-                                                    </div>
-                                                    <div style={{ fontSize: '13px', fontWeight: 600 }}>{e.name}</div>
-                                                </div>
-                                            </td>
                                             <td style={{ padding: '12px' }}>
                                                 <select
                                                     defaultValue={e.managerId || ''}
-                                                    disabled
-                                                    style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '4px 8px', fontSize: '12px', color: colors.text, outline: 'none', opacity: 0.7 }}
+                                                    style={{ 
+                                                        background: colors.surface2, 
+                                                        border: `1px solid ${colors.border}`, 
+                                                        borderRadius: '6px', 
+                                                        padding: '4px 8px', 
+                                                        fontSize: '12px', 
+                                                        color: colors.text, 
+                                                        outline: 'none',
+                                                        width: '140px'
+                                                    }}
                                                 >
                                                     <option value="">No Manager</option>
-                                                    {employees.filter(m => m.role === 'manager' || m.role === 'admin' || m.isAccountOwner).map(m => (
+                                                    {employees.filter(m => (m.role === 'manager' || m.isAccountOwner) && m.id !== e.id).map(m => (
                                                         <option key={m.id} value={m.id}>{m.name}</option>
                                                     ))}
                                                 </select>
                                             </td>
+                                            <td style={{ padding: '12px', fontSize: '12px', color: colors.text3 }}>{e.joinDate ? new Date(e.joinDate).toLocaleDateString() : 'N/A'}</td>
                                             <td style={{ padding: '12px', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', fontSize: '12px' }}>
-                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', color: colors.text2 }}><input type="radio" name={`access-${e.id}`} defaultChecked={e.role !== 'employee'} /> Full</label>
-                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', color: colors.text2 }}><input type="radio" name={`access-${e.id}`} defaultChecked={e.role === 'employee'} /> Limited</label>
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                    {(e.role === 'manager' || e.isAccountOwner) && (
+                                                        <Button 
+                                                            variant="secondary" 
+                                                            size="sm" 
+                                                            icon="settings"
+                                                            onClick={() => setSelectedEmployeeForPermissions(e)}
+                                                        >
+                                                            Permissions
+                                                        </Button>
+                                                    )}
+                                                    {!e.isAccountOwner && <Button variant="secondary" size="sm" style={{ color: colors.danger, borderColor: colors.danger + '40' }}>Remove</Button>}
                                                 </div>
                                             </td>
                                         </tr>
@@ -528,6 +555,10 @@ export function OrganizationView({ organization, employees, customMetrics }: { o
                         </Card>
                     </div>
                 )}
+
+
+
+
 
                 {activeTab === 'advanced' && (
                     <div className="fade-in">
@@ -556,6 +587,31 @@ export function OrganizationView({ organization, employees, customMetrics }: { o
                 isOpen={showInviteModal}
                 onClose={() => setShowInviteModal(false)}
                 orgName={orgName}
+            />
+
+            <ManagePermissionsModal 
+                isOpen={!!selectedEmployeeForPermissions}
+                onClose={() => setSelectedEmployeeForPermissions(null)}
+                employeeName={selectedEmployeeForPermissions?.name || ''}
+                initialPermissions={selectedEmployeeForPermissions?.permissions}
+                onSave={async (template, perms) => {
+                    if (!selectedEmployeeForPermissions) return;
+                    setIsSaving(true);
+                    try {
+                        const result = await updateEmployeePermissionsAction(selectedEmployeeForPermissions.id, perms);
+                        if (!result.success) {
+                            alert(result.error || 'Failed to update permissions');
+                        } else {
+                            // Update local state to reflect change without hard refresh
+                            const empIndex = employees.findIndex(e => e.id === selectedEmployeeForPermissions.id);
+                            if (empIndex > -1) {
+                                employees[empIndex].permissions = perms;
+                            }
+                        }
+                    } finally {
+                        setIsSaving(false);
+                    }
+                }}
             />
 
             <style jsx>{`

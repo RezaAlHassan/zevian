@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { ProjectDetailView } from '@/components/organisms/ProjectDetailView'
 import { notFound } from 'next/navigation'
-import { projectService, goalService } from '@/../databaseService2'
+import { projectService, goalService, employeeService } from '@/../databaseService2'
 
 export const metadata: Metadata = { title: 'Project Details' }
 
@@ -62,6 +62,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
     const { data: employees } = await supabase
         .from('employees')
         .select('id, name, role')
+        .eq('role', 'manager')
         .order('name');
 
     const mappedEmployees = (employees || []).map((e: any) => ({
@@ -69,10 +70,21 @@ export default async function ProjectPage({ params }: { params: { id: string } }
         full_name: e.name
     }))
 
+    // Fetch current user permissions
+    const { data: { user } } = await supabase.auth.getUser()
+    let readOnly = false
+    if (user) {
+        const currentEmployee = await employeeService.getByAuthId(user.id)
+        if (currentEmployee && currentEmployee.role === 'manager' && !currentEmployee.isAccountOwner) {
+            readOnly = !currentEmployee.permissions?.canCreateProjects && !currentEmployee.permissions?.canCreateGoals
+        }
+    }
+
     return (
         <ProjectDetailView
             project={project}
             employees={mappedEmployees as any ?? []}
+            readOnly={readOnly}
         />
     )
 }

@@ -6,8 +6,16 @@ export const metadata = {
   description: 'Track employee performance and AI-scored reports.',
 }
 
-export default async function ReportsPage() {
-  const data = await getReportsByManagerAction()
+export default async function ReportsPage({
+  searchParams
+}: {
+  searchParams: { view?: string; start?: string; end?: string }
+}) {
+  const view = (searchParams.view as 'org' | 'direct') || 'org'
+  const startDate = searchParams.start
+  const endDate = searchParams.end
+
+  const data = await getReportsByManagerAction(view, startDate, endDate)
 
   if (data.error || !data.reports) {
     return (

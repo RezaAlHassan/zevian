@@ -1,0 +1,543 @@
+There are two distinct deadline types in this system. Do not confuse them.
+
+═══════════════════════════════════════
+GOAL DEADLINE
+═══════════════════════════════════════
+- Optional field on the goal object
+- A soft signal to indicate when the goal is expected to be completed
+- Has no enforcement logic — does not trigger missed reports or penalties
+- Just displays as a date label in the UI
+
+═══════════════════════════════════════
+REPORTING DEADLINE (the one that matters)
+═══════════════════════════════════════
+- Driven entirely by the reporting frequency set on the project/goal
+- When a frequency is set, the ANCHOR DATE = the date/time the frequency was set
+- Each deadline = anchor_date + (n × interval), where n = cycle number
+- It is a rolling cycle — never resets, just keeps adding intervals from the anchor
+
+Examples:
+  Weekly set on Dec 20 → Dec 27, Jan 3, Jan 10, Jan 17...
+  Bi-weekly set on Dec 20 → Jan 3, Jan 17, Jan 31...
+
+FIRST PERIOD GRACE RULE
+- If the time between anchor_date and first deadline is less than 24 hours,
+  push the first deadline forward by one full interval
+- Example: weekly set on Dec 26 11pm → first deadline becomes Jan 3, not Dec 27
+
+═══════════════════════════════════════
+REPORTING PERIODS TABLE
+═══════════════════════════════════════
+Do not calculate periods dynamically at query time. Generate and store them explicitly.
+
+Create a reporting_periods table:
+
+  id              TEXT PRIMARY KEY
+  goal_id         TEXT NOT NULL REFERENCES goals(id) ON DELETE CASCADE
+  employee_id     TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE
+  period_start    TIMESTAMPTZ NOT NULL
+  period_end      TIMESTAMPTZ NOT NULL
+  status          TEXT NOT NULL CHECK (status IN (
+                    'pending',    -- period is open, deadline not yet reached
+                    'submitted',  -- report submitted within this window
+                    'missed',     -- deadline passed, no report submitted
+                    'excused',    -- employee was on approved leave for this period
+                    'void'        -- period cancelled due to frequency change
+                  ))
+  report_id       TEXT REFERENCES reports(id) ON DELETE SET NULL
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+
+- Generate periods automatically when frequency is set or changed
+- When a report is submitted, find the matching period and set status = 'submitted', report_id = report.id
+- A period matches if: report.submission_date >= period_start AND < period_end
+- Never mark a period as 'missed' while its period_end is in the future
+- 'pending' = deadline not yet passed. 'missed' = deadline passed with no report_id
+
+═══════════════════════════════════════
+FREQUENCY CHANGE BEHAVIOUR
+═══════════════════════════════════════
+When a manager changes the reporting frequency mid-cycle:
+
+1. Find the currently open period (status = 'pending') for the affected employees
+2. Set that period's status to 'void' — not missed, not submitted
+3. Set the new anchor_date = NOW() (the moment of the frequency change)
+4. Generate new periods forward from the new anchor, applying the grace rule
+5. Do NOT retroactively alter past periods (submitted or missed stay as-is)
+6. Do NOT carry forward the old anchor date
+
+═══════════════════════════════════════
+MISSED REPORT LOGIC
+═══════════════════════════════════════
+A period is marked 'missed' when ALL of the following are true:
+  - period_end < NOW()
+  - status is still 'pending' (no report submitted)
+  - No approved leave record overlaps this period (see LEAVE RULE below)
+
+Run this check via a scheduled function or on dashboard load — update status to 'missed'.
+
+NEVER use the goal deadline in missed report logic.
+
+═══════════════════════════════════════
+LEAVE RULE
+═══════════════════════════════════════
+Before marking a period as 'missed', check the leaves table:
+
+  SELECT * FROM leaves
+  WHERE employee_id = [employee_id]
+  AND status = 'approved'
+  AND start_date <= period_end
+  AND end_date >= period_start
+
+If a matching approved leave exists:
+  - Set period status = 'excused', not 'missed'
+  - Excused periods do not count against completion rate metrics
+  - Excused periods do not trigger missed report notifications
+
+═══════════════════════════════════════
+LATE SUBMISSION WINDOW
+═══════════════════════════════════════
+- A report is ON TIME if submitted before period_end
+- A report is LATE if submitted after period_end but before the NEXT period_end
+- Whether late reports are accepted is controlled by allow_late_submissions (boolean)
+  on the manager_settings table
+- If allow_late_submissions = true:
+    Accept the late report, set status = 'submitted', note it was late
+    Add a late_submitted boolean column to reporting_periods if not present
+- If allow_late_submissions = false:
+    Reject the submission with a clear error message to the employee
+    Do not change period status from 'missed'
+- A report submitted more than one full cycle late is always rejected
+  regardless of allow_late_submissions setting
+
+═══════════════════════════════════════
+EMPLOYEE UI REQUIREMENTS
+═══════════════════════════════════════
+In the report editor and employee dashboard, always display:
+
+  "Your next report is due by [period_end date]. You have [X days] left."
+
+- Derive this from the employee's current 'pending' period
+- If no pending period exists (e.g. frequency not yet set), show nothing
+- If period_end is today, show: "Due today"
+- If period_end has passed and status is still pending (edge case before cron runs),
+  show: "Overdue — submit as soon as possible"
+
+═══════════════════════════════════════
+TIMEZONE HANDLING
+═══════════════════════════════════════
+- Store all deadlines and timestamps in UTC
+- Display all dates in the organization's configured timezone
+- For MVP, this is a known limitation — document it, do not block on it
+- Do not snap deadlines to local midnight unless the org timezone is explicitly set
+
+═══════════════════════════════════════
+IMPORTANT — DO NOT DO THESE THINGS
+═══════════════════════════════════════
+- Do not calculate reporting periods dynamically at query time
+- Do not snap to calendar boundaries (no "every Monday" logic)
+- Do not use goal deadline for any missed report or period logic
+- Do not mark a period as missed while period_end is in the future
+- Do not retroactively change past periods when frequency changes
+- Do not accept reports more than one full cycle past their period_end
+
+
+═══════════════════════════════════════
+BACKDATED REPORT SUBMISSIONS
+═══════════════════════════════════════
+Employees may select a past date when submitting a report in the editor.
+Managers cannot submit backdated reports.
+
+FINDING THE TARGET PERIOD
+- When an employee selects a past date, find the reporting_period where:
+    selected_date >= period_start AND selected_date < period_end
+- If no period exists for that date (e.g. before frequency was set), reject with:
+  "No reporting period exists for the selected date."
+- If the period status is already 'submitted', reject with:
+  "A report has already been submitted for this period."
+- If the period status is 'void', reject with:
+  "This period was cancelled due to a schedule change."
+
+WHAT HAPPENS TO THE PERIOD
+- Set status = 'submitted'
+- Set report_id = the new report's id
+- Set late_submitted = true (always — backdated = late by definition)
+- The period is satisfied and does not count as missed
+- The AI evaluation runs normally against the backdated report text
+
+MANAGER-CONTROLLED BACKDATE LIMIT
+- Add a backdate_limit_days column to manager_settings (INTEGER, nullable)
+- If backdate_limit_days is NULL → backdating is disabled entirely
+- If backdate_limit_days = 0 → no limit, any past period can be satisfied
+- If backdate_limit_days = 7 → employee can only backdate up to 7 days from today
+
+Validation rule:
+  IF (TODAY - selected_date) > backdate_limit_days → reject with:
+  "You can only submit reports up to [X] days in the past."
+
+Apply this check before finding the target period.
+
+BACKDATING AND allow_late_submissions
+- Backdated submissions are only accepted if allow_late_submissions = true
+  on manager_settings
+- If allow_late_submissions = false → reject all backdated submissions regardless
+  of backdate_limit_days, with:
+  "Late and backdated submissions are not allowed for this goal."
+
+AUDIT TRAIL
+- Store the following on the report record for every backdated submission:
+    submitted_for_date   DATE        -- the date the employee selected
+    submitted_at         TIMESTAMPTZ -- the actual real-world submission time
+    is_backdated         BOOLEAN     -- always true for these reports
+- These three fields must always be stored together so managers can see
+  both the claimed date and the actual submission time
+
+UI REQUIREMENTS
+- In the report editor, show a date picker that defaults to today
+- Only show past dates — future dates are not selectable
+- If allow_late_submissions = false, hide the date picker entirely
+- If backdate_limit_days is set, grey out dates beyond the limit
+- When a past date is selected, show a visible warning inline:
+  "You are submitting for [selected date]. This will be marked as a late submission."
+- Do not allow the employee to change the date after submission
+
+IMPORTANT
+- A backdated report always sets late_submitted = true — there is no case
+  where a backdated report is considered on time
+- Do not recalculate or void any other periods when a backdated report is submitted
+- Do not allow backdating into a 'missed' period that has already been
+  surfaced to the manager as missed — this would silently alter the audit record.
+  Instead: accept the report, satisfy the period, but flag it as
+  BACKDATED_AFTER_MISSED_FLAGGED so the manager sees it was submitted
+  after the miss was already recorded
+
+
+═══════════════════════════════════════
+REPORTING GRACE PERIOD
+═══════════════════════════════════════
+Managers can configure a grace period that delays when a missed report
+is flagged. This does NOT move the period_end date — it only delays
+the point at which status changes from 'pending' to 'missed'.
+
+Add grace_period_days column to manager_settings (INTEGER, default 0)
+
+RULES
+- grace_period_days must be >= 0
+- grace_period_days cannot exceed floor(reporting_interval_days / 2)
+  Weekly (7 days) → max grace = 3
+  Bi-weekly (14 days) → max grace = 7
+  Monthly (30 days) → max grace = 15
+- If manager tries to set a value above the cap, clamp it silently
+  and show: "Grace period capped at [X] days for your reporting frequency."
+
+MISSED REPORT TIMING
+- A period becomes 'missed' when:
+    NOW() > period_end + grace_period_days
+    AND status is still 'pending'
+    AND no approved leave overlaps the period
+- period_end date is NEVER modified — grace only affects the flag trigger
+
+LATE SUBMISSION INTERACTION
+- Reports submitted after period_end but within the grace window:
+    → status = 'submitted', late_submitted = false
+    → These are considered on time — the grace window IS the deadline
+      from the employee's perspective
+- Reports submitted after period_end + grace_period_days:
+    → Handled by existing allow_late_submissions logic
+    → late_submitted = true
+
+UI REQUIREMENTS
+- In settings, show grace period as a simple number input with the cap
+  displayed inline: "Up to [X] days for your current frequency"
+- In the employee UI, show the grace-adjusted deadline, not period_end:
+  "Your report is due by [period_end + grace_days]"
+- Do not expose the internal period_end date to employees — they should
+  only ever see the effective deadline
+- In manager reports/analytics, show both:
+    Submitted on time (within grace) → green
+    Submitted late (after grace, allowed) → amber
+    Missed → red
+
+
+═══════════════════════════════════════
+SUBMISSION STATUS DISPLAY RULES
+═══════════════════════════════════════
+Use a four-state system for all period status displays.
+Never show raw 'missed' or 'late' labels without context.
+
+GREEN  → submitted within grace window (on time by definition)
+AMBER  → submitted after grace but accepted via allow_late_submissions
+         OR period is within the ramp-up window (see below)
+RED    → period_end + grace_period_days has passed, no report submitted
+GRAY   → status is 'excused' or 'void'
+
+RAMP-UP PERIOD
+- For the first 14 days after an employee is assigned to a project,
+  all missed periods display as AMBER, not RED
+- After 14 days, normal rules apply
+- Store ramp_up_ends_at = assigned_at + 14 days on project_assignees
+
+STREAK DISPLAY
+- Show submission rate as: "X of last Y periods submitted"
+- Default Y = 10
+- Never lead with a missed count — always frame as completion rate
+- Only show RED missed alert after 2 consecutive missed periods
+- First missed period shows AMBER with label "First missed report"
+
+SCORE BASELINE RULE
+- Do not display an employee's average score on the manager dashboard
+  until they have at least 3 submitted reports
+- Before 3 reports: show "Building baseline" instead of a score
+- This applies to both goal criteria avg and org metrics avg
+
+SEPARATION OF COMPLIANCE AND PERFORMANCE
+- Submission compliance (on time / late / missed) is a separate
+  dimension from AI performance score
+- Never combine or average these two signals
+- In the manager dashboard, show them in separate sections:
+    Submission compliance → streak, period history, missed count
+    Performance → AI score trend, criteria breakdown, org metrics
+
+
+
+We have a reporting_periods table and partial frequency logic that is broken.
+Fix the entire reporting frequency system from end to end.
+Do not patch individual bugs — audit and rewrite the full flow.
+
+The reporting_periods table exists with these columns:
+  id, goal_id, employee_id, period_start, period_end, status,
+  report_id, late_submitted, is_backdated, grace_period_days,
+  ramp_up_ends_at, created_at, updated_at
+
+Frequency is set on manager_settings.
+
+═══════════════════════════════════════
+STEP 1 — PERIOD GENERATION (THE ROOT FIX)
+═══════════════════════════════════════
+Period generation must be triggered in ALL of these situations.
+If any trigger is missing, that is a bug.
+
+TRIGGER A — Frequency is set or changed on manager_settings
+  - Get all employees under this manager
+  - For each employee, get all active goals assigned to them
+  - Void any currently 'pending' period for each employee+goal pair
+  - Generate new periods forward from NOW() as the new anchor date
+  - Apply first-period grace rule (see below)
+
+TRIGGER B — A new employee is assigned to a project/goal
+  - Anchor date = the moment of assignment (assigned_at)
+  - Generate periods forward from that anchor
+  - Set ramp_up_ends_at = assigned_at + 14 days on the first period
+  - Apply first-period grace rule
+
+TRIGGER C — App loads / dashboard is viewed (safety net)
+  - Check if the current period exists for the logged-in employee
+  - If no 'pending' period exists and frequency is set → generate it
+  - This is a fallback only — primary generation must happen via A and B
+  - Do not regenerate if a valid pending period already exists
+
+TRIGGER D — A period closes (period_end has passed)
+  - Immediately generate the next period
+  - Next period_start = previous period_end
+  - Next period_end = period_start + interval_days
+  - This creates a continuous rolling chain with no gaps
+
+FIRST PERIOD GRACE RULE
+  - If (anchor_date + interval_days) - anchor_date < 24 hours
+    → push first period_end forward by one full interval
+  - In practice: if frequency is set less than 24 hours before
+    the first deadline would occur, skip that first period entirely
+    and start from the next one
+
+═══════════════════════════════════════
+STEP 2 — ONE REPORT PER PERIOD (THE DUPLICATE BUG)
+═══════════════════════════════════════
+Before accepting any report submission, run this check:
+
+  SELECT id FROM reporting_periods
+  WHERE employee_id = [current employee]
+  AND goal_id = [selected goal]
+  AND period_start <= [submission_date]
+  AND period_end > [submission_date]
+  AND status = 'submitted'
+
+If a row is returned → reject the submission immediately with:
+  "You have already submitted a report for this period.
+   Your next report is due on [next period_end]."
+
+Do not rely on frontend validation alone — enforce this check
+server-side before inserting into the reports table.
+
+When a report IS accepted:
+  - Insert into reports table
+  - Find the matching period:
+      SELECT * FROM reporting_periods
+      WHERE employee_id = [employee_id]
+      AND goal_id = [goal_id]
+      AND period_start <= [submission_date]
+      AND period_end > [submission_date]
+      AND status = 'pending'
+  - Update that period:
+      status = 'submitted'
+      report_id = new report id
+      late_submitted = (submission_date > period_end) → true/false
+      is_backdated = (submission_date != today) → true/false
+
+═══════════════════════════════════════
+STEP 3 — REPORT DUE DATE DISPLAY (THE EMPTY BUG)
+═══════════════════════════════════════
+The "report due" display is empty because it cannot find the
+current pending period. Fix the query and the fallback.
+
+Query to get the current due date for an employee:
+
+  SELECT period_end, grace_period_days
+  FROM reporting_periods
+  WHERE employee_id = [current employee]
+  AND goal_id = [goal_id]
+  AND status = 'pending'
+  ORDER BY period_start ASC
+  LIMIT 1
+
+Effective deadline = period_end + grace_period_days
+
+Display rules:
+  - If no row returned AND frequency is set → run TRIGGER C to
+    generate the missing period, then re-query
+  - If no row returned AND frequency is NOT set → show nothing
+  - If effective_deadline - TODAY > 1 day → "Due in X days · [date]"
+  - If effective_deadline = TODAY → "Due today"
+  - If effective_deadline < TODAY and status still 'pending'
+    (cron hasn't run yet) → "Overdue — submit as soon as possible"
+
+Always show effective deadline (period_end + grace) to the employee.
+Never show the raw period_end date.
+
+═══════════════════════════════════════
+STEP 4 — MISSED REPORT DETECTION
+═══════════════════════════════════════
+This must run reliably. Implement as a Supabase Edge Function
+with a pg_cron schedule (recommended: every hour).
+
+For every reporting_period where:
+  status = 'pending'
+  AND (period_end + grace_period_days) < NOW()
+
+Run this check before marking missed:
+
+  1. Check leaves table:
+       SELECT id FROM leaves
+       WHERE employee_id = period.employee_id
+       AND approved_by IS NOT NULL
+       AND start_date <= period.period_end
+       AND end_date >= period.period_start
+     If found → set status = 'excused', skip to next period
+
+  2. Check ramp-up:
+       IF NOW() < ramp_up_ends_at → set status = 'amber_missed'
+       (display as amber, not red — first-time miss during ramp-up)
+
+  3. Otherwise → set status = 'missed'
+
+  4. After marking missed → immediately generate the next period
+     (TRIGGER D) so the chain continues uninterrupted
+
+═══════════════════════════════════════
+STEP 5 — MISSED REPORT CONSECUTIVE CHECK
+═══════════════════════════════════════
+After any period is marked 'missed', check for consecutive misses:
+
+  SELECT COUNT(*) FROM reporting_periods
+  WHERE employee_id = [employee_id]
+  AND goal_id = [goal_id]
+  AND status = 'missed'
+  AND period_end > NOW() - (interval_days * 3)
+  ORDER BY period_end DESC
+  LIMIT 2
+
+If COUNT = 1 → first miss, insert notification:
+  type: 'alert', title: 'First missed report'
+  message: 'No action needed yet — one missed period recorded.'
+  visible to: manager only
+
+If COUNT >= 2 consecutive → insert notification:
+  type: 'alert', title: 'Consecutive missed reports'
+  message: '[Employee] has missed [N] consecutive reporting periods.'
+  visible to: manager only
+
+═══════════════════════════════════════
+STEP 6 — STATUS DISPLAY RULES
+═══════════════════════════════════════
+Never show raw status strings in the UI.
+Map internal status to display state as follows:
+
+  'pending'      → show due date countdown (Step 3 rules)
+  'submitted'    + late_submitted = false → GREEN "Submitted on time"
+  'submitted'    + late_submitted = true  → AMBER "Submitted late"
+  'missed'       + first miss             → AMBER "Missed — 1st time"
+  'missed'       + consecutive            → RED   "Missed"
+  'amber_missed' (ramp-up)                → AMBER "Getting started"
+  'excused'                               → GRAY  "Excused"
+  'void'                                  → GRAY  "Period cancelled"
+
+Submission rate display:
+  "X of last 10 periods submitted" — always frame as completion,
+  never lead with a missed count.
+
+Do not show average score on manager dashboard until employee
+has at least 3 submitted reports. Show "Building baseline" instead.
+
+═══════════════════════════════════════
+STEP 7 — BACKDATED SUBMISSIONS
+═══════════════════════════════════════
+When employee selects a past date in the report editor:
+
+  1. Check allow_late_submissions on manager_settings
+     If false → reject, hide date picker entirely
+
+  2. Check backdate_limit_days on manager_settings
+     If (TODAY - selected_date) > backdate_limit_days → reject with:
+     "You can only submit reports up to [X] days in the past."
+
+  3. Find matching period for selected_date (same query as Step 2)
+     If none found → "No reporting period exists for this date."
+     If status = 'submitted' → "A report already exists for this period."
+     If status = 'void' → "This period was cancelled."
+
+  4. If period status = 'missed' and already flagged to manager:
+     Accept the report but flag as BACKDATED_AFTER_MISSED_FLAGGED
+     Set status = 'submitted', late_submitted = true, is_backdated = true
+     Insert manager notification:
+       "A backdated report was submitted for a period
+        already recorded as missed."
+
+  5. Otherwise:
+     Set status = 'submitted'
+     late_submitted = true (always for backdated)
+     is_backdated = true
+     submitted_for_date = selected_date
+     submitted_at = NOW()
+
+═══════════════════════════════════════
+WHAT TO CHECK FIRST
+═══════════════════════════════════════
+Before fixing anything else, run these diagnostic queries
+in Supabase SQL editor and share the results:
+
+  -- Are any periods being generated at all?
+  SELECT COUNT(*) FROM reporting_periods;
+
+  -- Do periods exist for current employees?
+  SELECT employee_id, goal_id, status, period_start, period_end
+  FROM reporting_periods
+  ORDER BY created_at DESC
+  LIMIT 20;
+
+  -- Is frequency actually set?
+  SELECT manager_id, global_frequency, allow_late_submissions
+  FROM manager_settings
+  LIMIT 10;
+
+If reporting_periods is empty → period generation (Step 1) is
+the only thing that needs fixing first. Nothing else will work
+until periods exist.

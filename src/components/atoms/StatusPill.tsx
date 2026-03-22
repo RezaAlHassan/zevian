@@ -4,7 +4,7 @@ import { colors, radius, typography, getScoreStatus } from '@/design-system'
 import React from 'react'
 
 interface StatusPillProps {
-  status?: 'active' | 'at-risk' | 'review' | 'no-reports' | 'on-track' | 'no-data' | 'pending' | 'scored' | 'reviewed' | 'late'
+  status?: 'active' | 'at-risk' | 'review' | 'no-reports' | 'on-track' | 'no-data' | 'pending' | 'scored' | 'reviewed' | 'late' | 'on-leave'
   score?: number | null
   children?: React.ReactNode
   showDot?: boolean
@@ -24,6 +24,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'scored': { background: colors.accentGlow, color: colors.accent },
     'reviewed': { background: colors.greenGlow, color: colors.green },
     'late': { background: colors.dangerGlow, color: colors.danger },
+    'on-leave': { background: colors.surface3, color: colors.text2 },
   }
 
   const labels: Record<string, string> = {
@@ -37,6 +38,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'scored': 'AI Scored',
     'reviewed': 'Reviewed',
     'late': 'Late',
+    'on-leave': 'On Leave',
   }
 
   const dotColors: Record<string, string> = {
@@ -50,6 +52,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'scored': colors.accent,
     'reviewed': colors.green,
     'late': colors.danger,
+    'on-leave': colors.text3,
   }
 
   return (

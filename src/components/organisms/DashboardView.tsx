@@ -6,17 +6,23 @@ import {
   KPICard,
   EmployeeRow,
   ProjectCard,
+  SlimProjectCard,
   MetricCard,
   LateItem,
   AIBanner,
   Card,
-  SectionLabel
+  SectionLabel,
+  RecentReportItem,
+  DateRangeSelector
 } from '@/components/molecules'
+import { ApproveLeaveModal } from '@/components/organisms/ApproveLeaveModal'
 import React from 'react'
 import Link from 'next/link'
+import { useSearchParams, useRouter } from 'next/navigation'
 
 import { Organization } from '@/types'
 import { updateOrganizationAction } from '@/app/actions/organizationActions'
+import { DEFAULT_ORG_METRICS } from '@/constants/metrics'
 
 interface Props {
   teamStats: any
@@ -120,7 +126,10 @@ function EmptyBtn({ variant = 'primary', href, children }: {
   }
 
   if (href) {
-    return <Link href={href} style={styles[variant]}>{children}</Link>
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
+    const params = new URLSearchParams(searchParams.toString())
+    const finalHref = href.includes('?') ? `${href}&${params.toString()}` : `${href}?${params.toString()}`
+    return <Link href={finalHref} style={styles[variant]}>{children}</Link>
   }
   return <div style={styles[variant]}>{children}</div>
 }
@@ -203,8 +212,16 @@ function DashedEmpty({ icon, title, desc, children }: {
 ═══════════════════════════════════════════════════════════════ */
 
 export function DashboardView({ teamStats, recentReports, projects, lateSubmissions, organization }: Props) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const view = searchParams.get('view') || 'org'
   const [selectedMetrics, setSelectedMetrics] = React.useState<string[]>(organization?.selectedMetrics ?? [])
   const [isUpdatingMetrics, setIsUpdatingMetrics] = React.useState(false)
+  const [leaveModalData, setLeaveModalData] = React.useState<{ isOpen: boolean; empId: string; empName: string }>({
+    isOpen: false,
+    empId: '',
+    empName: ''
+  })
 
   const toggleMetric = async (metricId: string) => {
     const newMetrics = selectedMetrics.includes(metricId)
@@ -223,29 +240,56 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
     }
   }
 
-  const allAvailableMetrics = [
-    { id: 'communication', name: 'Communication', icon: 'reports' },
-    { id: 'delivery', name: 'Delivery Speed', icon: 'projects' },
-    { id: 'quality', name: 'Work Quality', icon: 'star' },
-    { id: 'ownership', name: 'Ownership', icon: 'target' },
-    { id: 'collaboration', name: 'Collaboration', icon: 'people' }
-  ]
+  const defaultMetrics = DEFAULT_ORG_METRICS.map(m => ({
+    ...m,
+    icon: (m.id === 'communication' ? 'reports' : 
+           m.id === 'delivery' ? 'projects' : 
+           m.id === 'quality' ? 'star' : 
+           m.id === 'ownership' ? 'target' : 
+           m.id === 'collaboration' ? 'people' : 
+           m.id === 'initiative' ? 'zap' :
+           m.id === 'problem_solving' ? 'target' :
+           m.id === 'documentation' ? 'reports' :
+           m.id === 'growth' ? 'star' : 'star') as any
+  }))
+
+  const customMetrics = organization?.customMetrics?.map(m => ({
+    id: m.id,
+    name: m.name,
+    icon: 'star' // Default icon for custom metrics
+  })) || []
+
+  const allAvailableMetrics = [...defaultMetrics, ...customMetrics]
 
   const totalReports = teamStats?.totalReports || 0
   const avgScore = teamStats?.avgScore || 0
   const teamPerformance: any[] = teamStats?.teamPerformance || []
-  const uiProjects: any[] = teamStats?.projects || []
+  const uiProjects: any[] = (teamStats?.projects || []).slice(0, 3)
   const uiLateSubmissions: any[] = teamStats?.lateSubmissions || lateSubmissions || []
   const goals: any[] = teamStats?.goals || []
 
   const hasTeam = teamPerformance.length > 0
   const hasReports = totalReports > 0
   const hasProjects = uiProjects.length > 0
-  const hasOrgMetrics = selectedMetrics.length > 0
+  const hasOrgMetrics = selectedMetrics.length > 0 || customMetrics.length > 0
+  const activeMetricsCount = selectedMetrics.length + customMetrics.length
   const hasGoals = goals.length > 0
+  const showTrend = (teamStats?.trendScores?.length ?? 0) >= 2
 
   return (
-    <div style={{ padding: layout.contentPadding, width: '100%' }}>
+    <div style={{ padding: layout.contentPadding, width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-4px' }}>
+        <DateRangeSelector 
+          startDate={searchParams.get('start') || undefined}
+          endDate={searchParams.get('end') || undefined}
+          onRangeChange={(start, end) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('start', start);
+            params.set('end', end);
+            router.push(`?${params.toString()}`);
+          }}
+        />
+      </div>
       {/* Inject keyframe animation */}
       <style>{`@keyframes emptyPulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.04); } }`}</style>
 
@@ -339,7 +383,7 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
           icon="chart"
           chip={hasTeam ? <Chip variant="blue">{teamPerformance.length} members</Chip> : undefined}
         >
-          {hasReports ? (
+          {showTrend ? (
             <>
               <div style={{ display: 'flex', gap: '16px', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: colors.text2 }}>
@@ -417,7 +461,7 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
                 </EmptyIconWrap>
                 <EmptyTitle style={{ fontSize: 14 }}>No trend data yet</EmptyTitle>
                 <EmptyDesc style={{ fontSize: 12, marginBottom: 16 }}>
-                  Score trends appear once your team starts submitting reports. You'll see weekly performance here.
+                  Trend will show after at least 2 reports are submitted.
                 </EmptyDesc>
                 <EmptyBtn variant="ghost" href="/employees">
                   <Icon name="users" size={14} color={colors.accent} />
@@ -437,7 +481,10 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
           {hasTeam ? (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {teamPerformance.map((emp: any, i: number) => (
-                <EmployeeRow key={i} {...emp} />
+                <EmployeeRow 
+                  key={i} 
+                  {...emp} 
+                />
               ))}
             </div>
           ) : (
@@ -456,14 +503,12 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
                   <Icon name="users" size={14} color="#fff" />
                   Invite First Member
                 </EmptyBtn>
-                <EmptyHint>Or import via CSV from the Employees page</EmptyHint>
               </EmptyState>
             </>
           )}
         </Card>
       </div>
 
-      <SectionLabel>Performance Vectors</SectionLabel>
 
       {/* ── Org Metrics + Projects + Late ─────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '16px' }}>
@@ -471,13 +516,15 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
         <Card
           title="Organizational Metrics"
           icon="chart"
-          chip={<Chip variant="teal">{hasOrgMetrics ? `${selectedMetrics.length} Active` : '0 Active'}</Chip>}
+          chip={<Chip variant="teal">{hasOrgMetrics ? `${activeMetricsCount} Active` : '0 Active'}</Chip>}
         >
           <div style={{ padding: '16px 20px 20px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: hasOrgMetrics ? '0px' : '20px' }}>
-              {allAvailableMetrics.map((metric: any) => {
-                const isActive = selectedMetrics.includes(metric.id)
-                return (
+              {allAvailableMetrics
+                .filter((metric: any) => selectedMetrics.includes(metric.id) || customMetrics.some(cm => cm.id === metric.id))
+                .map((metric: any) => {
+                  const isActive = true
+                  return (
                   <div
                     key={metric.id}
                     onClick={() => toggleMetric(metric.id)}
@@ -516,144 +563,55 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
         </Card>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Ongoing Projects */}
+          {/* Recent Reports */}
           <Card
-            title="Ongoing Projects"
-            icon="projects"
-            action={hasProjects ? <span style={{ fontSize: '12px', color: colors.accent, fontWeight: 500, cursor: 'pointer' }}>View All</span> : undefined}
+            title="Recent Reports"
+            icon="reports"
+            action={recentReports.length > 0 ? <Link href={`/reports?${searchParams.toString()}`} style={{ fontSize: '12px', color: colors.accent, fontWeight: 500, textDecoration: 'none' }}>View All</Link> : undefined}
           >
-            {hasProjects ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 20px 20px' }}>
-                {uiProjects.map((proj: any, i: number) => (
-                  <ProjectCard key={i} {...proj} />
+            {recentReports.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {recentReports.map((report: any, i: number) => (
+                  <RecentReportItem 
+                    key={i} 
+                    {...report} 
+                    id={report.id} 
+                    isLast={i === recentReports.length - 1} 
+                  />
                 ))}
               </div>
             ) : (
               <div style={{ padding: '16px 20px 20px' }}>
                 <DashedEmpty
-                  icon={<Icon name="projects" size={22} color={colors.text3} />}
-                  title="No projects yet"
-                  desc="Projects group your team's goals and reports. Create your first one to get started."
-                >
-                  <EmptyBtn variant="primary" href="/projects">
-                    <Icon name="plus" size={14} color="#fff" />
-                    Create Project
-                  </EmptyBtn>
-                </DashedEmpty>
+                  icon={<Icon name="reports" size={22} color={colors.text3} />}
+                  title="No reports yet"
+                  desc="Recent activity from your team will appear here once they start submitting reports."
+                />
               </div>
             )}
           </Card>
 
           {/* Late Submissions */}
-          <Card
-            title="Late Submissions"
-            icon="alert"
-            chip={uiLateSubmissions.length > 0 ?
-              <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: colors.dangerGlow, color: colors.danger }}>{uiLateSubmissions.length} overdue</span>
-              : undefined
-            }
-          >
-            {uiLateSubmissions.length > 0 ? (
+          {uiLateSubmissions.length > 0 && (
+            <Card
+              title="Late Submissions"
+              icon="alert"
+              chip={<span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: colors.dangerGlow, color: colors.danger }}>{uiLateSubmissions.length} overdue</span>}
+            >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 20px' }}>
                 {uiLateSubmissions.map((item: any, i: number) => (
                   <LateItem key={i} {...item} />
                 ))}
               </div>
-            ) : (
-              <div style={{ padding: '16px 20px' }}>
-                <EmptyState padding="24px 12px">
-                  <EmptyIconWrap variant="green" size={52} borderRadius={13}>
-                    <Icon name="check" size={22} color={colors.green} />
-                  </EmptyIconWrap>
-                  <EmptyTitle style={{ fontSize: '13.5px', color: colors.green }}>All caught up!</EmptyTitle>
-                  <EmptyDesc style={{ fontSize: 12, marginBottom: 0 }}>
-                    No late submissions right now. Your team is on schedule.
-                  </EmptyDesc>
-                </EmptyState>
-              </div>
-            )}
-          </Card>
+            </Card>
+          )}
         </div>
       </div>
 
-      <SectionLabel>Goal Alignment & Distribution</SectionLabel>
+      <SectionLabel>Goal Alignment & Projects</SectionLabel>
 
-      {/* ── Radar + Goal Alignment ─────────────────────── */}
+      {/* ── Goal Alignment & Projects Row ────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        {/* Performance Radar */}
-        <Card
-          title="Performance Radar"
-          icon="target"
-          chip={<Chip>{hasReports ? 'Team Average' : 'No data'}</Chip>}
-        >
-          {hasReports && hasOrgMetrics ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: layout.contentPadding }}>
-              <svg width="280" height="260" viewBox="0 0 280 260">
-                <defs>
-                  <linearGradient id="radarFill" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#5b7fff" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="#00d4aa" stopOpacity="0.15" />
-                  </linearGradient>
-                </defs>
-                <g transform="translate(140,130)">
-                  <polygon points="0,-90 77.94,-45 77.94,45 0,90 -77.94,45 -77.94,-45" fill="none" stroke="#1e2330" strokeWidth="1" />
-                  <polygon points="0,-72 62.35,-36 62.35,36 0,72 -62.35,36 -62.35,-36" fill="none" stroke="#1e2330" strokeWidth="1" />
-                  <polygon points="0,-54 46.76,-27 46.76,27 0,54 -46.76,27 -46.76,-27" fill="none" stroke="#1e2330" strokeWidth="1" />
-                  <polygon points="0,-36 31.18,-18 31.18,18 0,36 -31.18,18 -31.18,-18" fill="none" stroke="#1e2330" strokeWidth="1" />
-                  <polygon points="0,-18 15.59,-9 15.59,9 0,18 -15.59,9 -15.59,-9" fill="none" stroke="#1e2330" strokeWidth="1" />
-                  <line x1="0" y1="0" x2="0" y2="-90" stroke="#1e2330" strokeWidth="1" />
-                  <line x1="0" y1="0" x2="77.94" y2="-45" stroke="#1e2330" strokeWidth="1" />
-                  <line x1="0" y1="0" x2="77.94" y2="45" stroke="#1e2330" strokeWidth="1" />
-                  <line x1="0" y1="0" x2="0" y2="90" stroke="#1e2330" strokeWidth="1" />
-                  <line x1="0" y1="0" x2="-77.94" y2="45" stroke="#1e2330" strokeWidth="1" />
-                  <line x1="0" y1="0" x2="-77.94" y2="-45" stroke="#1e2330" strokeWidth="1" />
-                  <text x="0" y="-96" textAnchor="middle" fill="#8b93a8" fontSize="10" fontFamily={typography.fonts.display} fontWeight="500">Work Excellence</text>
-                  <text x="88" y="-48" textAnchor="start" fill="#8b93a8" fontSize="10" fontFamily={typography.fonts.display}>Delivery Speed</text>
-                  <text x="88" y="56" textAnchor="start" fill="#8b93a8" fontSize="10" fontFamily={typography.fonts.display}>Goal Progress</text>
-                  <text x="0" y="108" textAnchor="middle" fill="#8b93a8" fontSize="10" fontFamily={typography.fonts.display}>Consistency</text>
-                  <text x="-90" y="56" textAnchor="end" fill="#8b93a8" fontSize="10" fontFamily={typography.fonts.display}>Fix-it Rate</text>
-                  <text x="-90" y="-48" textAnchor="end" fill="#8b93a8" fontSize="10" fontFamily={typography.fonts.display}>Teamwork</text>
-                </g>
-              </svg>
-            </div>
-          ) : (
-            <>
-              {/* Ghost radar */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 20px 20px', opacity: 0.35 }}>
-                <svg width="260" height="240" viewBox="0 0 280 260">
-                  <g transform="translate(140,130)">
-                    <polygon points="0,-80 69.28,-40 69.28,40 0,80 -69.28,40 -69.28,-40" fill="none" stroke="#1e2330" strokeWidth="1" />
-                    <polygon points="0,-60 51.96,-30 51.96,30 0,60 -51.96,30 -51.96,-30" fill="none" stroke="#1e2330" strokeWidth="1" />
-                    <polygon points="0,-40 34.64,-20 34.64,20 0,40 -34.64,20 -34.64,-20" fill="none" stroke="#1e2330" strokeWidth="1" />
-                    <polygon points="0,-20 17.32,-10 17.32,10 0,20 -17.32,10 -17.32,-10" fill="none" stroke="#1e2330" strokeWidth="1" />
-                    <line x1="0" y1="0" x2="0" y2="-80" stroke="#1e2330" strokeWidth="1" />
-                    <line x1="0" y1="0" x2="69.28" y2="-40" stroke="#1e2330" strokeWidth="1" />
-                    <line x1="0" y1="0" x2="69.28" y2="40" stroke="#1e2330" strokeWidth="1" />
-                    <line x1="0" y1="0" x2="0" y2="80" stroke="#1e2330" strokeWidth="1" />
-                    <line x1="0" y1="0" x2="-69.28" y2="40" stroke="#1e2330" strokeWidth="1" />
-                    <line x1="0" y1="0" x2="-69.28" y2="-40" stroke="#1e2330" strokeWidth="1" />
-                    <text x="0" y="-86" textAnchor="middle" fill="#2a3040" fontSize="9">Work Excellence</text>
-                    <text x="78" y="-43" textAnchor="start" fill="#2a3040" fontSize="9">Delivery Speed</text>
-                    <text x="78" y="50" textAnchor="start" fill="#2a3040" fontSize="9">Goal Progress</text>
-                    <text x="0" y="96" textAnchor="middle" fill="#2a3040" fontSize="9">Consistency</text>
-                    <text x="-80" y="50" textAnchor="end" fill="#2a3040" fontSize="9">Fix-it Rate</text>
-                    <text x="-80" y="-43" textAnchor="end" fill="#2a3040" fontSize="9">Teamwork</text>
-                  </g>
-                </svg>
-              </div>
-              <EmptyState padding="0 24px 28px">
-                <EmptyTitle style={{ fontSize: '13.5px' }}>Radar awaiting reports</EmptyTitle>
-                <EmptyDesc style={{ fontSize: 12, marginBottom: 14 }}>
-                  Once your team submits reports, this chart will show average performance across all your org metrics.
-                </EmptyDesc>
-                <EmptyBtn variant="ghost" href="/organization?tab=metrics">
-                  Set up Org Metrics →
-                </EmptyBtn>
-              </EmptyState>
-            </>
-          )}
-        </Card>
-
         {/* Goal Alignment */}
         <Card
           title="Goal Alignment"
@@ -706,8 +664,42 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
             </EmptyState>
           )}
         </Card>
+
+        {/* Ongoing Projects */}
+        <Card
+          title="Ongoing Projects"
+          icon="projects"
+          action={hasProjects ? <span style={{ fontSize: '12px', color: colors.accent, fontWeight: 500, cursor: 'pointer' }}>View All</span> : undefined}
+        >
+          {hasProjects ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {uiProjects.map((proj: any, i: number) => (
+                <SlimProjectCard key={i} {...proj} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '0px' }}>
+              <DashedEmpty
+                icon={<Icon name="projects" size={22} color={colors.text3} />}
+                title="No projects yet"
+                desc="Projects group your team's goals and reports. Create your first one to get started."
+              >
+                <EmptyBtn variant="primary" href="/projects">
+                  <Icon name="plus" size={14} color="#fff" />
+                  Create Project
+                </EmptyBtn>
+              </DashedEmpty>
+            </div>
+          )}
+        </Card>
       </div>
 
+      <ApproveLeaveModal 
+        isOpen={leaveModalData.isOpen}
+        onClose={() => setLeaveModalData({ ...leaveModalData, isOpen: false })}
+        employeeId={leaveModalData.empId}
+        employeeName={leaveModalData.empName}
+      />
       <div style={{ height: '32px' }} />
     </div>
   )

@@ -26,12 +26,6 @@ export function ManageTeamSheet({ isOpen, onClose, project, employees }: Props) 
 
     if (!isOpen) return null
 
-    const toggleRole = (index: number) => {
-        const newMembers = [...members]
-        newMembers[index].employee.role = newMembers[index].employee.role === 'manager' ? 'employee' : 'manager'
-        setMembers(newMembers)
-    }
-
     const removeMember = (index: number) => {
         setMembers(members.filter((_, i) => i !== index))
     }
@@ -195,22 +189,6 @@ export function ManageTeamSheet({ isOpen, onClose, project, employees }: Props) 
                                         </div>
 
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <div
-                                                onClick={() => toggleRole(i)}
-                                                style={{
-                                                    padding: '4px 8px',
-                                                    borderRadius: '6px',
-                                                    background: m.employee.role === 'manager' ? colors.accent : 'transparent',
-                                                    border: `1px solid ${m.employee.role === 'manager' ? colors.accent : colors.border}`,
-                                                    fontSize: '11px',
-                                                    fontWeight: 600,
-                                                    color: m.employee.role === 'manager' ? '#fff' : colors.text3,
-                                                    cursor: 'pointer',
-                                                    transition: `all ${animation.fast}`
-                                                }}
-                                            >
-                                                Manager
-                                            </div>
                                             <button
                                                 onClick={() => removeMember(i)}
                                                 style={{

@@ -20,6 +20,9 @@ DROP TABLE IF EXISTS project_documents CASCADE;
 DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS organizations CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS organization_custom_metrics CASCADE;
+DROP TABLE IF EXISTS leaves CASCADE;
+
 
 -- ============================================================================
 -- 1. ORGANIZATIONS
@@ -45,6 +48,7 @@ CREATE TABLE projects (
     knowledge_base_link TEXT,
     ai_context TEXT,
     created_by TEXT, 
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'at-risk', 'review', 'completed')),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -86,7 +90,11 @@ CREATE TABLE employee_permissions (
     employee_id TEXT PRIMARY KEY REFERENCES employees(id) ON DELETE CASCADE,
     can_set_global_frequency BOOLEAN DEFAULT FALSE,
     can_view_organization_wide BOOLEAN DEFAULT FALSE,
-    can_manage_settings BOOLEAN DEFAULT FALSE
+    can_manage_settings BOOLEAN DEFAULT FALSE,
+    can_create_projects BOOLEAN DEFAULT FALSE,
+    can_create_goals BOOLEAN DEFAULT FALSE,
+    can_override_ai_scores BOOLEAN DEFAULT FALSE,
+    can_invite_users BOOLEAN DEFAULT FALSE
 );
 
 -- ============================================================================
@@ -98,6 +106,7 @@ CREATE TABLE project_assignees (
     assignee_id TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     assignee_type TEXT NOT NULL CHECK (assignee_type IN ('employee', 'manager')),
     assigned_at TIMESTAMPTZ DEFAULT NOW(),
+    ramp_up_ends_at TIMESTAMPTZ DEFAULT (NOW() + interval '14 days'),
     UNIQUE (project_id, assignee_id)
 );
 
@@ -262,6 +271,26 @@ CREATE TABLE project_frequency_days (
 );
 
 -- ============================================================================
+-- 12.5 LEAVES TABLE
+-- ============================================================================
+CREATE TABLE leaves (
+    id TEXT PRIMARY KEY,
+    employee_id TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    leave_type TEXT NOT NULL CHECK (leave_type IN ('sick', 'vacation', 'personal', 'other')),
+    note TEXT,
+    approved_by TEXT NOT NULL REFERENCES employees(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_leaves_employee_id ON leaves(employee_id);
+CREATE INDEX idx_leaves_start_date ON leaves(start_date);
+CREATE INDEX idx_leaves_end_date ON leaves(end_date);
+
+-- ============================================================================
 -- 13. TRIGGERS
 -- ============================================================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -274,6 +303,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_employees_updated_at BEFORE UPDATE ON employees FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_leaves_updated_at BEFORE UPDATE ON leaves FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_goals_updated_at BEFORE UPDATE ON goals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_reports_updated_at BEFORE UPDATE ON reports FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_invitations_updated_at BEFORE UPDATE ON invitations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -382,6 +412,7 @@ ALTER TABLE project_assignees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE criteria ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leaves ENABLE ROW LEVEL SECURITY;
 ALTER TABLE report_criterion_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE manager_settings ENABLE ROW LEVEL SECURITY;
@@ -445,6 +476,11 @@ CREATE POLICY "Update own reports" ON reports FOR UPDATE USING (employee_id IN (
 -- REPORT CRITERION SCORES
 CREATE POLICY "Enable read access for authenticated users" ON report_criterion_scores FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Enable insert for authenticated users" ON report_criterion_scores FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- LEAVES
+CREATE POLICY "View own leaves" ON leaves FOR SELECT USING (employee_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid()));
+CREATE POLICY "Manager view org leaves" ON leaves FOR SELECT USING (is_manager() AND get_my_org_id() = organization_id);
+CREATE POLICY "Manager manage org leaves" ON leaves FOR ALL USING (is_manager() AND get_my_org_id() = organization_id);
 
 -- INVITATIONS
 CREATE POLICY "Manager manage invitations" ON invitations FOR ALL USING (is_manager() AND organization_id = get_my_org_id());
@@ -610,7 +646,7 @@ BEGIN
                 'goal',
                 'New Goal Added',
                 'A new goal "' || NEW.name || '" has been added to project: ' || project_name,
-                '/projects/' || NEW.project_id
+                '/goals/' || NEW.id
             );
         END IF;
     END LOOP;
@@ -640,7 +676,7 @@ BEGIN
            'performance',
            'Report Feedback',
            'Your manager has updated feedback or scoring on your report.',
-           '/dashboard' 
+           '/reports/' || NEW.id 
        );
     END IF;
     RETURN NEW;
@@ -651,6 +687,27 @@ CREATE TRIGGER on_manager_feedback
 AFTER UPDATE ON reports
 FOR EACH ROW
 EXECUTE FUNCTION notify_manager_feedback();
+
+-- 5. Trigger: Leave Granted (Notifies Employee)
+CREATE OR REPLACE FUNCTION notify_leave_granted()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO notifications (user_id, type, title, message, link_url)
+    VALUES (
+        NEW.employee_id,
+        'info',
+        'Leave Granted',
+        'Leave has been granted from ' || NEW.start_date || ' to ' || NEW.end_date || '.',
+        '/employees/' || NEW.employee_id
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_leave_granted
+AFTER INSERT ON leaves
+FOR EACH ROW
+EXECUTE FUNCTION notify_leave_granted();
 
 CREATE POLICY "Manager update org reports" ON reports 
 FOR UPDATE USING (
@@ -750,6 +807,8 @@ CREATE POLICY "Manager manage goal assignees" ON goal_assignees FOR ALL USING (
 -- Add array columns for multiple projects and goals
 ALTER TABLE invitations ADD COLUMN IF NOT EXISTS initial_project_ids TEXT[];
 ALTER TABLE invitations ADD COLUMN IF NOT EXISTS initial_goal_ids TEXT[];
+ALTER TABLE invitations ADD COLUMN IF NOT EXISTS permission_template TEXT;
+ALTER TABLE invitations ADD COLUMN IF NOT EXISTS custom_permissions JSONB;
 
 -- Migrate existing data (optional, but good for safety if we had data)
 -- UPDATE invitations SET initial_project_ids = ARRAY[initial_project_id] WHERE initial_project_id IS NOT NULL AND initial_project_ids IS NULL;
@@ -885,7 +944,7 @@ BEGIN
         'goal',
         'New Goal Assignment',
         'You have been explicitly assigned to goal: ' || v_goal_name,
-        '/projects/' || v_project_id
+        '/goals/' || NEW.goal_id
     );
     RETURN NEW;
 END;
@@ -1097,3 +1156,120 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 -- Migration: Add AI Evaluation Config to Organizations
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS goal_weight INTEGER DEFAULT 70;
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS ai_config JSONB DEFAULT '{"allowLate": true, "requireReport": true, "notifyManager": false}'::jsonb;
+
+
+ALTER TABLE employee_permissions ADD COLUMN IF NOT EXISTS can_create_projects BOOLEAN DEFAULT FALSE;
+ALTER TABLE employee_permissions ADD COLUMN IF NOT EXISTS can_create_goals BOOLEAN DEFAULT FALSE;
+ALTER TABLE employee_permissions ADD COLUMN IF NOT EXISTS can_invite_users BOOLEAN DEFAULT FALSE;
+ALTER TABLE employee_permissions ADD COLUMN IF NOT EXISTS can_override_ai_scores BOOLEAN DEFAULT FALSE;
+
+-- ============================================================================
+-- 21. REPORTING PERIODS SYSTEM
+-- ============================================================================
+
+-- 21a. Goal Frequency Anchors
+-- Records the anchor date when a reporting frequency is set or changed per goal/employee.
+-- anchor_date is the exact moment frequency was activated.
+-- Periods are generated forward from this date; it never resets to a calendar boundary.
+CREATE TABLE IF NOT EXISTS goal_frequency_anchors (
+    id TEXT PRIMARY KEY,
+    goal_id TEXT NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+    employee_id TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    frequency TEXT NOT NULL CHECK (frequency IN ('daily', 'weekly', 'bi-weekly', 'monthly')),
+    anchor_date TIMESTAMPTZ NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Only one active anchor per (goal, employee) pair
+CREATE UNIQUE INDEX IF NOT EXISTS idx_gfa_unique_active
+    ON goal_frequency_anchors (goal_id, employee_id)
+    WHERE is_active = TRUE;
+
+CREATE INDEX IF NOT EXISTS idx_gfa_goal_id ON goal_frequency_anchors(goal_id);
+CREATE INDEX IF NOT EXISTS idx_gfa_employee_id ON goal_frequency_anchors(employee_id);
+
+-- 21b. Reporting Periods
+-- One row per reporting cycle per (goal, employee).
+-- Never generated dynamically — always stored explicitly.
+-- period_start → period_end is the submission window.
+-- The anchor for n-th period = anchor_date + (n-1) * interval; period_end = anchor_date + n * interval.
+CREATE TABLE IF NOT EXISTS reporting_periods (
+    id TEXT PRIMARY KEY,
+    goal_id TEXT NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+    employee_id TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    period_start TIMESTAMPTZ NOT NULL,
+    period_end TIMESTAMPTZ NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN (
+        'pending',    -- open; deadline not yet reached
+        'submitted',  -- report submitted within this window
+        'missed',     -- deadline passed, no report submitted
+        'excused',    -- employee was on approved leave for this period
+        'void'        -- cancelled due to a frequency change
+    )),
+    late_submitted BOOLEAN NOT NULL DEFAULT FALSE,
+    report_id TEXT REFERENCES reports(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rp_goal_id ON reporting_periods(goal_id);
+CREATE INDEX IF NOT EXISTS idx_rp_employee_id ON reporting_periods(employee_id);
+CREATE INDEX IF NOT EXISTS idx_rp_status ON reporting_periods(status);
+CREATE INDEX IF NOT EXISTS idx_rp_period_end ON reporting_periods(period_end);
+CREATE INDEX IF NOT EXISTS idx_rp_report_id ON reporting_periods(report_id);
+
+-- updated_at trigger
+CREATE TRIGGER update_reporting_periods_updated_at
+BEFORE UPDATE ON reporting_periods
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- RLS
+ALTER TABLE goal_frequency_anchors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reporting_periods       ENABLE ROW LEVEL SECURITY;
+
+-- Employees can see their own; managers can see their org's
+CREATE POLICY "View own frequency anchors" ON goal_frequency_anchors
+    FOR SELECT USING (employee_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid()));
+CREATE POLICY "Manager view org frequency anchors" ON goal_frequency_anchors
+    FOR SELECT USING (is_manager() AND employee_id IN (SELECT id FROM employees WHERE organization_id = get_my_org_id()));
+CREATE POLICY "Manager manage frequency anchors" ON goal_frequency_anchors
+    FOR ALL USING (is_manager() AND employee_id IN (SELECT id FROM employees WHERE organization_id = get_my_org_id()));
+CREATE POLICY "Service role manage frequency anchors" ON goal_frequency_anchors
+    FOR ALL USING (auth.role() = 'authenticated');
+
+CREATE POLICY "View own reporting periods" ON reporting_periods
+    FOR SELECT USING (employee_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid()));
+CREATE POLICY "Manager view org reporting periods" ON reporting_periods
+    FOR SELECT USING (is_manager() AND employee_id IN (SELECT id FROM employees WHERE organization_id = get_my_org_id()));
+CREATE POLICY "Manager manage reporting periods" ON reporting_periods
+    FOR ALL USING (is_manager() AND employee_id IN (SELECT id FROM employees WHERE organization_id = get_my_org_id()));
+CREATE POLICY "Service role manage reporting periods" ON reporting_periods
+    FOR ALL USING (auth.role() = 'authenticated');
+
+-- ============================================================================
+-- 22. BACKDATED SUBMISSION SUPPORT
+-- ============================================================================
+
+-- 22a. Audit trail on the reports table
+-- Three columns stored together for every backdated submission:
+--   submitted_for_date  – the date the employee selected (claimed period)
+--   submitted_at        – the real-world moment of submission (auto-set)
+--   is_backdated        – always TRUE for backdated reports
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS submitted_for_date DATE;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMPTZ;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS is_backdated BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- 22b. Manager control for backdating
+-- backdate_limit_days:
+--   NULL  → backdating disabled
+--   0     → no limit (any past period accepted)
+--   N > 0 → employee can only submit up to N days in the past
+ALTER TABLE manager_settings ADD COLUMN IF NOT EXISTS backdate_limit_days INTEGER;
+ALTER TABLE manager_settings ADD COLUMN IF NOT EXISTS grace_period_days INTEGER DEFAULT 0;
+
+-- 22c. Backdated-after-missed flag on reporting_periods
+-- When a backdated report is submitted against a period that was already marked
+-- 'missed' and surfaced to the manager, flag it so the manager sees both the
+-- original miss and the late submission.
+ALTER TABLE reporting_periods ADD COLUMN IF NOT EXISTS backdated_after_missed_flagged BOOLEAN NOT NULL DEFAULT FALSE;

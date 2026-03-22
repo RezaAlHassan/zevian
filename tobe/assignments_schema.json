@@ -1,0 +1,18 @@
+{
+  "project_assignees": [
+    {
+      "id": 1,
+      "project_id": "proj-1",
+      "assignee_id": "mgr-2",
+      "assignee_type": "manager",
+      "assigned_at": "2026-03-22T11:18:06.946435+00:00"
+    },
+    {
+      "id": 2,
+      "project_id": "proj-1",
+      "assignee_id": "emp-1",
+      "assignee_type": "employee",
+      "assigned_at": "2026-03-22T11:18:06.946435+00:00"
+    }
+  ]
+}

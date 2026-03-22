@@ -32,6 +32,10 @@ export default async function EmployeeProjectPage({ params }: { params: { id: st
             })) || [];
 
             goals = await goalService.getByProjectId(params.id);
+            // Filter: employees only see goals they are explicitly assigned to
+            goals = goals.filter((g: any) =>
+                (g.goal_members || []).some((m: any) => m.employee.id === employee.id)
+            );
             reports = await projectService.getProjectReports(params.id);
             // Filter reports to only show current employee's reports
             reports = reports.filter((r: any) => r.employeeId === employee.id);

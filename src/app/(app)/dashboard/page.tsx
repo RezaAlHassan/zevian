@@ -4,10 +4,18 @@ import { getDashboardDataAction } from '@/app/actions/dashboardActions'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 
-export default async function DashboardPage() {
-  const data: any = await getDashboardDataAction()
+export default async function DashboardPage({
+  searchParams
+}: {
+  searchParams: { view?: string; start?: string; end?: string }
+}) {
+  const view = (searchParams.view as 'org' | 'direct') || 'org'
+  const startDate = searchParams.start
+  const endDate = searchParams.end
 
-  if (data?.error || !data) {
+  const dashboardData = await getDashboardDataAction(view, startDate, endDate)
+
+  if (dashboardData?.error || !dashboardData) {
     return (
       <DashboardView
         teamStats={{ totalReports: 0, lateSubmissions: [], avgScore: 0, teamPerformance: [], projects: [] }}
@@ -18,13 +26,14 @@ export default async function DashboardPage() {
     )
   }
 
+  const dashboardDataResult = dashboardData as any
   return (
     <DashboardView
-      teamStats={data}
-      recentReports={data.recentReports || []}
-      projects={data.projects || []}
-      lateSubmissions={data.lateSubmissions || []}
-      organization={data.organization}
+      teamStats={dashboardDataResult}
+      recentReports={dashboardDataResult.recentReports || []}
+      projects={dashboardDataResult.projects || []}
+      lateSubmissions={dashboardDataResult.lateSubmissions || []}
+      organization={dashboardDataResult.organization}
     />
   )
 }
