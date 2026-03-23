@@ -159,6 +159,59 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                 </div>
             </div>
 
+            {/* Manager Override Form (Prominent for Managers) */}
+            {role === 'manager' && canOverride && (
+                <div style={{ padding: '20px 26px', background: colors.surface, borderBottom: `1px solid ${colors.border}` }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                        <Icon name="edit" size={13} color={colors.accent} />
+                        Manager Score Override
+                    </div>
+
+                    {report.managerOverallScore && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '16px', background: colors.surface2, borderRadius: '10px', marginBottom: '20px', border: `1px solid ${colors.border}` }}>
+                            <span className="font-numeric" style={{ fontSize: '24px', fontWeight: 700, color: colors.text3, textDecoration: 'line-through' }}>{report.evaluationScore?.toFixed(1)}</span>
+                            <Icon name="chevronRight" size={16} color={colors.text3} />
+                            <span className="font-numeric" style={{ fontSize: '32px', fontWeight: 800, color: colors.accent }}>{report.managerOverallScore.toFixed(1)}</span>
+                            <span style={{ padding: '3px 8px', background: colors.accentGlow, borderRadius: '20px', fontSize: '11px', fontWeight: 700, color: colors.accent }}>Manager Override</span>
+                        </div>
+                    )}
+
+                    <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, marginBottom: '8px', textTransform: 'uppercase' }}>Override Score</label>
+                                <input
+                                    type="number"
+                                    min="0" max="10" step="0.1"
+                                    placeholder={report.evaluationScore?.toFixed(1) || '0.0'}
+                                    value={overrideScore}
+                                    onChange={(e) => setOverrideScore(e.target.value)}
+                                    style={{ width: '100%', padding: '10px 14px', background: colors.surface3, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, fontSize: '15px', fontWeight: 600, outline: 'none' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, marginBottom: '8px', textTransform: 'uppercase' }}>Reason (Required)</label>
+                                <textarea
+                                    placeholder="Explain why you're adjusting the score..."
+                                    value={overrideReason}
+                                    onChange={(e) => setOverrideReason(e.target.value)}
+                                    style={{ width: '100%', padding: '10px 14px', background: colors.surface3, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, fontSize: '13px', lineHeight: 1.5, resize: 'none', minHeight: '80px', outline: 'none' }}
+                                />
+                            </div>
+                        </div>
+                        <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <Button
+                                variant="primary"
+                                onClick={handleSaveOverride}
+                                disabled={isSavingOverride || !overrideScore || !overrideReason}
+                            >
+                                {isSavingOverride ? 'Saving...' : 'Save Override'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* AI Summary Section */}
             {hasScored && evaluationData?.summary && (() => {
                 const summaryText = evaluationData.summary;
@@ -212,7 +265,6 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                 {[
                     { id: 'breakdown', label: 'Criteria Breakdown' },
                     { id: 'content', label: 'Report Content' },
-                    ...(role === 'manager' && canOverride ? [{ id: 'override', label: 'Manager Override' }] : []),
                     { id: 'activity', label: 'Activity' }
                 ].map(tab => (
                     <div
@@ -282,61 +334,6 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                         </div>
                         <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '10px', padding: '20px', fontSize: '13.5px', lineHeight: 1.8, color: colors.text, whiteSpace: 'pre-wrap' }}>
                             {report.reportText}
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'override' && (
-                    <div>
-                        <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                            <Icon name="edit" size={13} color={colors.accent} />
-                            Manager Score Override
-                        </div>
-                        <p style={{ fontSize: '13px', color: colors.text3, marginBottom: '20px', lineHeight: 1.6 }}>
-                            The AI score is the baseline. Override it when context the AI couldn't see changes the picture.
-                        </p>
-
-                        {report.managerOverallScore && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '16px', background: colors.surface2, borderRadius: '10px', marginBottom: '20px', border: `1px solid ${colors.border}` }}>
-                                <span className="font-numeric" style={{ fontSize: '24px', fontWeight: 700, color: colors.text3, textDecoration: 'line-through' }}>{report.evaluationScore?.toFixed(1)}</span>
-                                <Icon name="chevronRight" size={16} color={colors.text3} />
-                                <span className="font-numeric" style={{ fontSize: '32px', fontWeight: 800, color: colors.accent }}>{report.managerOverallScore.toFixed(1)}</span>
-                                <span style={{ padding: '3px 8px', background: colors.accentGlow, borderRadius: '20px', fontSize: '11px', fontWeight: 700, color: colors.accent }}>Manager Override</span>
-                            </div>
-                        )}
-
-                        <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '12px', padding: '20px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, marginBottom: '8px', textTransform: 'uppercase' }}>Override Score</label>
-                                    <input
-                                        type="number"
-                                        min="0" max="10" step="0.1"
-                                        placeholder={report.evaluationScore?.toFixed(1) || '0.0'}
-                                        value={overrideScore}
-                                        onChange={(e) => setOverrideScore(e.target.value)}
-                                        style={{ width: '100%', padding: '10px 14px', background: colors.surface3, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, fontSize: '15px', fontWeight: 600, outline: 'none' }}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, marginBottom: '8px', textTransform: 'uppercase' }}>Reason (Required)</label>
-                                    <textarea
-                                        placeholder="Explain why you're adjusting the score..."
-                                        value={overrideReason}
-                                        onChange={(e) => setOverrideReason(e.target.value)}
-                                        style={{ width: '100%', padding: '10px 14px', background: colors.surface3, border: `1px solid ${colors.border}`, borderRadius: '8px', color: colors.text, fontSize: '13px', lineHeight: 1.5, resize: 'none', minHeight: '80px', outline: 'none' }}
-                                    />
-                                </div>
-                            </div>
-                            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-                                <Button 
-                                    variant="primary" 
-                                    onClick={handleSaveOverride} 
-                                    disabled={isSavingOverride || !overrideScore || !overrideReason}
-                                >
-                                    {isSavingOverride ? 'Saving...' : 'Save Override'}
-                                </Button>
-                            </div>
                         </div>
                     </div>
                 )}
