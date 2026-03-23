@@ -24,6 +24,7 @@ DROP TABLE IF EXISTS organization_custom_metrics CASCADE;
 DROP TABLE IF EXISTS leaves CASCADE;
 
 
+
 -- ============================================================================
 -- 1. ORGANIZATIONS
 -- ============================================================================
@@ -106,7 +107,6 @@ CREATE TABLE project_assignees (
     assignee_id TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     assignee_type TEXT NOT NULL CHECK (assignee_type IN ('employee', 'manager')),
     assigned_at TIMESTAMPTZ DEFAULT NOW(),
-    ramp_up_ends_at TIMESTAMPTZ DEFAULT (NOW() + interval '14 days'),
     UNIQUE (project_id, assignee_id)
 );
 
@@ -229,6 +229,7 @@ CREATE TABLE manager_settings (
     id SERIAL PRIMARY KEY,
     manager_id TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     global_frequency BOOLEAN DEFAULT TRUE,
+    report_frequency TEXT DEFAULT 'weekly',
     allow_late_submissions BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -1163,6 +1164,46 @@ ALTER TABLE employee_permissions ADD COLUMN IF NOT EXISTS can_create_goals BOOLE
 ALTER TABLE employee_permissions ADD COLUMN IF NOT EXISTS can_invite_users BOOLEAN DEFAULT FALSE;
 ALTER TABLE employee_permissions ADD COLUMN IF NOT EXISTS can_override_ai_scores BOOLEAN DEFAULT FALSE;
 
+
+DROP TRIGGER IF EXISTS update_reporting_periods_updated_at ON reporting_periods;
+
+-- Policies: goal_frequency_anchors
+DROP POLICY IF EXISTS "View own frequency anchors" ON goal_frequency_anchors;
+DROP POLICY IF EXISTS "Manager view org frequency anchors" ON goal_frequency_anchors;
+DROP POLICY IF EXISTS "Manager manage frequency anchors" ON goal_frequency_anchors;
+DROP POLICY IF EXISTS "Service role manage frequency anchors" ON goal_frequency_anchors;
+
+-- Policies: reporting_periods
+DROP POLICY IF EXISTS "View own reporting periods" ON reporting_periods;
+DROP POLICY IF EXISTS "Manager view org reporting periods" ON reporting_periods;
+DROP POLICY IF EXISTS "Manager manage reporting periods" ON reporting_periods;
+DROP POLICY IF EXISTS "Service role manage reporting periods" ON reporting_periods;
+
+-- Policies: employee_permissions
+DROP POLICY IF EXISTS "View individual permissions" ON employee_permissions;
+DROP POLICY IF EXISTS "Manager manage permissions" ON employee_permissions;
+
+-- Indexes: goal_frequency_anchors
+DROP INDEX IF EXISTS idx_gfa_unique_active;
+DROP INDEX IF EXISTS idx_gfa_goal_id;
+DROP INDEX IF EXISTS idx_gfa_employee_id;
+
+-- Indexes: reporting_periods
+DROP INDEX IF EXISTS idx_rp_goal_id;
+DROP INDEX IF EXISTS idx_rp_employee_id;
+DROP INDEX IF EXISTS idx_rp_status;
+DROP INDEX IF EXISTS idx_rp_period_end;
+DROP INDEX IF EXISTS idx_rp_report_id;
+
+-- Tables (order matters for FK deps)
+DROP TABLE IF EXISTS reporting_periods;
+DROP TABLE IF EXISTS goal_frequency_anchors;
+
+
+-- EMPLOYEE PERMISSIONS POLICIES
+DROP POLICY IF EXISTS "View individual permissions" ON employee_permissions;
+DROP POLICY IF EXISTS "Manager manage permissions" ON employee_permissions;
+
 -- ============================================================================
 -- 21. REPORTING PERIODS SYSTEM
 -- ============================================================================
@@ -1273,3 +1314,25 @@ ALTER TABLE manager_settings ADD COLUMN IF NOT EXISTS grace_period_days INTEGER 
 -- 'missed' and surfaced to the manager, flag it so the manager sees both the
 -- original miss and the late submission.
 ALTER TABLE reporting_periods ADD COLUMN IF NOT EXISTS backdated_after_missed_flagged BOOLEAN NOT NULL DEFAULT FALSE;
+
+
+-- EMPLOYEE PERMISSIONS POLICIES
+CREATE POLICY "View individual permissions" ON employee_permissions
+    FOR SELECT USING (
+        employee_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid())
+        OR (is_manager() AND EXISTS (
+            SELECT 1 FROM employees e 
+            WHERE e.id = employee_permissions.employee_id 
+            AND e.organization_id = get_my_org_id()
+        ))
+    );
+
+CREATE POLICY "Manager manage permissions" ON employee_permissions
+    FOR ALL USING (
+        is_manager() AND EXISTS (
+            SELECT 1 FROM employees e 
+            WHERE e.id = employee_permissions.employee_id 
+            AND e.organization_id = get_my_org_id()
+        )
+    );
+

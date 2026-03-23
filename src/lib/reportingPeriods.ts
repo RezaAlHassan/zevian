@@ -251,7 +251,15 @@ export async function applyGlobalFrequencyUpdate(managerId: string): Promise<voi
     if (!assignments || assignments.length === 0) continue;
     const projectIds = assignments.map((a: any) => a.project_id);
     
-    // B. Get project frequencies
+    // B. Get project frequencies and manager settings
+    const { data: settings } = await supabase
+      .from('manager_settings')
+      .select('global_frequency, report_frequency')
+      .eq('manager_id', managerId)
+      .maybeSingle();
+
+    const globalFreq = settings?.global_frequency ? (settings.report_frequency as ReportingFrequency) : null;
+
     const { data: projects } = await supabase
       .from('projects')
       .select('id, report_frequency')
@@ -260,7 +268,9 @@ export async function applyGlobalFrequencyUpdate(managerId: string): Promise<voi
     const freqMap = new Map<string, ReportingFrequency>();
     if (projects) {
       for (const p of projects) {
-        freqMap.set(p.id, p.report_frequency as ReportingFrequency || 'weekly');
+        // Project Frequency > Global Frequency > 'weekly'
+        const freq = (p.report_frequency as ReportingFrequency) || globalFreq || 'weekly';
+        freqMap.set(p.id, freq);
       }
     }
     
@@ -297,22 +307,53 @@ export async function setupPeriodsForNewAssignment(
   if (goalId) {
     const { data: goal } = await supabase
       .from('goals')
-      .select('id, project_id, status, projects(report_frequency)')
+      .select('id, project_id, status, manager_id, projects(report_frequency)')
       .eq('id', goalId)
       .maybeSingle();
-      
+
     if (goal && goal.status === 'active') {
-      const freq = (goal.projects as any)?.report_frequency || 'weekly';
-      await generatePeriodsForGoalEmployee(goal.id, employeeId, freq as ReportingFrequency, now, 26, true);
+      let freq: ReportingFrequency = 'weekly';
+      const projectFreq = (goal.projects as any)?.report_frequency;
+
+      if (projectFreq) {
+        freq = projectFreq as ReportingFrequency;
+      } else if (goal.manager_id) {
+        const { data: settings } = await supabase
+          .from('manager_settings')
+          .select('global_frequency, report_frequency')
+          .eq('manager_id', goal.manager_id)
+          .maybeSingle();
+        
+        if (settings?.global_frequency && settings.report_frequency) {
+          freq = settings.report_frequency as ReportingFrequency;
+        }
+      }
+      
+      await generatePeriodsForGoalEmployee(goal.id, employeeId, freq, now, 26, true);
     }
   } else if (projectId) {
     const { data: project } = await supabase
       .from('projects')
-      .select('report_frequency')
+      .select('report_frequency, created_by')
       .eq('id', projectId)
       .maybeSingle();
       
-    const freq = project?.report_frequency || 'weekly';
+    let freq: ReportingFrequency = 'weekly';
+    const projectFreq = project?.report_frequency;
+
+    if (projectFreq) {
+      freq = projectFreq as ReportingFrequency;
+    } else if (project?.created_by) {
+      const { data: settings } = await supabase
+        .from('manager_settings')
+        .select('global_frequency, report_frequency')
+        .eq('manager_id', project.created_by)
+        .maybeSingle();
+      
+      if (settings?.global_frequency && settings.report_frequency) {
+        freq = settings.report_frequency as ReportingFrequency;
+      }
+    }
     
     const { data: goals } = await supabase
       .from('goals')
@@ -322,7 +363,7 @@ export async function setupPeriodsForNewAssignment(
       
     if (goals) {
       for (const g of goals) {
-        await generatePeriodsForGoalEmployee(g.id, employeeId, freq as ReportingFrequency, now, 26, true);
+        await generatePeriodsForGoalEmployee(g.id, employeeId, freq, now, 26, true);
       }
     }
   }

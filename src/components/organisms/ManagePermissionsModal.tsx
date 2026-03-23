@@ -75,6 +75,36 @@ export function ManagePermissionsModal({
     const [template, setTemplate] = useState<'standard' | 'senior' | 'read-only' | 'custom'>(initialTemplate)
     const [customPerms, setCustomPerms] = useState<CustomPermissions>(initialPermissions)
 
+    React.useEffect(() => {
+        if (isOpen && initialPermissions) {
+            const perms = initialPermissions as CustomPermissions;
+            
+            // Exact match helper
+            const isMatch = (p: any, target: any) => {
+                const keys: (keyof CustomPermissions)[] = [
+                    'canViewOrganizationWide', 'canManageSettings', 'canSetGlobalFrequency',
+                    'canCreateProjects', 'canCreateGoals', 'canOverrideAIScores', 'canInviteUsers'
+                ];
+                return keys.every(key => !!p[key] === !!target[key]);
+            };
+
+            if (isMatch(perms, seniorPermissions)) {
+                setTemplate('senior');
+            } else if (isMatch(perms, readOnlyPermissions)) {
+                setTemplate('read-only');
+            } else if (isMatch(perms, standardPermissions)) {
+                setTemplate('standard');
+            } else if (isMatch(perms, defaultPermissions)) {
+                // If everything is false, it's basically a customized restricted state
+                setTemplate('custom');
+            } else {
+                setTemplate('custom');
+            }
+            
+            setCustomPerms(initialPermissions);
+        }
+    }, [isOpen, initialPermissions]);
+
     if (!isOpen) return null
 
     const handleTemplateSelect = (selected: 'standard' | 'senior' | 'read-only' | 'custom') => {

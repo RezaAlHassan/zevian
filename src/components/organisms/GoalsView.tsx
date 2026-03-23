@@ -18,9 +18,10 @@ interface GoalsProps {
   employees: any[]
   readOnly?: boolean
   basePath?: string
+  showDeadlineOnly?: boolean
 }
 
-export function GoalsView({ goals: initialGoals, projects, employees, readOnly = false, basePath = '/goals' }: GoalsProps) {
+export function GoalsView({ goals: initialGoals, projects, employees, readOnly = false, basePath = '/goals', showDeadlineOnly = false }: GoalsProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const view = searchParams.get('view') || 'org'
@@ -312,7 +313,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                  {['Goal', 'Project', 'Status', 'Criteria', 'Assigned To', 'Avg Score', 'Next Report', ''].map((h, idx) => (
+                  {['Goal', 'Project', 'Status', 'Criteria', 'Assigned To', 'Avg Score', showDeadlineOnly ? 'due by' : 'Next Report', ''].map((h, idx) => (
                     <th key={h} style={{
                       padding: (idx === 0) ? '10px 20px' : '10px 14px',
                       textAlign: 'left',
@@ -391,6 +392,12 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                     </td>
                     <td style={{ padding: '14px 20px', fontSize: '12px', color: colors.text }}>
                       {(() => {
+                        if (showDeadlineOnly) {
+                          return goal.deadline ? 
+                            <span style={{ fontWeight: 600 }}>{new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span> : 
+                            <span style={{ color: colors.text3 }}>—</span>
+                        }
+
                         const periods = goal.reporting_periods || []
                         let relevant = periods.find((p: any) => p.status === 'pending' || p.status === 'late')
                         let isSub = false

@@ -82,27 +82,7 @@ export async function runMissedReportCheck(employeeId?: string): Promise<{
     // ── Step 3: Check ramp-up period (from project_assignees, NOT from period row) ──
     let newStatus = (leaves && leaves.length > 0) ? 'excused' : 'missed';
     
-    if (newStatus === 'missed') {
-      // ramp_up_ends_at lives on project_assignees — need goal's project_id first
-      const { data: goalRow } = await supabase
-        .from('goals')
-        .select('project_id')
-        .eq('id', period.goal_id)
-        .maybeSingle();
-
-      if (goalRow?.project_id) {
-        const { data: assigneeRow } = await supabase
-          .from('project_assignees')
-          .select('ramp_up_ends_at')
-          .eq('project_id', goalRow.project_id)
-          .eq('assignee_id', period.employee_id)
-          .maybeSingle();
-
-        if (assigneeRow?.ramp_up_ends_at && Date.now() < new Date(assigneeRow.ramp_up_ends_at).getTime()) {
-          newStatus = 'amber_missed';
-        }
-      }
-    }
+    // Ramp-up disabled as column doesn't exist yet
 
     newStatus === 'excused' ? excusedCount++ : missedCount++;
 

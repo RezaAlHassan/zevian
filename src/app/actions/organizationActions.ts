@@ -128,7 +128,6 @@ export async function createCustomMetricAction(metricData: { name: string, descr
         revalidatePath('/organization')
         return { data: newMetric, success: true }
     } catch (error) {
-        console.error('createCustomMetricAction Error:', error)
         return { error: 'Failed to create custom metric' }
     }
 }

@@ -10,6 +10,7 @@ import { StatusPill } from '@/components/atoms/StatusPill'
 import { Organization, Employee, CustomMetric } from '@/types'
 import { updateOrganizationAction, createCustomMetricAction, updateCustomMetricAction, deleteCustomMetricAction } from '@/app/actions/organizationActions'
 import { updateEmployeePermissionsAction } from '@/app/actions/employeeActions'
+import { updateManagerSettingsAction } from '@/app/actions/managerSettingsActions'
 import { ManagePermissionsModal } from '@/components/organisms/ManagePermissionsModal'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -35,12 +36,26 @@ export function OrganizationView({ organization, employees, customMetrics, curre
     const defaultTab = canManageSettings ? 'general' : 'users'
     const [activeTab, setActiveTab] = useState<TabId>((searchParams.get('tab') as TabId) || defaultTab)
 
+    const [localEmployees, setLocalEmployees] = useState(employees)
+    const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+    React.useEffect(() => {
+        setLocalEmployees(employees)
+    }, [employees])
+
     React.useEffect(() => {
         const tab = searchParams.get('tab') as TabId
         if (tab && ['general', 'metrics', 'users', 'advanced'].includes(tab)) {
             setActiveTab(tab)
         }
     }, [searchParams])
+
+    React.useEffect(() => {
+        if (successMessage) {
+            const timer = setTimeout(() => setSuccessMessage(null), 3000)
+            return () => clearTimeout(timer)
+        }
+    }, [successMessage])
 
     const [goalWeight, setGoalWeight] = useState(organization?.goalWeight ?? 70)
     const [orgName, setOrgName] = useState(organization?.name ?? "Acme Inc")
@@ -128,7 +143,9 @@ export function OrganizationView({ organization, employees, customMetrics, curre
         requireReport: organization?.aiConfig?.requireReport ?? true,
         notifyManager: organization?.aiConfig?.notifyManager ?? false,
         gracePeriodDays: managerSettings?.grace_period_days ?? 0,
-        backdateLimitDays: managerSettings?.backdate_limit_days ?? 7
+        backdateLimitDays: managerSettings?.backdate_limit_days ?? 7,
+        globalFrequency: managerSettings?.global_frequency ?? true,
+        reportFrequency: managerSettings?.report_frequency || 'weekly'
     })
 
     const handleSave = async () => {
@@ -145,11 +162,12 @@ export function OrganizationView({ organization, employees, customMetrics, curre
             })
 
             // 2. Update Manager Settings
-            const { updateManagerSettingsAction } = await import('@/app/actions/managerSettingsActions')
             await updateManagerSettingsAction({
                 allow_late_submissions: submissionPolicy.allowLateSubmissions,
                 grace_period_days: submissionPolicy.gracePeriodDays,
-                backdate_limit_days: submissionPolicy.backdateLimitDays
+                backdate_limit_days: submissionPolicy.backdateLimitDays,
+                global_frequency: submissionPolicy.globalFrequency,
+                report_frequency: submissionPolicy.reportFrequency
             })
 
             router.refresh()
@@ -266,7 +284,47 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                         </Card>
 
                         <Card title="Reporting" icon="calendar">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+                                    <div>
+                                        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>Global Reporting Frequency</div>
+                                        <div style={{ fontSize: '12px', color: colors.text3 }}>When enabled, all projects use this default unless overridden.</div>
+                                    </div>
+                                    <div 
+                                        onClick={() => setSubmissionPolicy(prev => ({ ...prev, globalFrequency: !prev.globalFrequency }))}
+                                        style={{ 
+                                            width: '40px', height: '22px', borderRadius: '11px', background: submissionPolicy.globalFrequency ? colors.accent : colors.border,
+                                            position: 'relative', cursor: 'pointer', transition: `all ${animation.fast}`
+                                        }}
+                                    >
+                                        <div style={{ 
+                                            position: 'absolute', top: '2px', left: submissionPolicy.globalFrequency ? '20px' : '2px',
+                                            width: '18px', height: '18px', borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                            transition: `all ${animation.fast}`
+                                        }} />
+                                    </div>
+                                </div>
+
+                                {submissionPolicy.globalFrequency && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', marginLeft: '12px', borderLeft: `2px solid ${colors.border}`, paddingLeft: '16px' }}>
+                                        <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text2 }}>Default Frequency</div>
+                                        <select 
+                                            value={submissionPolicy.reportFrequency}
+                                            onChange={(e) => setSubmissionPolicy(prev => ({ ...prev, reportFrequency: e.target.value as any }))}
+                                            style={{ 
+                                                padding: '6px 12px', background: colors.surface2, border: `1px solid ${colors.border}`, 
+                                                borderRadius: '6px', fontSize: '12.5px', color: colors.text, outline: 'none'
+                                            }}
+                                        >
+                                            <option value="daily">Daily</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="bi-weekly">Bi-weekly</option>
+                                            <option value="monthly">Monthly</option>
+                                        </select>
+                                    </div>
+                                )}
+
+                                <div style={{ height: '1px', background: colors.border }} />
+
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
                                     <div>
                                         <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>Allow Late Submissions</div>
@@ -286,6 +344,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                         }} />
                                     </div>
                                 </div>
+
 
                                 {submissionPolicy.allowLateSubmissions && (
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', marginLeft: '12px', borderLeft: `2px solid ${colors.border}`, paddingLeft: '16px' }}>
@@ -474,7 +533,27 @@ export function OrganizationView({ organization, employees, customMetrics, curre
 
                 {activeTab === 'users' && (
                     <div className="fade-in">
-                        <Card title={`Active Members (${employees.length})`} icon="users" action={
+                        {successMessage && (
+                            <div style={{
+                                position: 'fixed',
+                                top: '100px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                background: colors.green,
+                                color: '#fff',
+                                padding: '12px 24px',
+                                borderRadius: radius.lg,
+                                boxShadow: shadows.cardHover,
+                                zIndex: 1000,
+                                fontSize: '14px',
+                                fontWeight: 600,
+                                animation: 'modalSlideUp 0.3s ease both'
+                            }}>
+                                <Icon name="check" size={16} style={{ marginRight: '8px' }} />
+                                {successMessage}
+                            </div>
+                        )}
+                        <Card title={`Active Members (${localEmployees.length})`} icon="users" action={
                         (currentUserPermissions?.isAccountOwner || currentUserPermissions?.canInviteUsers) ? (
                             <Button variant="primary" size="sm" icon="plus" onClick={() => setShowInviteModal(true)}>Invite Member</Button>
                         ) : null
@@ -490,7 +569,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {employees.map(e => (
+                                    {localEmployees.map(e => (
                                         <tr key={e.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
                                             <td style={{ padding: '12px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -527,7 +606,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                                     }}
                                                 >
                                                     <option value="">No Manager</option>
-                                                    {employees.filter(m => (m.role === 'manager' || m.isAccountOwner) && m.id !== e.id).map(m => (
+                                                    {localEmployees.filter(m => (m.role === 'manager' || m.isAccountOwner) && m.id !== e.id).map(m => (
                                                         <option key={m.id} value={m.id}>{m.name}</option>
                                                     ))}
                                                 </select>
@@ -602,14 +681,20 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                         if (!result.success) {
                             alert(result.error || 'Failed to update permissions');
                         } else {
-                            // Update local state to reflect change without hard refresh
-                            const empIndex = employees.findIndex(e => e.id === selectedEmployeeForPermissions.id);
-                            if (empIndex > -1) {
-                                employees[empIndex].permissions = perms;
-                            }
+                            setLocalEmployees(prev => prev.map(e => 
+                                e.id === selectedEmployeeForPermissions.id 
+                                    ? { ...e, permissions: perms } 
+                                    : e
+                            ));
+                            setSuccessMessage('Permissions updated successfully!');
+                            router.refresh();
                         }
+                    } catch (error) {
+                        console.error('Save permissions error:', error);
+                        alert('An unexpected error occurred');
                     } finally {
                         setIsSaving(false);
+                        setSelectedEmployeeForPermissions(null);
                     }
                 }}
             />

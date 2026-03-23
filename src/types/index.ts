@@ -135,3 +135,14 @@ export interface Leave {
     createdAt?: string;
     updatedAt?: string;
 }
+export interface ManagerSettings {
+    id: string;
+    managerId: string;
+    globalFrequency: boolean;
+    reportFrequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
+    allowLateSubmissions: boolean;
+    gracePeriodDays: number;
+    backdateLimitDays: number;
+    createdAt?: string;
+    updatedAt?: string;
+}

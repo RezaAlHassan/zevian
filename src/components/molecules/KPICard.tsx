@@ -9,10 +9,10 @@ interface KPICardProps {
   icon: IconName
   value?: string | number
   delta?: { value: number; direction: 'up' | 'down' }
-  deltaLabel?: string
+  deltaLabel?: React.ReactNode
   variant?: 'default' | 'green' | 'warn' | 'danger' | 'accent'
   isScore?: boolean
-  scoreValue?: number
+  scoreValue?: number | null
   showBar?: boolean
 }
 
@@ -55,19 +55,32 @@ export function KPICard({
         </span>
       </div>
 
-      {isScore && scoreValue != null ? (
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '8px' }}>
-          <span className="font-numeric" style={{
-            fontSize: '36px',
+      {isScore ? (
+        scoreValue != null ? (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '8px' }}>
+            <span className="font-numeric" style={{
+              fontSize: '36px',
+              fontWeight: typography.weight.black,
+              letterSpacing: '-2px',
+              lineHeight: 1,
+              color: valueColor,
+            }}>
+              {scoreValue.toFixed(1)}
+            </span>
+            <span className="font-numeric" style={{ fontSize: '16px', color: colors.text3, fontWeight: typography.weight.semibold }}>/10</span>
+          </div>
+        ) : (
+          <div className="font-numeric" style={{
+            fontSize: '32px',
             fontWeight: typography.weight.black,
-            letterSpacing: '-2px',
+            letterSpacing: '-1px',
             lineHeight: 1,
-            color: valueColor,
+            marginBottom: '8px',
+            color: colors.text3,
           }}>
-            {scoreValue.toFixed(1)}
-          </span>
-          <span className="font-numeric" style={{ fontSize: '16px', color: colors.text3, fontWeight: typography.weight.semibold }}>/10</span>
-        </div>
+            N/A
+          </div>
+        )
       ) : (
         <div className="font-numeric" style={{
           fontSize: '32px',

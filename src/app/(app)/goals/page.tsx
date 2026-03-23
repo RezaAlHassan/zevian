@@ -45,6 +45,7 @@ export default async function GoalsPage({ searchParams }: { searchParams: { view
       goals={formattedGoals}
       projects={projects ?? []}
       employees={employees ?? []}
+      showDeadlineOnly={true}
     />
   )
 }

@@ -333,7 +333,20 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
           <>
             <KPICard label="Total Reports" icon="reports" value={totalReports} variant="accent" />
             <KPICard label="Late Submissions" icon="goals" value={uiLateSubmissions.length} variant="danger" />
-            <KPICard label="Avg Score (Org Metrics)" icon="star" isScore scoreValue={teamStats?.orgAvgScore || 0} showBar />
+            <KPICard 
+              label="Avg Score (Org Metrics)" 
+              icon="star" 
+              isScore 
+              scoreValue={teamStats?.orgAvgScore} 
+              showBar={teamStats?.orgAvgScore != null} 
+              deltaLabel={
+                teamStats?.orgAvgScore == null ? (
+                  <Link href="/organization?tab=metrics" style={{ color: colors.accent, textDecoration: 'none', cursor: 'pointer' }}>
+                    Set org metrics to score
+                  </Link>
+                ) : "vs. last period"
+              }
+            />
             <KPICard label="Average Score" icon="star" isScore scoreValue={avgScore} showBar variant="accent" />
           </>
         ) : (

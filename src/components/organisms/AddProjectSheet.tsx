@@ -26,7 +26,9 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
         if (isOpen) {
             if (project) {
                 setSelectedCategory(project.category || 'Engineering')
-                setSelectedFreq(project.frequency || 'Weekly')
+                // Fix: Load from reportFrequency and capitalize for UI state
+                const freq = project.reportFrequency || 'weekly'
+                setSelectedFreq(freq.charAt(0).toUpperCase() + freq.slice(1))
                 setName(project.name || '')
                 setDescription(project.description || '')
                 setKey(project.key || (project.id?.startsWith('mock-') ? project.id.toUpperCase() : ''))

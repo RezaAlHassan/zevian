@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import type { Project, Goal, Report, Employee, Organization, Notification, CustomMetric, Leave } from './src/types';
+import type { Project, Goal, Report, Employee, Organization, Notification, CustomMetric, Leave, ManagerSettings } from './src/types';
 import { isReportLate, getNextReportDueDate } from './src/utils/reportDueDate';
 import { calculateComplianceStreak } from './src/lib/complianceHelpers';
 
@@ -70,6 +70,66 @@ export const organizationService = {
         } as Organization;
     },
 };
+
+
+// ============================================================================
+// MANAGER SETTINGS SERVICE
+// ============================================================================
+export const managerSettingsService = {
+    async getByManagerId(managerId: string) {
+        const { data, error } = await supabase
+            .from('manager_settings')
+            .select('*')
+            .eq('manager_id', managerId)
+            .maybeSingle();
+        
+        if (error) throw error;
+        if (!data) return null;
+
+        return {
+            id: data.id,
+            managerId: data.manager_id,
+            globalFrequency: data.global_frequency,
+            reportFrequency: data.report_frequency,
+            allowLateSubmissions: data.allow_late_submissions,
+            gracePeriodDays: data.grace_period_days,
+            backdateLimitDays: data.backdate_limit_days,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at
+        } as ManagerSettings;
+    },
+
+    async update(managerId: string, updates: Partial<ManagerSettings>) {
+        const dbUpdates: any = {};
+        if (updates.globalFrequency !== undefined) dbUpdates.global_frequency = updates.globalFrequency;
+        if (updates.reportFrequency !== undefined) dbUpdates.report_frequency = updates.reportFrequency;
+        if (updates.allowLateSubmissions !== undefined) dbUpdates.allow_late_submissions = updates.allowLateSubmissions;
+        if (updates.gracePeriodDays !== undefined) dbUpdates.grace_period_days = updates.gracePeriodDays;
+        if (updates.backdateLimitDays !== undefined) dbUpdates.backdate_limit_days = updates.backdateLimitDays;
+
+        const { data, error } = await supabase
+            .from('manager_settings')
+            .update(dbUpdates)
+            .eq('manager_id', managerId)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        return {
+            id: data.id,
+            managerId: data.manager_id,
+            globalFrequency: data.global_frequency,
+            reportFrequency: data.report_frequency,
+            allowLateSubmissions: data.allow_late_submissions,
+            gracePeriodDays: data.grace_period_days,
+            backdateLimitDays: data.backdate_limit_days,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at
+        } as ManagerSettings;
+    }
+};
+
 
 // ============================================================================
 // CUSTOM METRICS SERVICE
@@ -722,20 +782,53 @@ export const goalService = {
     },
 
     async getByEmployeeId(employeeId: string) {
-        // Only return goals where the employee is explicitly assigned (via goal_assignees)
+        // 1. Get explicitly assigned goals
         const { data: directGoalAssignees } = await supabase
             .from('goal_assignees')
             .select('goal_id')
             .eq('assignee_id', employeeId);
         const directGoalIds = (directGoalAssignees || []).map((ga: any) => ga.goal_id);
 
+        // 2. Get goals created by this employee
+        const { data: createdGoals } = await supabase
+            .from('goals')
+            .select('id')
+            .eq('created_by', employeeId);
+        const createdGoalIds = (createdGoals || []).map((g: any) => g.id);
+
+        // 3. Get projects assigned to or created by this employee
+        const { data: assignedProjects } = await supabase
+            .from('project_assignees')
+            .select('project_id')
+            .eq('assignee_id', employeeId);
+        const assignedProjectIds = (assignedProjects || []).map((p: any) => p.project_id);
+
+        const { data: createdProjects } = await supabase
+            .from('projects')
+            .select('id')
+            .eq('created_by', employeeId);
+        const createdProjectIds = (createdProjects || []).map((p: any) => p.id);
+        
+        const allProjectIds = [...new Set([...assignedProjectIds, ...createdProjectIds])];
+
+        let projectGoalIds: string[] = [];
+        if (allProjectIds.length > 0) {
+             const { data: pGoals } = await supabase
+                 .from('goals')
+                 .select('id')
+                 .in('project_id', allProjectIds);
+             projectGoalIds = (pGoals || []).map((g: any) => g.id);
+        }
+
+        const finalGoalIds = [...new Set([...directGoalIds, ...createdGoalIds, ...projectGoalIds])];
+
         // If not assigned to any goals, return empty
-        if (directGoalIds.length === 0) return [];
+        if (finalGoalIds.length === 0) return [];
 
         const { data, error } = await supabase
             .from('goals')
             .select('*, projects(*), criteria(*), reports(id, evaluation_score, manager_overall_score, submission_date, submitted_for_date)')
-            .in('id', directGoalIds)
+            .in('id', finalGoalIds)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -1183,6 +1276,9 @@ export const reportService = {
 
 // Helper function to convert database employee to TypeScript Employee
 function dbEmployeeToEmployee(dbEmployee: any): Employee {
+    if (dbEmployee.id === 'emp-1774254984062-870') {
+        console.log('--- RAW DB EMPLOYEE (Target) ---', JSON.stringify(dbEmployee, null, 2));
+    }
     return {
         id: dbEmployee.id,
         organizationId: dbEmployee.organization_id,
@@ -1198,14 +1294,14 @@ function dbEmployeeToEmployee(dbEmployee: any): Employee {
         joinDate: dbEmployee.join_date,
         authUserId: dbEmployee.auth_user_id,
         dept: dbEmployee.dept,
-        permissions: dbEmployee.employee_permissions ? {
-            canSetGlobalFrequency: dbEmployee.employee_permissions.can_set_global_frequency,
-            canViewOrganizationWide: dbEmployee.employee_permissions.can_view_organization_wide,
-            canManageSettings: dbEmployee.employee_permissions.can_manage_settings,
-            canCreateProjects: dbEmployee.employee_permissions.can_create_projects,
-            canCreateGoals: dbEmployee.employee_permissions.can_create_goals,
-            canInviteUsers: dbEmployee.employee_permissions.can_invite_users,
-            canOverrideAIScores: dbEmployee.employee_permissions.can_override_ai_scores,
+        permissions: (Array.isArray(dbEmployee.employee_permissions) ? dbEmployee.employee_permissions[0] : dbEmployee.employee_permissions) ? {
+            canSetGlobalFrequency: (Array.isArray(dbEmployee.employee_permissions) ? dbEmployee.employee_permissions[0] : dbEmployee.employee_permissions).can_set_global_frequency,
+            canViewOrganizationWide: (Array.isArray(dbEmployee.employee_permissions) ? dbEmployee.employee_permissions[0] : dbEmployee.employee_permissions).can_view_organization_wide,
+            canManageSettings: (Array.isArray(dbEmployee.employee_permissions) ? dbEmployee.employee_permissions[0] : dbEmployee.employee_permissions).can_manage_settings,
+            canCreateProjects: (Array.isArray(dbEmployee.employee_permissions) ? dbEmployee.employee_permissions[0] : dbEmployee.employee_permissions).can_create_projects,
+            canCreateGoals: (Array.isArray(dbEmployee.employee_permissions) ? dbEmployee.employee_permissions[0] : dbEmployee.employee_permissions).can_create_goals,
+            canInviteUsers: (Array.isArray(dbEmployee.employee_permissions) ? dbEmployee.employee_permissions[0] : dbEmployee.employee_permissions).can_invite_users,
+            canOverrideAIScores: (Array.isArray(dbEmployee.employee_permissions) ? dbEmployee.employee_permissions[0] : dbEmployee.employee_permissions).can_override_ai_scores,
         } : undefined,
         skillAnalysis: dbEmployee.skill_analysis || undefined,
     };
@@ -1808,7 +1904,7 @@ export const dashboardService = {
         // 2. Get projects
         let projectsQuery = supabase
             .from('projects')
-            .select('id, name, category, report_frequency, status, created_by, project_assignees(assignee_id, ramp_up_ends_at, employees(name))')
+            .select('id, name, category, report_frequency, status, created_by, project_assignees(assignee_id, employees(name))')
             .eq('organization_id', orgId);
         
         if (view === 'direct') {
@@ -1909,7 +2005,7 @@ export const dashboardService = {
                 });
             });
         }
-        const orgAvgScore = orgScoreCount > 0 ? orgTotalScore / orgScoreCount : avgScore;
+        const orgAvgScore = orgScoreCount > 0 ? orgTotalScore / orgScoreCount : null;
 
         // Projects for UI
         const uiProjects = (projectsData || []).map((p: any) => {
@@ -1981,7 +2077,7 @@ export const dashboardService = {
                 const project = (projectsData || []).find((p: any) => p.id === goal.project_id);
                 if (!project) return null;
                 const assignee = (project.project_assignees || []).find((pa: any) => pa.assignee_id === e.id);
-                return assignee?.ramp_up_ends_at ? new Date(assignee.ramp_up_ends_at) : null;
+                return null; // assignee?.ramp_up_ends_at removed
             };
 
             const compliance = calculateComplianceStreak(empPeriods, getRampUpEndsAt, 10);
@@ -2060,7 +2156,7 @@ export const dashboardService = {
         return {
             totalReports,
             avgScore: Number(avgScore.toFixed(1)),
-            orgAvgScore: Number(orgAvgScore.toFixed(1)),
+            orgAvgScore: orgAvgScore !== null ? Number(orgAvgScore.toFixed(1)) : null,
             projects: uiProjects,
             teamPerformance,
             goals: uiGoals,

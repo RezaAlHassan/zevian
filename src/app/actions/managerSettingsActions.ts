@@ -24,6 +24,7 @@ export async function updateManagerSettingsAction(updates: {
   backdate_limit_days?: number | null;
   grace_period_days?: number;
   global_frequency?: boolean;
+  report_frequency?: string;
 }) {
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()

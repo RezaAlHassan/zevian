@@ -1,3 +1,4 @@
+import React, { Suspense } from 'react'
 import { AppShellClient } from './AppShellClient'
 
 interface Props {
@@ -13,25 +14,18 @@ interface Props {
   children: React.ReactNode
 }
 
-/**
- * AppShellServer — thin server wrapper that passes profile data
- * down to the client AppShellClient which renders the interactive
- * sidebar and header.
- *
- * Server/Client split:
- *   AppShellServer (server) → fetches auth/profile
- *   AppShellClient (client) → interactive sidebar nav, active states
- */
 export function AppShellServer({ profile, children }: Props) {
   return (
-    <AppShellClient
-      userName={profile?.full_name ?? 'User'}
-      orgName={profile?.organizations?.name ?? 'My Org'}
-      userRole={profile?.role ?? 'employee'}
-      canManageSettings={profile?.canManageSettings ?? false}
-      canViewOrganizationWide={profile?.canViewOrganizationWide ?? false}
-    >
-      {children}
-    </AppShellClient>
+    <Suspense fallback={<div style={{ background: '#0a0c10', minHeight: '100vh' }} />}>
+      <AppShellClient
+        userName={profile?.full_name ?? 'User'}
+        orgName={profile?.organizations?.name ?? 'My Org'}
+        userRole={profile?.role ?? 'employee'}
+        canManageSettings={profile?.canManageSettings ?? false}
+        canViewOrganizationWide={profile?.canViewOrganizationWide ?? false}
+      >
+        {children}
+      </AppShellClient>
+    </Suspense>
   )
 }

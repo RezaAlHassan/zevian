@@ -61,20 +61,28 @@ export async function inviteEmployeesAction(data: {
             // Generate a secure token
             const token = crypto.randomBytes(32).toString('hex')
 
-            // Create invitation record
-            const invitation = await invitationService.create({
+            // Create invitation record (using admin client to bypass RLS and ensure all columns are written)
+            const adminClient = createAdminClient()
+            const invId = `inv-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+            const { data: invData, error: invError } = await (adminClient.from('invitations') as any).insert({
+                id: invId,
                 token,
                 email,
                 role: data.role,
-                organizationId: orgId,
-                invitedBy: employeeRecord.id, // The person who sent the invite
-                expiresAt: expiresAt.toISOString(),
-                initialProjectIds,
-                initialGoalIds,
-                initialManagerId: data.managerId, // The manager selected in the dropdown
-                permissionTemplate: data.permissionTemplate,
-                customPermissions: data.customPermissions
-            })
+                organization_id: orgId,
+                invited_by: employeeRecord.id,
+                invited_at: new Date().toISOString(),
+                expires_at: expiresAt.toISOString(),
+                status: 'pending',
+                initial_project_ids: initialProjectIds,
+                initial_goal_ids: initialGoalIds,
+                initial_manager_id: data.managerId || null,
+                permission_template: data.permissionTemplate || 'standard',
+                custom_permissions: data.customPermissions || null,
+            }).select().single()
+
+            if (invError) throw invError
+            const invitation = invData
 
             // Construct the accept link
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -256,8 +264,8 @@ export async function acceptInviteAction(token: string, data: { name: string, ti
             });
             
             if (permError) {
-                console.error('Failed to set manager permissions:', permError);
-                // We don't throw here to avoid failing the whole flow if permissions table has issues
+                console.error('Permission setup error:', permError);
+                // Non-blocking for invitation acceptance
             }
         }
 
