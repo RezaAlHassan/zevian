@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { createAdminClient } from '@/lib/supabase/server'
 import { DEFAULT_ORG_METRICS } from '@/constants/metrics'
+import { withRetry } from '@/lib/ai/withRetry'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 
@@ -239,35 +240,17 @@ Round to 1 decimal place.
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
-    let result: any;
-    let retries = 3;
-    let delay = 2000;
-
-    while (retries > 0) {
-      try {
-        result = await model.generateContent({
-          contents: [{ role: 'user', parts: [{ text: promptText }] }],
-          generationConfig: {
-            maxOutputTokens: 2048,
-            temperature: 0.1, // Low temp for consistent scoring
-            responseMimeType: "application/json" // Force JSON response if supported
-          }
-        })
-        break; // Success, exit retry loop
-      } catch (err: any) {
-        // Check for 429 status or Too Many Requests in message
-        const isRateLimit = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('Too Many Requests');
-        
-        if (isRateLimit && retries > 1) {
-          console.warn(`[score-report] Rate limit hit. Retrying in ${delay}ms... (${retries - 1} retries left)`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          retries--;
-          delay *= 2; // Exponential backoff
-        } else {
-          throw err; // Re-throw if it's not a 429 or we ran out of retries
+    const result = await withRetry(
+      'score-report',
+      () => model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: promptText }] }],
+        generationConfig: {
+          maxOutputTokens: 2048,
+          temperature: 0.1, // Low temp for consistent scoring
+          responseMimeType: "application/json" // Force JSON response if supported
         }
-      }
-    }
+      })
+    );
 
     // 4. Parse response
     const raw = result.response.text()

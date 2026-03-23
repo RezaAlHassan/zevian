@@ -155,9 +155,9 @@ export async function completeOnboardingAction(data: {
             // 10. Send the actual emails
             const inviterName = user.user_metadata.full_name || user.email?.split('@')[0] || 'A team member'
 
-            for (const invitation of invitations) {
+            await Promise.all(invitations.map(invitation => {
                 const inviteLink = `${data.origin || ''}/accept-invite?token=${invitation.token}`
-                await sendEmail({
+                return sendEmail({
                     to: invitation.email,
                     subject: `Join ${data.orgName} on Zevian`,
                     react: React.createElement(InvitationEmail, {
@@ -167,7 +167,7 @@ export async function completeOnboardingAction(data: {
                         inviteLink
                     })
                 })
-            }
+            }))
         }
     }
 

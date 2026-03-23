@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { withRetry } from '@/lib/ai/withRetry'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 
@@ -53,29 +54,13 @@ Rules:
 - Instructions should be specific, measurable evaluation rules
 - Make criteria names concise (2-3 words each)`
 
-    let result: any;
-    let retries = 3;
-    let delay = 2000;
-
-    while (retries > 0) {
-      try {
-        result = await model.generateContent([
-          { text: systemPrompt },
-          { text: `User description: "${prompt}"\n\nGenerate the performance goal JSON:` }
-        ])
-        break; // Success
-      } catch (err: any) {
-        const isRateLimit = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('Too Many Requests');
-        if (isRateLimit && retries > 1) {
-          console.warn(`[generate-goal] Rate limit hit. Retrying in ${delay}ms... (${retries - 1} retries left)`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          retries--;
-          delay *= 2;
-        } else {
-          throw err;
-        }
-      }
-    }
+    const result = await withRetry(
+      'generate-goal',
+      () => model.generateContent([
+        { text: systemPrompt },
+        { text: `User description: "${prompt}"\n\nGenerate the performance goal JSON:` }
+      ])
+    );
 
     const responseText = result.response.text().trim()
 
