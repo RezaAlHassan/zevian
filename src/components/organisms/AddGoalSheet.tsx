@@ -414,9 +414,16 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal }: Pro
 
                     {/* 5. Criteria */}
                     <div style={{ padding: '20px 26px' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <Icon name="target" size={16} color={colors.accent} />
-                            What matters for this goal?
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Icon name="target" size={16} color={colors.accent} />
+                                What matters for this goal?
+                            </div>
+                            {criteria.length > 0 && (
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: criteria.reduce((sum, c) => sum + c.weight, 0) === 100 ? colors.green : colors.accent, background: criteria.reduce((sum, c) => sum + c.weight, 0) === 100 ? `${colors.green}20` : colors.accentGlow, padding: '4px 8px', borderRadius: '12px' }}>
+                                    {Math.abs(100 - criteria.reduce((sum, c) => sum + c.weight, 0))}% Remaining
+                                </div>
+                            )}
                         </div>
                         <p style={{ fontSize: '12.5px', color: colors.text3, marginBottom: '14px', lineHeight: 1.55 }}>Add criteria and mark their importance — weights are auto-calculated.</p>
 

@@ -372,6 +372,10 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
                             <div style={{ marginBottom: '16px' }}>
                                 <div style={{ fontSize: '15px', fontWeight: 700, color: colors.text, marginBottom: '2px' }}>{emp.name}</div>
                                 <div style={{ fontSize: '12px', color: colors.text3 }}>{emp.title || 'Staff Member'}</div>
+                                <div style={{ fontSize: '11.5px', color: colors.text3, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Icon name="clock" size={12} color={colors.text3} />
+                                    Last report: {emp.lastReport}
+                                </div>
                             </div>                             <div style={{ paddingTop: '16px', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ fontSize: '11.5px', color: colors.text3 }}>
                                     <span className="font-numeric" style={{ fontWeight: 700, color: colors.text2 }}>{emp.reportCount}</span> reports

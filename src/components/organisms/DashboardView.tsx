@@ -327,6 +327,24 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
         </div>
       )}
 
+      {/* ── Action Required (Late Submissions) ──────────── */}
+      {uiLateSubmissions.length > 0 && (
+        <div style={{ marginBottom: '24px' }}>
+          <SectionLabel>Requires Attention</SectionLabel>
+          <Card
+            title="Late Submissions"
+            icon="alert"
+            chip={<span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: colors.dangerGlow, color: colors.danger }}>{uiLateSubmissions.length} overdue</span>}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 20px' }}>
+              {uiLateSubmissions.map((item: any, i: number) => (
+                <LateItem key={i} {...item} />
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* ── KPI Row ───────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
         {hasReports ? (
@@ -599,25 +617,16 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
                   icon={<Icon name="reports" size={22} color={colors.text3} />}
                   title="No reports yet"
                   desc="Recent activity from your team will appear here once they start submitting reports."
-                />
+                >
+                  <EmptyBtn variant="primary" href="/employees">
+                    <Icon name="users" size={14} color="#fff" />
+                    Remind Team to Submit
+                  </EmptyBtn>
+                </DashedEmpty>
               </div>
             )}
           </Card>
 
-          {/* Late Submissions */}
-          {uiLateSubmissions.length > 0 && (
-            <Card
-              title="Late Submissions"
-              icon="alert"
-              chip={<span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: colors.dangerGlow, color: colors.danger }}>{uiLateSubmissions.length} overdue</span>}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 20px' }}>
-                {uiLateSubmissions.map((item: any, i: number) => (
-                  <LateItem key={i} {...item} />
-                ))}
-              </div>
-            </Card>
-          )}
         </div>
       </div>
 
@@ -667,11 +676,10 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
               <EmptyTitle>No goals defined</EmptyTitle>
               <EmptyDesc>Goals give the AI evaluation context. Without them, reports can't be scored against your team's objectives.</EmptyDesc>
               <EmptyActions>
-                <EmptyBtn variant="primary" href="/goals">
+                <EmptyBtn variant="primary" href="/goals?new=true">
                   <Icon name="plus" size={14} color="#fff" />
-                  Create First Goal
+                  Create Goal
                 </EmptyBtn>
-                <EmptyBtn variant="secondary">Learn how goals work</EmptyBtn>
               </EmptyActions>
               <EmptyHint>Goals can be assigned to specific employees or the whole team</EmptyHint>
             </EmptyState>

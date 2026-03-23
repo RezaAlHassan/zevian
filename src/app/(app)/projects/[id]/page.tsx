@@ -17,8 +17,18 @@ export default async function ProjectPage({ params }: { params: { id: string } }
     try {
         const data = await projectService.getById(params.id);
         if (data) {
-            // Fetch real assignments with employee details
-            const assigneesData = await projectService.getAssignees(params.id);
+            const [
+                assigneesData,
+                fetchedGoals,
+                fetchedReports,
+                fetchedActivity
+            ] = await Promise.all([
+                projectService.getAssignees(params.id),
+                goalService.getByProjectId(params.id),
+                projectService.getProjectReports(params.id),
+                projectService.getRecentActivity(params.id)
+            ]);
+
             const members = assigneesData?.map((a: any) => ({
                 employee: {
                     id: a.assignee_id,
@@ -27,14 +37,9 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                 }
             })) || [];
 
-            // Fetch real goals for this project
-            goals = await goalService.getByProjectId(params.id);
-
-            // Fetch real reports for this project
-            reports = await projectService.getProjectReports(params.id);
-
-            // Fetch real activity
-            activity = await projectService.getRecentActivity(params.id);
+            goals = fetchedGoals;
+            reports = fetchedReports;
+            activity = fetchedActivity;
 
             project = {
                 ...data,

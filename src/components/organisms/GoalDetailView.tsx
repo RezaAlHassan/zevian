@@ -235,7 +235,12 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                         ))}
                                     </div>
                                 ) : (
-                                    <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3 }}>No reports yet.</div>
+                                    <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                        <div style={{ fontSize: '14px', fontWeight: 500 }}>No reports yet.</div>
+                                        <Button variant="primary" size="sm" icon="users" onClick={() => router.push('/employees')}>
+                                            Remind Assignees
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         </div>

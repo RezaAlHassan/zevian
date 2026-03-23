@@ -1115,6 +1115,7 @@ BEGIN
   RETURN new;
 EXCEPTION WHEN OTHERS THEN
   -- Extremely Important: Never let this trigger fail, or Auth signup will fail with 500
+  RAISE WARNING 'handle_new_user failed: %', SQLERRM;
   RETURN new;
 END;
 $$ LANGUAGE plpgsql;

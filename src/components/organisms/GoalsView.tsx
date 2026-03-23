@@ -25,8 +25,9 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
   const router = useRouter()
   const searchParams = useSearchParams()
   const view = searchParams.get('view') || 'org'
+  const isNew = searchParams.get('new') === 'true'
   const [viewMode, setViewMode] = useState<'Table' | 'Grid'>('Table')
-  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [isAddOpen, setIsAddOpen] = useState(isNew)
   const [editingGoal, setEditingGoal] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProject, setSelectedProject] = useState('All')

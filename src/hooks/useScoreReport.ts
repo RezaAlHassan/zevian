@@ -21,12 +21,18 @@ export function useScoreReport() {
   async function scoreReport(reportId: string) {
     setLoading(true)
     setError(null)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     try {
       const res = await fetch('/api/ai/score-report', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ reportId }),
+        signal: controller.signal
       })
+      clearTimeout(timeoutId);
+
       if (!res.ok) {
         let errMessage = 'Scoring failed'
         try {
@@ -41,9 +47,14 @@ export function useScoreReport() {
       setResult(data)
       return data
     } catch (err: any) {
-      setError(err.message ?? 'Scoring failed')
+      if (err.name === 'AbortError') {
+        setError('AI evaluation took too long. Please try again.');
+      } else {
+        setError(err.message ?? 'Scoring failed');
+      }
       return null
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false)
     }
   }
