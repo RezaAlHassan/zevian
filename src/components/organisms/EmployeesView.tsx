@@ -8,6 +8,7 @@ import { Icon } from '@/components/atoms/Icon'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { ScoreDisplay } from '@/components/atoms/Score'
 import { InviteModal } from '@/components/molecules'
+import { ApproveLeaveModal } from '@/components/organisms/ApproveLeaveModal'
 
 interface Employee {
     id: string
@@ -35,16 +36,19 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
     const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
     const [searchQuery, setSearchQuery] = useState('')
     const [roleFilter, setRoleFilter] = useState('')
-    const [deptFilter, setDeptFilter] = useState('')
     const [perfFilter, setPerfFilter] = useState('')
     const [showInviteModal, setShowInviteModal] = useState(false)
+    const [leaveModalData, setLeaveModalData] = useState<{ isOpen: boolean; empId: string; empName: string }>({
+        isOpen: false,
+        empId: '',
+        empName: ''
+    })
 
     const filteredEmployees = useMemo(() => {
         return initialEmployees.filter(emp => {
             const matchesSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (emp.title || '').toLowerCase().includes(searchQuery.toLowerCase())
             const matchesRole = roleFilter ? emp.role === roleFilter : true
-            // const matchesDept = deptFilter ? emp.dept === deptFilter : true
             const matchesPerf = perfFilter ? (
                 perfFilter === 'hi' ? emp.avgScore >= 7.5 :
                     perfFilter === 'mid' ? (emp.avgScore >= 6 && emp.avgScore < 7.5) :
@@ -142,8 +146,6 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
                         <option value="manager">Manager</option>
                         <option value="employee">Employee</option>
                     </select>
-
-                    {/* Department filter hidden per current schema */}
 
                     <select
                         value={perfFilter}
@@ -300,8 +302,21 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
                                         <span className="font-numeric" style={{ fontWeight: 700 }}>{emp.goalCount}</span> goals
                                     </td>
                                     <td style={{ padding: '14px', fontSize: '12px', color: colors.text3 }}>{emp.lastReport}</td>
-                                    <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                                        <Button variant="secondary" size="sm" icon="chevronRight">View</Button>
+                                     <td style={{ padding: '14px 20px', textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                            <Button 
+                                                variant="secondary" 
+                                                size="sm" 
+                                                icon="calendar" 
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    setLeaveModalData({ isOpen: true, empId: emp.id, empName: emp.name })
+                                                }}
+                                            >
+                                                Grant Leave
+                                            </Button>
+                                            <Button variant="secondary" size="sm" icon="chevronRight">View</Button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -357,22 +372,46 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
                             <div style={{ marginBottom: '16px' }}>
                                 <div style={{ fontSize: '15px', fontWeight: 700, color: colors.text, marginBottom: '2px' }}>{emp.name}</div>
                                 <div style={{ fontSize: '12px', color: colors.text3 }}>{emp.title || 'Staff Member'}</div>
-                            </div>
-                            <div style={{ paddingTop: '16px', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            </div>                             <div style={{ paddingTop: '16px', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ fontSize: '11.5px', color: colors.text3 }}>
                                     <span className="font-numeric" style={{ fontWeight: 700, color: colors.text2 }}>{emp.reportCount}</span> reports
                                 </div>
-                                <div style={{ display: 'flex', gap: '4px' }}>
-                                    {[1, 2, 3, 4, 5].map(i => (
-                                        <div key={i} style={{
-                                            width: '4px',
-                                            height: `${10 + Math.random() * 20}px`,
-                                            background: emp.avgScore >= 7.5 ? colors.green : colors.accent,
-                                            borderRadius: '2px'
-                                        }} />
-                                    ))}
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setLeaveModalData({ isOpen: true, empId: emp.id, empName: emp.name })
+                                        }}
+                                        style={{ 
+                                            padding: '6px 10px', 
+                                            borderRadius: '6px', 
+                                            border: `1px solid ${colors.border}`, 
+                                            background: colors.surface2, 
+                                            color: colors.text2, 
+                                            fontSize: '11px', 
+                                            fontWeight: 600, 
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                        }}
+                                    >
+                                        <Icon name="calendar" size={12} />
+                                        Grant Leave
+                                    </button>
+                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                        {[1, 2, 3, 4, 5].map(i => (
+                                            <div key={i} style={{
+                                                width: '4px',
+                                                height: `${10 + Math.random() * 20}px`,
+                                                background: emp.avgScore >= 7.5 ? colors.green : colors.accent,
+                                                borderRadius: '2px'
+                                            }} />
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
+
                         </div>
                     ))}
                 </div>
@@ -400,9 +439,15 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
           box-shadow: ${shadows.cardHover} !important;
         }
       `}</style>
-            <InviteModal
+             <InviteModal
                 isOpen={showInviteModal}
                 onClose={() => setShowInviteModal(false)}
+            />
+            <ApproveLeaveModal 
+                isOpen={leaveModalData.isOpen}
+                onClose={() => setLeaveModalData({ ...leaveModalData, isOpen: false })}
+                employeeId={leaveModalData.empId}
+                employeeName={leaveModalData.empName}
             />
         </div>
     )

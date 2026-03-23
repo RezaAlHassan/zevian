@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { colors, radius, typography, animation, getAvatarGradient, getInitials, getScoreColor, shadows } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
@@ -9,158 +8,64 @@ import { Icon } from '@/components/atoms'
 import { ScoreDisplay, MiniBar, ScoreBar } from '@/components/atoms/Score'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { SkillSpider, DateRangeSelector } from '@/components/molecules'
+import { EmployeeDashboardView } from '@/components/organisms/EmployeeDashboardView'
+import { getEmployeeDetailedDataAction } from '@/app/actions/dashboardActions'
+import { ApproveLeaveModal } from '@/components/organisms/ApproveLeaveModal'
 
-// This would normally come from an API or shared store
-const mockEmployees: any[] = [
-    {
-        id: 'e1',
-        name: 'James Mitchell',
-        initials: 'JM',
-        title: 'Engineering Manager',
-        dept: 'Engineering',
-        role: 'owner',
-        online: true,
-        manager: null,
-        joined: 'Jan 2023',
-        email: 'james@acme.io',
-        avgScore: 8.4,
-        trend: 0.3,
-        scores: [7.8, 8.0, 8.1, 8.3, 8.4],
-        reportCount: 18,
-        goalCount: 3,
-        lastReport: 'Mar 6, 2026',
-        summary: 'James is a consistently high performer who balances technical leadership with strong team development. Code review velocity and architecture documentation are standout strengths this quarter.',
-        goals: [
-            {
-                name: 'Eng Team Leadership',
-                project: 'Sprint Alpha v2',
-                icon: '&#9889;',
-                score: 8.6,
-                criteria: [
-                    { name: 'Code Review Velocity', weight: 30, score: 9.1 },
-                    { name: 'Team Unblocking', weight: 35, score: 8.4 },
-                    { name: 'Documentation', weight: 20, score: 8.8 },
-                    { name: '1:1 Effectiveness', weight: 15, score: 8.0 }
-                ]
-            }
-        ],
-        reports: [
-            { date: 'Mar 6, 2026', goal: 'Eng Team Leadership', score: 8.8, status: 'reviewed' },
-            { date: 'Feb 27, 2026', goal: 'Eng Team Leadership', score: 8.4, status: 'reviewed' }
-        ],
-        activity: [
-            { dot: '#10b981', text: '<strong>James Mitchell</strong> submitted Eng Leadership report', time: '2d ago' },
-            { dot: '#5b7fff', text: '<strong>Zevian AI</strong> scored report &mdash; overall 8.8', time: '2d ago' }
-        ]
-    },
-    {
-        id: 'e2',
-        name: 'Sofia Mercer',
-        initials: 'SM',
-        title: 'Senior Engineer',
-        dept: 'Engineering',
-        role: 'employee',
-        online: true,
-        manager: 'James Mitchell',
-        joined: 'Mar 2023',
-        email: 'sofia@acme.io',
-        avgScore: 8.6,
-        trend: 0.4,
-        scores: [7.9, 8.1, 8.3, 8.5, 8.6],
-        reportCount: 16,
-        goalCount: 2,
-        lastReport: 'Mar 5, 2026',
-        summary: 'Sofia is the strongest individual contributor on the engineering team this week. Exceptional code quality and test coverage. Delivery speed is the one area with room for improvement.',
-        goals: [
-            {
-                name: 'Code Quality & Delivery',
-                project: 'Sprint Alpha v2',
-                icon: '&#9889;',
-                score: 8.6,
-                criteria: [
-                    { name: 'Code Quality', weight: 35, score: 9.1 },
-                    { name: 'Test Coverage', weight: 30, score: 8.8 }
-                ]
-            }
-        ],
-        reports: [
-            { date: 'Mar 5, 2026', goal: 'Code Quality', score: 8.6, status: 'scored' }
-        ],
-        activity: [
-            { dot: '#10b981', text: '<strong>Sofia Mercer</strong> submitted Code Quality report', time: '2d ago' }
-        ]
-    },
-    {
-        id: 'e5',
-        name: 'Lucas Park',
-        initials: 'LP',
-        title: 'Backend Engineer',
-        dept: 'Engineering',
-        role: 'employee',
-        online: false,
-        manager: 'James Mitchell',
-        joined: 'Nov 2023',
-        email: 'lucas@acme.io',
-        avgScore: 5.3,
-        trend: -0.8,
-        scores: [6.8, 6.4, 6.1, 5.7, 5.3],
-        reportCount: 10,
-        goalCount: 1,
-        lastReport: 'Mar 3, 2026',
-        summary: 'Lucas is struggling with test coverage and documentation standards. Three consecutive weekly declines have triggered an at-risk flag.',
-        goals: [
-            {
-                name: 'Code Quality & Delivery',
-                project: 'Backend Refactor',
-                icon: '&#128295;',
-                score: 5.3,
-                criteria: [
-                    { name: 'Code Quality', weight: 35, score: 5.8 },
-                    { name: 'Test Coverage', weight: 30, score: 4.2 }
-                ]
-            }
-        ],
-        reports: [],
-        activity: []
-    }
-]
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 
 export default function EmployeeDetailPage() {
     const params = useParams()
     const router = useRouter()
-    const id = params.id
-    const employee = mockEmployees.find(e => e.id === id)
-
+    const searchParams = useSearchParams()
+    const id = params.id as string
+    const startDate = searchParams.get('start') || undefined
+    const endDate = searchParams.get('end') || undefined
+    
     const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'reports' | 'activity'>('overview')
-    const [isAnalysisGenerated, setIsAnalysisGenerated] = useState(false)
-    const [isGenerating, setIsGenerating] = useState(false)
+    const [pageData, setPageData] = useState<any>(null)
+    const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
-    if (!employee) return (
+    useEffect(() => {
+        async function loadData() {
+            if (!id) return
+            setLoading(true)
+            try {
+                const res: any = await getEmployeeDetailedDataAction(id, startDate, endDate)
+                if (res.error) {
+                    setError(res.error)
+                } else {
+                    setPageData(res)
+                }
+            } catch (err: any) {
+                setError(err.message)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadData()
+    }, [id, startDate, endDate])
+
+    if (loading) return (
+        <div style={{ padding: '100px', textAlign: 'center', color: colors.text3 }}>
+            Loading employee details...
+        </div>
+    )
+
+    if (error || !pageData) return (
         <div style={{ padding: '40px', textAlign: 'center' }}>
-            <h2>Employee not found</h2>
+            <h2 style={{ color: colors.text }}>{error || 'Employee not found'}</h2>
             <Button variant="secondary" onClick={() => router.push('/employees')}>Back to List</Button>
         </div>
     )
 
-    const handleGenerateAnalysis = () => {
-        setIsGenerating(true)
-        setTimeout(() => {
-            setIsGenerating(false)
-            setIsAnalysisGenerated(true)
-        }, 1500)
-    }
-
-    const mockSkills: { name: string; score: number; maxScore: number; category: 'strength' | 'weakness' | 'neutral' }[] = [
-        { name: 'Strategic Thinking', score: 8.5, maxScore: 10, category: 'strength' },
-        { name: 'Collaboration', score: 9.0, maxScore: 10, category: 'strength' },
-        { name: 'Technical Depth', score: 7.2, maxScore: 10, category: 'neutral' },
-        { name: 'Mentorship', score: 6.5, maxScore: 10, category: 'weakness' },
-        { name: 'Project Delivery', score: 8.8, maxScore: 10, category: 'strength' },
-        { name: 'Agile Process', score: 5.8, maxScore: 10, category: 'weakness' },
-    ]
+    const { dashboardData, allGoals, allReports, allActivity } = pageData
+    const employee = dashboardData.me
 
     return (
-        <div className="fade-in" style={{ background: colors.bg, minHeight: '100vh' }}>
+        <div className="fade-in" style={{ background: colors.bg, minHeight: '100vh', animation: animation.keyframes.fadeUp }}>
             {/* Sticky Header with Breadcrumbs */}
             <header style={{
                 position: 'sticky',
@@ -181,6 +86,16 @@ export default function EmployeeDetailPage() {
                     <span style={{ color: colors.text, fontWeight: 500 }}>{employee.name}</span>
                 </div>
                 <div style={{ flex: 1 }} />
+                <DateRangeSelector 
+                    startDate={startDate}
+                    endDate={endDate}
+                    onRangeChange={(start, end) => {
+                        const params = new URLSearchParams(searchParams.toString());
+                        params.set('start', start);
+                        params.set('end', end);
+                        router.push(`?${params.toString()}`);
+                    }}
+                />
             </header>
 
             <div style={{ padding: '0 28px 60px' }}>
@@ -208,24 +123,14 @@ export default function EmployeeDetailPage() {
                             color: '#fff',
                             boxShadow: shadows.cardHover
                         }}>
-                            {getInitials(employee.name)}
+                            {employee.initials}
                         </div>
                         <div>
                             <h1 style={{ fontSize: '28px', fontWeight: 800, color: colors.text, marginBottom: '4px', letterSpacing: '-0.5px' }}>{employee.name}</h1>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ fontSize: '14px', color: colors.text2 }}>{employee.title}</div>
+                                <div style={{ fontSize: '14px', color: colors.text2 }}>{employee.role}</div>
                                 <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: colors.border }} />
-                                <div style={{
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '10px',
-                                    fontWeight: 700,
-                                    textTransform: 'uppercase',
-                                    background: employee.role === 'owner' ? colors.purpleGlow : colors.accentGlow,
-                                    color: employee.role === 'owner' ? colors.purple : colors.accent
-                                }}>
-                                    {employee.role}
-                                </div>
+                                <div style={{ fontSize: '14px', color: colors.text3 }}>{employee.team}</div>
                             </div>
                         </div>
                     </div>
@@ -234,152 +139,202 @@ export default function EmployeeDetailPage() {
                         <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
                             <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.lg, padding: '12px 16px', textAlign: 'center', minWidth: '100px' }}>
                                 <div style={{ fontSize: '9px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '2px' }}>Avg Score</div>
-                                <div style={{ fontSize: '20px', fontWeight: 800, color: getScoreColor(employee.avgScore) }}>{employee.avgScore.toFixed(1)}</div>
+                                <div style={{ fontSize: '20px', fontWeight: 800, color: getScoreColor(employee.currentScore) }}>{employee.currentScore.toFixed(1)}</div>
                             </div>
                             <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.lg, padding: '12px 16px', textAlign: 'center', minWidth: '100px' }}>
                                 <div style={{ fontSize: '9px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '2px' }}>Goals</div>
-                                <div style={{ fontSize: '20px', fontWeight: 800, color: colors.text }}>{employee.goalCount}</div>
+                                <div style={{ fontSize: '20px', fontWeight: 800, color: colors.text }}>{allGoals.length}</div>
                             </div>
                         </div>
+                        {pageData.permissions?.canApproveLeave && (
+                            <Button variant="secondary" onClick={() => setIsLeaveModalOpen(true)}>
+                                Approve Leave
+                            </Button>
+                        )}
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '28px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-                        {/* Tabs */}
-                        <div style={{ display: 'flex', gap: '32px', borderBottom: `1px solid ${colors.border}` }}>
-                            {[
-                                { id: 'overview', label: 'Overview', icon: 'sparkles' },
-                                { id: 'goals', label: 'Goals', icon: 'target' },
-                                { id: 'reports', label: 'Reports', icon: 'fileText' },
-                                { id: 'activity', label: 'Activity', icon: 'clock' },
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
-                                    style={{
-                                        paddingBottom: '12px',
-                                        fontSize: '13px',
-                                        fontWeight: activeTab === tab.id ? 700 : 500,
-                                        color: activeTab === tab.id ? colors.accent : colors.text3,
-                                        border: 'none',
-                                        background: 'none',
-                                        borderBottom: `2px solid ${activeTab === tab.id ? colors.accent : 'transparent'}`,
-                                        cursor: 'pointer',
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                    {/* Tabs */}
+                    <div style={{ display: 'flex', gap: '32px', borderBottom: `1px solid ${colors.border}` }}>
+                        {[
+                            { id: 'overview', label: 'Overview', icon: 'chart' },
+                            { id: 'goals', label: 'Goals', icon: 'target' },
+                            { id: 'reports', label: 'Reports', icon: 'fileText' },
+                            { id: 'activity', label: 'Activity', icon: 'clock' },
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                style={{
+                                    paddingBottom: '12px',
+                                    fontSize: '13px',
+                                    fontWeight: activeTab === tab.id ? 700 : 500,
+                                    color: activeTab === tab.id ? colors.accent : colors.text3,
+                                    border: 'none',
+                                    background: 'none',
+                                    borderBottom: `2px solid ${activeTab === tab.id ? colors.accent : 'transparent'}`,
+                                    cursor: 'pointer',
+                                    transition: `all ${animation.fast}`,
+                                    marginBottom: '-1px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <Icon name={tab.icon as any} size={14} />
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Tab Content */}
+                    <div style={{ minHeight: '400px' }}>
+                        {activeTab === 'overview' && (
+                            <EmployeeDashboardView data={dashboardData} showDateSelector={false} />
+                        )}
+
+                        {activeTab === 'goals' && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+                                {allGoals.map((goal: any, i: number) => (
+                                    <div key={i} className="goal-card" style={{ 
+                                        background: colors.surface, 
+                                        border: `1px solid ${colors.border}`, 
+                                        borderRadius: radius.xl, 
+                                        padding: '24px',
                                         transition: `all ${animation.fast}`,
-                                        marginBottom: '-1px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px'
-                                    }}
-                                >
-                                    <Icon name={tab.icon as any} size={14} />
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Tab Content */}
-                        <div style={{ minHeight: '400px' }}>
-                            {activeTab === 'overview' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-                                    {/* AI Summary */}
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <Icon name="sparkles" size={14} color={colors.accent} />
-                                                <span style={{ fontSize: '10.5px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.08em' }}>AI Performance Summary</span>
+                                        cursor: 'pointer'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                                            <div>
+                                                <div style={{ fontSize: '15px', fontWeight: 700, color: colors.text, marginBottom: '4px' }}>{goal.name}</div>
+                                                <div style={{ fontSize: '12px', color: colors.text3 }}>{goal.project?.name || 'No Project'}</div>
                                             </div>
-                                            <DateRangeSelector />
+                                            <StatusPill status={goal.status} />
                                         </div>
-                                        <div style={{
-                                            background: colors.accentGlow,
-                                            border: `1px solid ${colors.accent}20`,
-                                            borderRadius: radius.xl,
-                                            padding: '24px',
-                                            fontSize: '14.5px',
-                                            lineHeight: 1.6,
-                                            color: colors.text2
-                                        }}>
-                                            {employee.summary}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '20px' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: '10px', color: colors.text3, textTransform: 'uppercase', fontWeight: 700, marginBottom: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Progess</span>
+                                                    <span>{goal.avgScore || 0}%</span>
+                                                </div>
+                                                <ScoreBar score={goal.avgScore || 0} />
+                                            </div>
                                         </div>
                                     </div>
-
-                                    {/* Skills Section */}
-                                    <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.xl, padding: '32px' }}>
-                                        {!isAnalysisGenerated ? (
-                                            <div style={{ textAlign: 'center', padding: '20px' }}>
-                                                <Icon name="sparkles" size={32} color={`${colors.accent}40`} style={{ marginBottom: '16px' }} />
-                                                <div style={{ fontSize: '16px', fontWeight: 700, color: colors.text, marginBottom: '8px' }}>Detailed Skill Mapping</div>
-                                                <div style={{ fontSize: '14px', color: colors.text3, marginBottom: '24px', maxWidth: '360px', margin: '0 auto 24px' }}>
-                                                    Generate an AI-powered skill analysis based on recent goal completions and organizational metrics.
-                                                </div>
-                                                <Button variant="primary" loading={isGenerating} onClick={handleGenerateAnalysis} icon="sparkles">
-                                                    {isGenerating ? 'Analyzing...' : 'Generate Skill Analysis'}
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <div className="fade-in">
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px', justifyContent: 'center' }}>
-                                                    <Icon name="sparkles" size={16} color={colors.accent} />
-                                                    <span style={{ fontSize: '12px', fontWeight: 800, color: colors.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Skill Analysis</span>
-                                                </div>
-                                                <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-                                                    <SkillSpider skills={mockSkills} size={320} />
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'goals' && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                                    {employee.goals.map((goal: any, i: number) => (
-                                        <div key={i} style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, padding: '20px' }}>
-                                            <div style={{ fontSize: '14px', fontWeight: 700, color: colors.text, marginBottom: '4px' }}>{goal.name}</div>
-                                            <div style={{ fontSize: '12px', color: colors.text3, marginBottom: '16px' }}>{goal.project}</div>
-                                            <div style={{ fontSize: '10px', color: colors.text3, textTransform: 'uppercase', fontWeight: 700, marginBottom: '8px' }}>Overall Progress</div>
-                                            <ScoreBar score={goal.score} />
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Sidebar Info */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, padding: '24px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '20px' }}>Employee Information</div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                <div>
-                                    <div style={{ fontSize: '9px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '4px' }}>Reporting To</div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: colors.accentGlow, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: colors.accent }}>JM</div>
-                                        <div style={{ fontSize: '13.5px', fontWeight: 600, color: colors.text }}>{employee.manager || 'James Mitchell'}</div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div style={{ fontSize: '9px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '4px' }}>Contact Email</div>
-                                    <div style={{ fontSize: '13px', color: colors.text2 }}>{employee.email}</div>
-                                </div>
-
-                                <div>
-                                    <div style={{ fontSize: '9px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '4px' }}>Joined Date</div>
-                                    <div style={{ fontSize: '13px', color: colors.text2 }}>{employee.joined}</div>
-                                </div>
+                                ))}
                             </div>
-                        </div>
+                        )}
 
+                        {activeTab === 'reports' && (
+                            <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: `1px solid ${colors.border}`, background: colors.surface2 }}>
+                                            <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Date</th>
+                                            <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Goal</th>
+                                            <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Score</th>
+                                            <th style={{ textAlign: 'right', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {allReports.map((report: any, i: number) => (
+                                            <tr key={i} style={{ borderBottom: i === allReports.length - 1 ? 'none' : `1px solid ${colors.border}`, transition: 'background 0.2s', cursor: 'pointer' }}>
+                                                <td style={{ padding: '16px 24px', fontSize: '13.5px', color: colors.text2 }}>
+                                                    {new Date(report.submissionDate).toLocaleDateString()}
+                                                </td>
+                                                <td style={{ padding: '16px 24px' }}>
+                                                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: colors.text }}>{report.goals?.name || 'Report'}</div>
+                                                </td>
+                                                <td style={{ padding: '16px 24px', textAlign: 'center' }}>
+                                                    <ScoreDisplay score={report.managerOverallScore ?? report.evaluationScore} size="sm" />
+                                                </td>
+                                                <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                                                    <Link href={`/reports/${report.id}`}>
+                                                        <Button variant="ghost" size="sm">View</Button>
+                                                    </Link>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {allReports.length === 0 && (
+                                            <tr>
+                                                <td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: colors.text3 }}>No reports found</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {activeTab === 'activity' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {allActivity.map((act: any, i: number) => {
+                                    const type = act.type || 'alert'
+                                    const iconMap: any = {
+                                        report: { name: 'fileText', color: '#14b8a6', bg: 'rgba(20,184,166,0.1)' },
+                                        goal: { name: 'target', color: colors.accent, bg: colors.accentGlow },
+                                        leave: { name: 'calendar', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+                                        alert: { name: 'bell', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
+                                        info: { name: 'bell', color: colors.text3, bg: colors.border },
+                                    }
+                                    const icon = iconMap[type] || iconMap.info
+
+                                    return (
+                                        <div key={i} style={{ 
+                                            background: colors.surface, 
+                                            border: `1px solid ${colors.border}`, 
+                                            borderRadius: radius.lg, 
+                                            padding: '16px 20px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '16px',
+                                            transition: 'transform 0.2s',
+                                        }}>
+                                            <div style={{ 
+                                                width: '40px', 
+                                                height: '40px', 
+                                                borderRadius: '12px', 
+                                                background: icon.bg, 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center' 
+                                            }}>
+                                                <Icon name={icon.name} size={18} color={icon.color} />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: '14px', fontWeight: 600, color: colors.text }}>{act.title}</div>
+                                                <div style={{ fontSize: '13px', color: colors.text2 }}>{act.message}</div>
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: colors.text3, fontWeight: 500, textAlign: 'right' }}>
+                                                <div>{new Date(act.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                                                <div style={{ marginTop: '2px', opacity: 0.8 }}>{new Date(act.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                                {allActivity.length === 0 && (
+                                    <div style={{ padding: '40px', textAlign: 'center', color: colors.text3 }}>No recent activity</div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                <ApproveLeaveModal 
+                    isOpen={isLeaveModalOpen} 
+                    onClose={() => setIsLeaveModalOpen(false)} 
+                    employeeId={id} 
+                    employeeName={employee.name} 
+                />
 
                 <style jsx>{`
                 .fade-in {
                     animation: fadeIn 0.5s ease both;
+                }
+                .goal-card:hover {
+                    transform: translateY(-2px);
+                    border-color: ${colors.accent} !important;
+                    box-shadow: ${shadows.cardHover};
                 }
                 @keyframes fadeIn {
                     from { opacity: 0; transform: translateY(10px); }

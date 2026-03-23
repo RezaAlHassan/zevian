@@ -3,30 +3,44 @@
 import React, { useState } from 'react'
 import { colors, layout, typography, radius, animation, shadows } from '@/design-system'
 import { Icon, Avatar } from '@/components/atoms'
-import { DateRangeSelector } from '@/components/molecules'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface HeaderProps {
   title: string
   subtitle?: string
   userName?: string
+  showViewSwitcher?: boolean
 }
 
-export function Header({ title, subtitle, userName = 'JD' }: HeaderProps) {
+export function Header({ title, subtitle, userName = 'JD', showViewSwitcher = false }: HeaderProps) {
   const [isAccountOpen, setIsAccountOpen] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(false)
-  const [currentView, setCurrentView] = useState('Direct Reports')
-
-  const views = ['Direct Reports', 'Organizational View']
+  
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const viewParam = searchParams.get('view') || 'org'
+  
+  const currentView = viewParam === 'direct' ? 'Direct Reports' : 'Organizational View'
+
+  const views = [
+    { label: 'Direct Reports', value: 'direct' },
+    { label: 'Organizational View', value: 'org' }
+  ]
 
   const handleLogout = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
+  }
+
+  const handleViewChange = (newView: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('view', newView)
+    router.push(`?${params.toString()}`)
+    setIsViewOpen(false)
   }
 
   return (
@@ -69,79 +83,76 @@ export function Header({ title, subtitle, userName = 'JD' }: HeaderProps) {
 
       <div style={{ flex: 1 }} />
 
-      {/* Date Picker Component */}
-      <DateRangeSelector />
 
       {/* View Switcher Dropdown */}
-      <div style={{ position: 'relative' }}>
-        <div
-          onClick={() => setIsViewOpen(!isViewOpen)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '6px 12px',
-            background: colors.surface,
-            border: `1px solid ${colors.border}`,
-            borderRadius: radius.md,
-            fontSize: '12.5px',
-            fontWeight: 600,
-            color: colors.text2,
-            cursor: 'pointer',
-            transition: `all ${animation.fast}`,
-          }} className="header-control"
-        >
-          <Icon name="person" size={13} />
-          <span>{currentView}</span>
-          <Icon name="chevronDown" size={10} />
-        </div>
-
-        {isViewOpen && (
-          <>
-            <div
-              onClick={() => setIsViewOpen(false)}
-              style={{ position: 'fixed', inset: 0, zIndex: 100 }}
-            />
-            <div style={{
-              position: 'absolute',
-              top: 'calc(100% + 8px)',
-              left: 0,
-              width: '180px',
+      {showViewSwitcher && (
+        <div style={{ position: 'relative' }}>
+          <div
+            onClick={() => setIsViewOpen(!isViewOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 12px',
               background: colors.surface,
               border: `1px solid ${colors.border}`,
-              borderRadius: radius.lg,
-              boxShadow: shadows.cardHover,
-              zIndex: 101,
-              padding: '6px',
-            }}>
-              {views.map(view => (
-                <div
-                  key={view}
-                  onClick={() => {
-                    setCurrentView(view)
-                    setIsViewOpen(false)
-                  }}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: radius.md,
-                    fontSize: '12.5px',
-                    fontWeight: currentView === view ? 600 : 500,
-                    color: currentView === view ? colors.accent : colors.text2,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
-                  }}
-                  className="dropdown-item"
-                >
-                  <Icon name={view === 'Direct Reports' ? 'person' : 'globe'} size={13} />
-                  {view}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+              borderRadius: radius.md,
+              fontSize: '12.5px',
+              fontWeight: 600,
+              color: colors.text2,
+              cursor: 'pointer',
+              transition: `all ${animation.fast}`,
+            }} className="header-control"
+          >
+            <Icon name="person" size={13} />
+            <span>{currentView}</span>
+            <Icon name="chevronDown" size={10} />
+          </div>
+
+          {isViewOpen && (
+            <>
+              <div
+                onClick={() => setIsViewOpen(false)}
+                style={{ position: 'fixed', inset: 0, zIndex: 100 }}
+              />
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                left: 0,
+                width: '180px',
+                background: colors.surface,
+                border: `1px solid ${colors.border}`,
+                borderRadius: radius.lg,
+                boxShadow: shadows.cardHover,
+                zIndex: 101,
+                padding: '6px',
+              }}>
+                {views.map(view => (
+                  <div
+                    key={view.value}
+                    onClick={() => handleViewChange(view.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: radius.md,
+                      fontSize: '12.5px',
+                      fontWeight: currentView === view.label ? 600 : 500,
+                      color: currentView === view.label ? colors.accent : colors.text2,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px'
+                    }}
+                    className="dropdown-item"
+                  >
+                    <Icon name={view.value === 'direct' ? 'person' : 'globe'} size={13} />
+                    {view.label}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Header Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: '12px' }}>

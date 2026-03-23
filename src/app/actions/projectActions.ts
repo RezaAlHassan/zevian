@@ -11,8 +11,12 @@ export async function upsertProjectAction(formData: any) {
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
-        if (!employee || employee.role !== 'manager') {
+        if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) {
             return { error: 'Unauthorized: Only managers can manage projects' }
+        }
+
+        if (!employee.isAccountOwner && !employee.permissions?.canCreateProjects) {
+            return { error: 'Unauthorized: You do not have permission to manage projects' }
         }
 
         const projectData = {
@@ -49,8 +53,12 @@ export async function deleteProjectAction(projectId: string) {
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
-        if (!employee || employee.role !== 'manager') {
+        if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) {
             return { error: 'Unauthorized' }
+        }
+
+        if (!employee.isAccountOwner && !employee.permissions?.canCreateProjects) {
+            return { error: 'Unauthorized: You do not have permission to manage projects' }
         }
 
         await projectService.delete(projectId)
@@ -69,10 +77,29 @@ export async function updateProjectStatusAction(projectId: string, status: strin
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { error: 'Not authenticated' }
 
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) return { error: 'Unauthorized' }
+
+        if (!employee.isAccountOwner && !employee.permissions?.canCreateProjects) {
+            return { error: 'Unauthorized: You do not have permission to manage projects' }
+        }
+
         await projectService.update(projectId, { status } as any)
+        
+        // Cascading completion: If project is completed, mark all its goals as completed
+        if (status === 'completed') {
+            const { goalService } = await import('@/../databaseService2')
+            const projectGoals = await goalService.getByProjectId(projectId)
+            const activeGoals = projectGoals.filter((g: any) => g.status !== 'completed')
+            
+            await Promise.all(activeGoals.map((g: any) => 
+                goalService.update(g.id, { status: 'completed' })
+            ))
+        }
 
         revalidatePath('/dashboard')
         revalidatePath('/projects')
+        revalidatePath(`/projects/${projectId}`)
         return { success: true }
     } catch (error: any) {
         return { error: error.message || 'Failed to update status' }
@@ -85,7 +112,16 @@ export async function getProjectsAction() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { error: 'Not authenticated' }
 
-        const projects = await projectService.getAll()
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee) return { error: 'Employee not found' }
+
+        let projects
+        if (employee.role === 'manager' && !employee.isAccountOwner && !employee.permissions?.canViewOrganizationWide) {
+            projects = await projectService.getByEmployeeId(employee.id)
+        } else {
+            projects = await projectService.getAll()
+        }
+        
         return { projects }
     } catch (error: any) {
         return { error: error.message || 'Failed to fetch projects' }

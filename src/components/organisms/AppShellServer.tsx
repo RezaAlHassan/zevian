@@ -7,6 +7,8 @@ interface Props {
     role:         string
     organization_id: string
     organizations: { name: string } | null
+    canManageSettings: boolean
+    canViewOrganizationWide: boolean
   } | null
   children: React.ReactNode
 }
@@ -26,6 +28,8 @@ export function AppShellServer({ profile, children }: Props) {
       userName={profile?.full_name ?? 'User'}
       orgName={profile?.organizations?.name ?? 'My Org'}
       userRole={profile?.role ?? 'employee'}
+      canManageSettings={profile?.canManageSettings ?? false}
+      canViewOrganizationWide={profile?.canViewOrganizationWide ?? false}
     >
       {children}
     </AppShellClient>

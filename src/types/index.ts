@@ -6,9 +6,11 @@ export interface Organization {
     goalWeight?: number;
     aiConfig?: {
         allowLate?: boolean;
+        allowLateSubmissions?: boolean;
         requireReport?: boolean;
         notifyManager?: boolean;
     };
+    customMetrics?: CustomMetric[];
     createdAt?: string;
 }
 
@@ -60,6 +62,8 @@ export interface Goal {
     projectName?: string;
     criteria?: any[];
     assignees?: string[] | any[];
+    reports?: Report[];
+    project?: Project;
 }
 
 export interface Employee {
@@ -101,6 +105,7 @@ export interface Report {
     goalId?: string;
     createdAt?: string;
     submissionDate?: string;
+    submittedForDate?: string;
     evaluationScore?: number;
     criterionScores?: any[];
     goals?: any;
@@ -110,10 +115,23 @@ export interface Report {
 export interface Notification {
     id: string;
     userId: string;
-    type: 'alert' | 'message' | 'goal_update';
+    type: 'alert' | 'message' | 'goal_update' | 'info';
     title: string;
     message: string;
     linkUrl?: string;
     isRead: boolean;
     createdAt?: string;
+}
+
+export interface Leave {
+    id: string;
+    employeeId: string;
+    organizationId: string;
+    startDate: string;
+    endDate: string;
+    leaveType: 'sick' | 'vacation' | 'personal' | 'other';
+    note?: string;
+    approvedBy: string;
+    createdAt?: string;
+    updatedAt?: string;
 }

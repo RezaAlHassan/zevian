@@ -17,6 +17,24 @@ interface ProjectsViewProps {
   basePath?: string
 }
 
+function formatRelativeTime(dateStr: string | null): string {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.round(diffMs / 60000)
+  
+  if (diffMins < 60) return `${Math.max(1, diffMins)}m ago`
+  const diffHours = Math.round(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.round(diffHours / 24)
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays}d ago`
+  const diffWeeks = Math.round(diffDays / 7)
+  if (diffWeeks < 4) return `${diffWeeks}w ago`
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 export function ProjectsView({ projects, employees, readOnly = false, basePath = '/projects' }: ProjectsViewProps) {
   const router = useRouter()
   const [localProjects, setLocalProjects] = useState(projects)
@@ -43,17 +61,20 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
   )
 
   const handleComplete = (id: string, name: string, e?: React.MouseEvent) => {
+    e?.preventDefault()
     e?.stopPropagation()
     setConfModal({ show: true, type: 'complete', projectId: id, projectName: name })
   }
 
   const handleEdit = (project: any, e?: React.MouseEvent) => {
+    e?.preventDefault()
     e?.stopPropagation()
     setEditingProject(project)
     setIsAddOpen(true)
   }
 
   const handleDelete = (id: string, name: string, e?: React.MouseEvent) => {
+    e?.preventDefault()
     e?.stopPropagation()
     setConfModal({ show: true, type: 'delete', projectId: id, projectName: name })
   }
@@ -266,7 +287,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
                   score={p.avg_score}
                   reportCount={p.report_count || 0}
                   goalCount={p.goal_count || 0}
-                  lastReport={p.last_report_at ? '2h ago' : 'No reports'}
+                  lastReport={p.last_report_at ? formatRelativeTime(p.last_report_at) : 'No reports'}
                   emoji={p.emoji}
                   members={p.project_members || []}
                   onComplete={(e) => handleComplete(p.id, p.name, e)}
@@ -314,7 +335,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
                     status={p.status || 'active'}
                     score={p.avg_score}
                     reportCount={p.report_count || 0}
-                    lastActivity={p.last_report_at ? '2h ago' : 'Just created'}
+                    lastActivity={p.last_report_at ? formatRelativeTime(p.last_report_at) : 'Just created'}
                     members={p.project_members || []}
                     onComplete={(e) => handleComplete(p.id, p.name, e)}
                     onDelete={(e) => handleDelete(p.id, p.name, e)}

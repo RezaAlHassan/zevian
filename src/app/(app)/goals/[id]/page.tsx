@@ -37,9 +37,12 @@ export default async function GoalPage({ params }: { params: { id: string } }) {
             }
 
             // Compute avg score from real fetched reports
-            const scoredReports = reports.filter((r: any) => typeof r.evaluationScore === 'number' && !isNaN(r.evaluationScore));
+            const scoredReports = reports.filter((r: any) => {
+                const s = r.managerOverallScore ?? r.evaluationScore;
+                return typeof s === 'number' && !isNaN(s);
+            });
             const avgScore = scoredReports.length > 0
-                ? Number((scoredReports.reduce((sum: number, r: any) => sum + r.evaluationScore, 0) / scoredReports.length).toFixed(1))
+                ? Number((scoredReports.reduce((sum: number, r: any) => sum + (r.managerOverallScore ?? r.evaluationScore), 0) / scoredReports.length).toFixed(1))
                 : null;
 
             goal = {
@@ -62,7 +65,7 @@ export default async function GoalPage({ params }: { params: { id: string } }) {
 
     const [{ data: projects }, { data: employees }] = await Promise.all([
         supabase.from('projects').select('id, name'),
-        supabase.from('employees').select('id, name').order('name')
+        supabase.from('employees').select('id, name').eq('role', 'employee').order('name')
     ])
 
     const mappedEmployees = (employees || []).map((e: any) => ({

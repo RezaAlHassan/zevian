@@ -5,13 +5,19 @@ import { colors, radius, animation, typography } from '@/design-system'
 import { Icon } from '@/components/atoms/Icon'
 
 interface CalendarProps {
-    onRangeSelect: (start: Date, end: Date) => void
+    mode?: 'single' | 'range'
+    onRangeSelect?: (start: Date, end: Date) => void
+    onSelect?: (date: Date) => void
+    initialDate?: Date
     initialStart?: Date
     initialEnd?: Date
+    minDate?: Date
+    maxDate?: Date
 }
 
-export function Calendar({ onRangeSelect, initialStart, initialEnd }: CalendarProps) {
-    const [currentDate, setCurrentDate] = useState(new Date())
+export function Calendar({ mode = 'range', onRangeSelect, onSelect, initialDate, initialStart, initialEnd, minDate, maxDate }: CalendarProps) {
+    const [currentDate, setCurrentDate] = useState(initialDate || initialStart || new Date())
+    const [singleDate, setSingleDate] = useState<Date | null>(initialDate || null)
     const [rangeStart, setRangeStart] = useState<Date | null>(initialStart || null)
     const [rangeEnd, setRangeEnd] = useState<Date | null>(initialEnd || null)
 
@@ -30,25 +36,35 @@ export function Calendar({ onRangeSelect, initialStart, initialEnd }: CalendarPr
     const handleDateClick = (day: number) => {
         const selectedDate = new Date(year, month, day)
 
+        if (mode === 'single') {
+            setSingleDate(selectedDate)
+            if (onSelect) onSelect(selectedDate)
+            return
+        }
+
         if (!rangeStart || (rangeStart && rangeEnd)) {
             setRangeStart(selectedDate)
             setRangeEnd(null)
         } else if (selectedDate < rangeStart) {
             setRangeEnd(rangeStart)
             setRangeStart(selectedDate)
-            onRangeSelect(selectedDate, rangeStart)
+            if (onRangeSelect) onRangeSelect(selectedDate, rangeStart)
         } else {
             setRangeEnd(selectedDate)
-            onRangeSelect(rangeStart, selectedDate)
+            if (onRangeSelect) onRangeSelect(rangeStart, selectedDate)
         }
     }
 
     const isSelected = (day: number) => {
         const d = new Date(year, month, day)
+        if (mode === 'single') {
+            return singleDate && d.getTime() === singleDate.getTime()
+        }
         return (rangeStart && d.getTime() === rangeStart.getTime()) || (rangeEnd && d.getTime() === rangeEnd.getTime())
     }
 
     const isInRange = (day: number) => {
+        if (mode === 'single') return false
         if (!rangeStart || !rangeEnd) return false
         const d = new Date(year, month, day)
         return d > rangeStart && d < rangeEnd
@@ -74,10 +90,25 @@ export function Calendar({ onRangeSelect, initialStart, initialEnd }: CalendarPr
         const selected = isSelected(day)
         const inRange = isInRange(day)
 
+        const d = new Date(year, month, day)
+        d.setHours(0, 0, 0, 0)
+        
+        let isDisabled = false
+        if (minDate) {
+            const min = new Date(minDate)
+            min.setHours(0, 0, 0, 0)
+            if (d < min) isDisabled = true
+        }
+        if (maxDate) {
+            const max = new Date(maxDate)
+            max.setHours(0, 0, 0, 0)
+            if (d > max) isDisabled = true
+        }
+
         days.push(
             <div
                 key={day}
-                onClick={() => handleDateClick(day)}
+                onClick={() => !isDisabled && handleDateClick(day)}
                 style={{
                     height: '32px',
                     display: 'flex',
@@ -85,15 +116,16 @@ export function Calendar({ onRangeSelect, initialStart, initialEnd }: CalendarPr
                     justifyContent: 'center',
                     fontSize: '12px',
                     fontWeight: selected || isToday ? 700 : 500,
-                    cursor: 'pointer',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
                     borderRadius: radius.md,
                     position: 'relative',
                     background: selected ? colors.accent : inRange ? `${colors.accent}15` : 'transparent',
-                    color: selected ? '#fff' : inRange ? colors.accent : colors.text,
+                    color: isDisabled ? colors.text3 : selected ? '#fff' : inRange ? colors.accent : colors.text,
+                    opacity: isDisabled ? 0.4 : 1,
                     transition: `all ${animation.fast}`,
                     zIndex: 1
                 }}
-                className="calendar-day"
+                className={isDisabled ? '' : "calendar-day"}
             >
                 {day}
                 {isToday && !selected && (
@@ -103,7 +135,7 @@ export function Calendar({ onRangeSelect, initialStart, initialEnd }: CalendarPr
                         width: '4px',
                         height: '4px',
                         borderRadius: '50%',
-                        background: colors.accent
+                        background: isDisabled ? colors.text3 : colors.accent
                     }} />
                 )}
             </div>

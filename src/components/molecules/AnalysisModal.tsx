@@ -245,26 +245,6 @@ export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, goals, 
                                 ))}
                             </div>
 
-                            {/* KB Grounding Strip */}
-                            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: colors.text3, padding: '0 4px', marginBottom: '10px', marginTop: '28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                Knowledge base influence
-                                <div style={{ flex: 1, height: '1px', background: colors.border }} />
-                            </div>
-                            
-                            <div style={{
-                                background: colors.surface, border: `1px solid ${colors.border}`, borderLeft: `3px solid ${colors.purple}`,
-                                borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: '12px'
-                            }}>
-                                <div style={{ width: '28px', height: '28px', flexShrink: 0, background: `${colors.purple}15`, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.purple, fontSize: '14px' }}>
-                                    ⬡
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: '11px', fontWeight: 700, color: colors.purple, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '4px' }}>Grounding context applied</div>
-                                    <p style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.6 }}>
-                                        Evaluations are calibrated against the project knowledgebase: async-first standards, documented benchmarks, and REST conventions. These informed scoring thresholds across all metrics.
-                                    </p>
-                                </div>
-                            </div>
                         </div>
                     )}
                 </div>

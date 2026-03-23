@@ -5,6 +5,7 @@ import { StatusPill } from '@/components/atoms/StatusPill'
 import { Button } from '@/components/atoms/Button'
 import React from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 interface ProjectRowProps {
     id: string
@@ -41,9 +42,11 @@ export function ProjectRow({
     readOnly = false,
     basePath = '/projects'
 }: ProjectRowProps) {
+    const searchParams = useSearchParams()
+    const view = searchParams.get('view') || 'org'
     return (
         <Link
-            href={`${basePath}/${id}`}
+            href={`${basePath}/${id}?${searchParams.toString()}`}
             style={{ textDecoration: 'none', display: 'contents' }}
         >
             <tr
@@ -188,7 +191,7 @@ export function ProjectRow({
                                 )}
                             </>
                         ) : null}
-                        <Link href={`${basePath}/${id}`} style={{ textDecoration: 'none' }}>
+                        <Link href={`${basePath}/${id}?${searchParams.toString()}`} style={{ textDecoration: 'none' }}>
                             <Button variant="ghost" size="sm" icon="linkExternal">View</Button>
                         </Link>
                     </div>

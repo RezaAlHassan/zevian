@@ -3,8 +3,8 @@ import { getMyReportsAction } from '@/app/actions/reportActions'
 
 export const metadata = { title: 'My Reports | Zevian' }
 
-export default async function EmployeeReportsPage() {
-    const data = await getMyReportsAction()
+export default async function EmployeeReportsPage({ searchParams }: { searchParams: { start?: string, end?: string } }) {
+    const data = await getMyReportsAction(searchParams.start, searchParams.end)
 
     if (data.error || !data.reports) {
         return (

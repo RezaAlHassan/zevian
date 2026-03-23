@@ -10,7 +10,7 @@ export async function completeOnboardingAction(data: {
     orgName: string;
     projName: string;
     projDesc?: string;
-    frequency: 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
+    frequency: 'daily' | 'weekly' | 'bi-weekly';
     emails?: string;
     origin?: string;
     // Goal data from templates
@@ -124,11 +124,18 @@ export async function completeOnboardingAction(data: {
             if (criteriaError) throw criteriaError
         }
     }
+    
+    // Generate periods for the new assignment (resolves goals in the background)
+    const { setupPeriodsForNewAssignment } = await import('@/lib/reportingPeriods')
+    await setupPeriodsForNewAssignment(currentEmpId, projId).catch(err => console.error(err))
 
     // 9. Handle invitations if any
     if (data.emails) {
         const emailList = data.emails.split(/[,\s]+/).filter(e => e.includes('@'))
         if (emailList.length > 0) {
+            const expiresAt = new Date()
+            expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiration
+    
             const invitations = emailList.map(email => ({
                 id: `inv-${Math.random().toString(36).substring(2, 9)}`,
                 token: Math.random().toString(36).substring(2, 15),
@@ -137,8 +144,10 @@ export async function completeOnboardingAction(data: {
                 organization_id: orgId,
                 invited_by: currentEmpId,
                 invited_at: new Date().toISOString(),
+                expires_at: expiresAt.toISOString(),
                 status: 'pending',
-                initial_project_ids: [projId]
+                initial_project_ids: [projId],
+                initial_goal_ids: data.goalName ? [goalId] : []
             }))
 
             await supabase.from('invitations').insert(invitations as any)
@@ -147,7 +156,7 @@ export async function completeOnboardingAction(data: {
             const inviterName = user.user_metadata.full_name || user.email?.split('@')[0] || 'A team member'
 
             for (const invitation of invitations) {
-                const inviteLink = `${data.origin || ''}/signup?token=${invitation.token}`
+                const inviteLink = `${data.origin || ''}/accept-invite?token=${invitation.token}`
                 await sendEmail({
                     to: invitation.email,
                     subject: `Join ${data.orgName} on Zevian`,
@@ -172,6 +181,18 @@ export async function completeOnboardingAction(data: {
             orgName: data.orgName
         })
     })
+
+    // 12. Add system notification for Org Metrics
+    await supabase.from('notifications').insert({
+        id: `notif-${Math.random().toString(36).substring(2, 9)}`,
+        employee_id: currentEmpId,
+        type: 'system',
+        title: 'Setup Org Metrics',
+        message: 'Define your scoring vectors in Organization Settings to get the most out of Zevian AI.',
+        read: false,
+        link: '/organization?tab=metrics',
+        created_at: new Date().toISOString(),
+    } as any)
 
     return { success: true, orgId, projId, goalId, empId }
 }

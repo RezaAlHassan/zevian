@@ -1,6 +1,6 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { colors, layout, componentTokens, typography, animation, radius } from '@/design-system'
 import { Header } from '@/components/atoms/Header'
@@ -12,6 +12,8 @@ interface Props {
   userName: string
   orgName: string
   userRole: string
+  canManageSettings: boolean
+  canViewOrganizationWide: boolean
   children: React.ReactNode
 }
 
@@ -49,10 +51,13 @@ const SETTINGS_ITEMS = [
   },
 ]
 
-export function AppShellClient({ userName, orgName, userRole, children }: Props) {
+export function AppShellClient({ userName, orgName, userRole, canManageSettings, canViewOrganizationWide, children }: Props) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const view = searchParams.get('view') || 'org'
   const [isInviteOpen, setIsInviteOpen] = useState(false)
   const t = componentTokens.sidebar
+  const subtitle = view === 'direct' ? '— Direct Reports' : '— Organization'
 
   const getPageTitle = () => {
     if (pathname.startsWith('/dashboard')) return 'Dashboard'
@@ -73,9 +78,8 @@ export function AppShellClient({ userName, orgName, userRole, children }: Props)
       {/* ── Sidebar ──────────────────────────── */}
       <aside style={t.root}>
         {/* Logo */}
-        <div style={t.logo}>
-          <div style={t.logoMark}>Z</div>
-          <span style={t.logoText}>Zevian</span>
+        <div style={{ ...t.logo, padding: '9px 16px' }}>
+          <img src="/logo.png" alt="Zevian" style={{ height: '36px', width: 'auto', display: 'block' }} />
         </div>
 
         {/* Org name */}
@@ -88,8 +92,11 @@ export function AppShellClient({ userName, orgName, userRole, children }: Props)
           <div style={t.navLabel}>Workspace</div>
           {NAV_ITEMS.filter(item => userRole !== 'employee' || item.id !== 'employees').map(item => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('view', view);
+            const href = `${item.href}?${params.toString()}`
             return (
-              <Link key={item.id} href={item.href} style={{ textDecoration: 'none' }}>
+              <Link key={item.id} href={href} style={{ textDecoration: 'none' }}>
                 <div
                   className={`nav-item ${isActive ? 'active' : ''}`}
                   style={{
@@ -107,10 +114,18 @@ export function AppShellClient({ userName, orgName, userRole, children }: Props)
           })}
 
           <div style={{ ...t.navLabel, marginTop: '24px' }}>Settings</div>
-          {SETTINGS_ITEMS.filter(item => userRole !== 'employee' || item.id !== 'organization').map(item => {
+          {SETTINGS_ITEMS.filter(item => {
+            if (item.id === 'organization') {
+              return userRole !== 'employee' && canManageSettings
+            }
+            return true
+          }).map(item => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('view', view);
+            const href = `${item.href}?${params.toString()}`
             return (
-              <Link key={item.id} href={item.href} style={{ textDecoration: 'none' }}>
+              <Link key={item.id} href={href} style={{ textDecoration: 'none' }}>
                 <div
                   className={`nav-item ${isActive ? 'active' : ''}`}
                   style={{
@@ -141,7 +156,7 @@ export function AppShellClient({ userName, orgName, userRole, children }: Props)
       </aside>
 
       <div style={{ marginLeft: layout.sidebarWidth, minHeight: '100vh', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Header title={pageTitle} subtitle="— Direct Reports" userName={userName} />
+        <Header title={pageTitle} subtitle={subtitle} userName={userName} showViewSwitcher={canViewOrganizationWide} />
         <div style={{ paddingTop: layout.headerHeight, flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1 }}>
             {children}

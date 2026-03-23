@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { colors, radius, typography, animation, layout, shadows } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { ScoreDisplay } from '@/components/atoms/Score'
+import { Accordion } from '@/components/molecules/Accordion'
 
 type SubmissionStep = 1 | 2 | 3 | 4
 
@@ -55,6 +57,7 @@ const MOCK_GOALS: Goal[] = [
 ]
 
 export function SubmitReportView() {
+    const router = useRouter()
     const [step, setStep] = useState<SubmissionStep>(1)
     const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null)
     const [accomplishments, setAccomplishments] = useState('')
@@ -175,51 +178,159 @@ export function SubmitReportView() {
             <h2 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px' }}>What did you achieve?</h2>
             <p style={{ color: colors.text3, fontSize: '14px', marginBottom: '32px' }}>Be descriptive. Our AI will use this text to evaluate your progress against goal criteria.</p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, textTransform: 'uppercase', marginBottom: '8px' }}>Accomplishments</label>
-                    <textarea
-                        placeholder="Describe your key wins, metrics achieved, or completed tasks..."
-                        value={accomplishments}
-                        onChange={(e) => setAccomplishments(e.target.value)}
-                        style={{
-                            width: '100%',
-                            height: '180px',
-                            padding: '16px',
-                            background: colors.surface2,
-                            border: `1px solid ${colors.border}`,
-                            borderRadius: '12px',
-                            color: colors.text,
-                            fontSize: '15px',
-                            outline: 'none',
-                            resize: 'none',
-                            fontFamily: 'inherit',
-                            lineHeight: 1.6
-                        }}
-                    />
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: '40px', alignItems: 'start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, textTransform: 'uppercase', marginBottom: '8px' }}>Accomplishments</label>
+                        <textarea
+                            placeholder="Describe your key wins, metrics achieved, or completed tasks..."
+                            value={accomplishments}
+                            onChange={(e) => setAccomplishments(e.target.value)}
+                            style={{
+                                width: '100%',
+                                height: '220px',
+                                padding: '16px',
+                                background: colors.surface2,
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '12px',
+                                color: colors.text,
+                                fontSize: '15px',
+                                outline: 'none',
+                                resize: 'none',
+                                fontFamily: 'inherit',
+                                lineHeight: 1.6
+                            }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, textTransform: 'uppercase', marginBottom: '8px' }}>Blockers & Challenges (Optional)</label>
+                        <textarea
+                            placeholder="Anything slowing you down or requiring manager attention?"
+                            value={blockers}
+                            onChange={(e) => setBlockers(e.target.value)}
+                            style={{
+                                width: '100%',
+                                height: '100px',
+                                padding: '16px',
+                                background: colors.surface2,
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: '12px',
+                                color: colors.text,
+                                fontSize: '15px',
+                                outline: 'none',
+                                resize: 'none',
+                                fontFamily: 'inherit',
+                                lineHeight: 1.6
+                            }}
+                        />
+                    </div>
                 </div>
-                <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: colors.text2, textTransform: 'uppercase', marginBottom: '8px' }}>Blockers & Challenges (Optional)</label>
-                    <textarea
-                        placeholder="Anything slowing you down or requiring manager attention?"
-                        value={blockers}
-                        onChange={(e) => setBlockers(e.target.value)}
-                        style={{
-                            width: '100%',
-                            height: '100px',
-                            padding: '16px',
-                            background: colors.surface2,
-                            border: `1px solid ${colors.border}`,
-                            borderRadius: '12px',
-                            color: colors.text,
-                            fontSize: '15px',
-                            outline: 'none',
-                            resize: 'none',
-                            fontFamily: 'inherit',
-                            lineHeight: 1.6
-                        }}
-                    />
+
+                {/* Reports Due Section (Mock) */}
+                <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '16px', overflow: 'hidden', marginBottom: '16px' }}>
+                    <div style={{ padding: '14px 18px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Icon name="clock" size={13} color={colors.text3} />
+                            <span style={{ fontSize: '10px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Reports Due</span>
+                        </div>
+                        <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            onClick={() => router.push('/my-goals')}
+                            style={{ fontSize: '10px', height: '24px', padding: '0 8px' }}
+                        >
+                            See all
+                        </Button>
+                    </div>
+                    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {[
+                            { id: 1, label: 'Due today', sublabel: 'Today · 17:00', color: colors.warn, projectName: 'Apollo Project', goalName: 'Increase Test Coverage' },
+                            { id: 2, label: 'Due tomorrow', sublabel: 'Tomorrow', color: colors.warn, projectName: 'Zevian Core', goalName: 'Refactor Auth Module' }
+                        ].map(item => (
+                            <div 
+                                key={item.id} 
+                                style={{ 
+                                    background: `${item.color}08`, 
+                                    border: `1px solid ${item.color}20`, 
+                                    borderRadius: '12px', 
+                                    padding: '12px', 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    gap: '8px'
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '4px', height: '16px', borderRadius: '2px', background: item.color }} />
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: '12.5px', fontWeight: 800, color: item.color }}>{item.label}</div>
+                                        <div style={{ fontSize: '10.5px', color: colors.text3 }}>{item.sublabel}</div>
+                                    </div>
+                                </div>
+                                <div style={{ padding: '8px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
+                                    <div style={{ fontSize: '9px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', marginBottom: '1px' }}>{item.projectName}</div>
+                                    <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text2 }}>{item.goalName}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
+
+                {/* Guidelines Sidebar */}
+                <Accordion 
+                    allowMultiple={true}
+                    initialOpenIndices={[0]}
+                    items={[
+                        {
+                            title: "How to write a report that scores well",
+                            content: (
+                                <div style={{ paddingTop: '8px' }}>
+                                    <div style={{ fontSize: '12px', fontWeight: 700, color: colors.text, marginBottom: '10px', lineHeight: 1.4 }}>
+                                        The AI scores what you did, not what you say you did. Be specific.
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        <div style={{ fontSize: '11px', color: colors.text2, lineHeight: 1.6 }}>
+                                            <div style={{ fontWeight: 800, color: colors.accent, marginBottom: '2px' }}>① Show your work</div>
+                                            Don't say "I improved code quality."<br/>
+                                            Say <strong>"Refactored the auth module, reducing API response time by 30%."</strong>
+                                        </div>
+                                        {/* ... other items (truncated for brevity but I will keep them) */}
+                                        <div style={{ fontSize: '11px', color: colors.text2, lineHeight: 1.6 }}>
+                                            <div style={{ fontWeight: 800, color: colors.accent, marginBottom: '2px' }}>② Address criteria directly</div>
+                                            Your manager set specific criteria for this goal.
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: colors.text2, lineHeight: 1.6 }}>
+                                            <div style={{ fontWeight: 800, color: colors.accent, marginBottom: '2px' }}>③ Short and specific</div>
+                                            A 3-sentence report with real evidence outscores filler.
+                                        </div>
+                                    </div>
+                                    <div style={{ marginTop: '12px', fontSize: '10px', color: colors.text3, textAlign: 'center', lineHeight: 1.3, fontStyle: 'italic' }}>
+                                        Scores are based on evidence. Manager review follows.
+                                    </div>
+                                </div>
+                            )
+                        },
+                        {
+                            title: "Organizational Metrics",
+                            content: (
+                                <div style={{ paddingTop: '8px' }}>
+                                    <div style={{ fontSize: '10.5px', color: colors.text3, marginBottom: '10px', lineHeight: 1.4 }}>
+                                        AI evaluates these across all your reports.
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        {['Team Collaboration', 'Documentation', 'Code Quality'].map((m, idx) => (
+                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', background: colors.surface2, borderRadius: '8px', border: `1px solid ${colors.border}` }}>
+                                                <span style={{ fontSize: '12px', fontWeight: 600, flex: 1 }}>{m}</span>
+                                                <div style={{ width: '30px', height: '2px', background: colors.surface3, borderRadius: '1px' }}>
+                                                    <div style={{ width: '70%', height: '100%', background: colors.accent }} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        }
+                    ]}
+                />
             </div>
         </div>
     )

@@ -1,21 +1,88 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { colors, radius, animation, shadows } from '@/design-system'
 import { Icon, Calendar } from '@/components/atoms'
+import { 
+    format, 
+    subDays, 
+    startOfMonth, 
+    endOfMonth, 
+    subMonths, 
+    isSameDay,
+    parseISO,
+    startOfDay,
+    endOfDay
+} from 'date-fns'
 
 interface DateRangeSelectorProps {
-    startDate?: string
-    endDate?: string
+    startDate?: string // ISO string
+    endDate?: string   // ISO string
+    onRangeChange: (start: string, end: string) => void
 }
 
 export function DateRangeSelector({
-    startDate = 'Feb 01, 2026',
-    endDate = 'Mar 07, 2026'
+    startDate,
+    endDate,
+    onRangeChange
 }: DateRangeSelectorProps) {
     const [isOpen, setIsOpen] = useState(false)
-    const [selectedRange, setSelectedRange] = useState(`${startDate} — ${endDate}`)
     const [showCalendar, setShowCalendar] = useState(false)
+
+    // Helper to format for display
+    const displayFormat = (dateStr?: string) => {
+        if (!dateStr) return '...'
+        try {
+            return format(parseISO(dateStr), 'MMM dd, yyyy')
+        } catch (e) {
+            return 'Invalid Date'
+        }
+    }
+
+    const selectedRange = startDate && endDate 
+        ? `${displayFormat(startDate)} — ${displayFormat(endDate)}`
+        : 'Select Range'
+
+    const handleRangeSelect = (start: Date, end: Date) => {
+        onRangeChange(start.toISOString(), end.toISOString())
+        setIsOpen(false)
+        setShowCalendar(false)
+    }
+
+    const setQuickRange = (range: string) => {
+        const now = new Date()
+        let start = startOfDay(now)
+        let end = endOfDay(now)
+
+        switch (range) {
+            case 'Today':
+                start = startOfDay(now)
+                end = endOfDay(now)
+                break
+            case 'Last 7 Days':
+                start = startOfDay(subDays(now, 7))
+                end = endOfDay(now)
+                break
+            case 'Last 30 Days':
+                start = startOfDay(subDays(now, 30))
+                end = endOfDay(now)
+                break
+            case 'This Month':
+                start = startOfMonth(now)
+                end = endOfMonth(now)
+                break
+            case 'Last Month':
+                const lastMonth = subMonths(now, 1)
+                start = startOfMonth(lastMonth)
+                end = endOfMonth(lastMonth)
+                break
+            default:
+                return
+        }
+
+        onRangeChange(start.toISOString(), end.toISOString())
+        setIsOpen(false)
+    }
 
     const ranges = [
         'Today',
@@ -25,13 +92,6 @@ export function DateRangeSelector({
         'Last Month',
         'Custom Range'
     ]
-
-    const handleRangeSelect = (start: Date, end: Date) => {
-        const format = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-        setSelectedRange(`${format(start)} — ${format(end)}`)
-        setIsOpen(false)
-        setShowCalendar(false)
-    }
 
     return (
         <div style={{ position: 'relative' }}>
@@ -88,8 +148,7 @@ export function DateRangeSelector({
                                         if (range === 'Custom Range') {
                                             setShowCalendar(true)
                                         } else {
-                                            setSelectedRange(range === 'This Month' ? 'Mar 01, 2026 — Mar 31, 2026' : range)
-                                            setIsOpen(false)
+                                            setQuickRange(range)
                                         }
                                     }}
                                     style={{
@@ -106,7 +165,11 @@ export function DateRangeSelector({
                                 </div>
                             ))
                         ) : (
-                            <Calendar onRangeSelect={handleRangeSelect} />
+                            <Calendar 
+                                onRangeSelect={handleRangeSelect} 
+                                initialStart={startDate ? parseISO(startDate) : undefined}
+                                initialEnd={endDate ? parseISO(endDate) : undefined}
+                            />
                         )}
                     </div>
                 </>

@@ -60,8 +60,7 @@ export function LoginForm() {
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '36px', justifyContent: 'center' }}>
-        <div style={{ width: '36px', height: '36px', background: colors.accent, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: typography.fonts.display, fontWeight: 800, fontSize: '16px', color: '#fff', boxShadow: shadows.logoGlow }}>Z</div>
-        <span style={{ fontFamily: typography.fonts.display, fontWeight: 700, fontSize: '22px', letterSpacing: '-0.3px' }}>Zevian</span>
+        <img src="/logo.png" alt="Zevian" style={{ height: '40px', width: 'auto' }} />
       </div>
 
       <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius['2xl'], padding: '32px' }}>

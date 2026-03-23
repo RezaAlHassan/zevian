@@ -8,6 +8,7 @@ import { ScoreDisplay } from '@/components/atoms/Score'
 import { MetaSection } from '@/components/molecules'
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 import { AddProjectSheet } from './AddProjectSheet'
 import { ManageTeamSheet } from './ManageTeamSheet'
@@ -21,6 +22,8 @@ interface Props {
 }
 
 export function ProjectDetailView({ project, employees, readOnly = false, basePath = '/projects', goalBasePath = '/goals' }: Props) {
+    const searchParams = useSearchParams()
+    const view = searchParams.get('view') || 'org'
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isManageTeamOpen, setIsManageTeamOpen] = useState(false)
 
@@ -48,12 +51,12 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                 zIndex: 90,
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: colors.text3 }}>
-                    <Link href={basePath} style={{ color: colors.text2, textDecoration: 'none' }}>Projects</Link>
+                    <Link href={`${basePath}?${searchParams.toString()}`} style={{ color: colors.text2, textDecoration: 'none' }}>Projects</Link>
                     <span style={{ color: colors.text3 }}>/</span>
                     <span style={{ color: colors.text, fontWeight: 500 }}>{project.name}</span>
                 </div>
                 <div style={{ flex: 1 }} />
-                {true && <Button variant="secondary" size="sm" icon="settings" onClick={() => setIsEditOpen(true)}>Settings</Button>}
+                {!readOnly && <Button variant="secondary" size="sm" icon="settings" onClick={() => setIsEditOpen(true)}>Settings</Button>}
             </header>
 
             <div style={{ padding: '28px 28px 60px' }}>
@@ -130,7 +133,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                     Active Goals ({goals.length})
                                 </div>
                                 {!readOnly && (
-                                    <Link href={`${goalBasePath}/create?projectId=${project.id}`} style={{ textDecoration: 'none' }}>
+                                    <Link href={`${goalBasePath}/create?projectId=${project.id}&view=${view}`} style={{ textDecoration: 'none' }}>
                                         <Button variant="ghost" size="sm">Add Goal</Button>
                                     </Link>
                                 )}
@@ -139,7 +142,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                 {goals.length > 0 ? (
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                         {goals.map((goal: any, i: number) => (
-                                            <Link key={goal.id} href={`${goalBasePath}/${goal.id}`} style={{ textDecoration: 'none' }}>
+                                            <Link key={goal.id} href={`${goalBasePath}/${goal.id}?${searchParams.toString()}`} style={{ textDecoration: 'none' }}>
                                                 <div style={{
                                                     padding: '16px 20px',
                                                     display: 'flex',
@@ -215,8 +218,8 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                                     <div style={{ fontSize: '11.5px', color: colors.text3 }}>Goal: {report.goals?.name || 'Goal Update'} • By {report.employees?.name || 'Unknown'}</div>
                                                 </div>
                                                 <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <ScoreDisplay score={report.evaluationScore} size="sm" />
-                                                    <Link href={`${basePath.includes('my-') ? '/my-reports' : '/reports'}/${report.id}`}>
+                                                    <ScoreDisplay score={report.managerOverallScore ?? report.evaluationScore} size="sm" />
+                                                    <Link href={`${basePath.includes('my-') ? '/my-reports' : '/reports'}/${report.id}?${searchParams.toString()}`}>
                                                         <Button variant="secondary" size="sm" icon="chevronRight">
                                                             View
                                                         </Button>

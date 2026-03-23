@@ -6,7 +6,7 @@ import { Icon } from '@/components/atoms/Icon'
 import { ScoreDisplay } from '@/components/atoms/Score'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { AddGoalSheet } from '@/components/organisms/AddGoalSheet'
 import { MetaSection } from '@/components/molecules'
 
@@ -22,23 +22,89 @@ interface GoalsProps {
 
 export function GoalsView({ goals: initialGoals, projects, employees, readOnly = false, basePath = '/goals' }: GoalsProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const view = searchParams.get('view') || 'org'
   const [viewMode, setViewMode] = useState<'Table' | 'Grid'>('Table')
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingGoal, setEditingGoal] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedProject, setSelectedProject] = useState('All')
+  const [statusFilter, setStatusFilter] = useState('active_all')
+  const [sortBy, setSortBy] = useState<'due' | 'score' | 'reports' | 'name'>('due')
   const [isCompletedOpen, setIsCompletedOpen] = useState(false)
   const [loading, setLoading] = useState<string | null>(null)
 
-  // Filter goals
-  const activeGoals = initialGoals.filter(g => g.status !== 'completed' && g.status !== 'done')
-  const completedGoals = initialGoals.filter(g => g.status === 'completed' || g.status === 'done')
+  // Filter and Sort goals
+  const filteredAndSortedGoals = React.useMemo(() => {
+    let result = initialGoals.filter(g => {
+      const matchesSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesProject = selectedProject === 'All' || g.project?.name === selectedProject
+      
+      let matchesStatus = true
+      if (statusFilter === 'active_all') {
+        matchesStatus = g.status !== 'completed' && g.status !== 'done'
+      } else if (statusFilter === 'completed_all') {
+        matchesStatus = g.status === 'completed' || g.status === 'done'
+      } else if (statusFilter !== 'all') {
+        matchesStatus = g.status === statusFilter
+      }
+      
+      return matchesSearch && matchesProject && matchesStatus
+    })
 
-  const filteredGoals = activeGoals.filter(g => {
-    const matchesSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesProject = selectedProject === 'All' || g.project?.name === selectedProject
-    return matchesSearch && matchesProject
-  })
+    // Sorting
+    result.sort((a, b) => {
+      if (sortBy === 'due') {
+        const getDueDate = (g: any) => {
+          let dueDate = new Date(g.deadline || 8640000000000000) // fallback to far future
+          const periods = g.reporting_periods || []
+          
+          let relevant = periods.find((p: any) => p.status === 'pending' || p.status === 'late')
+          let isSub = false
+          if (!relevant) {
+            const subs = periods.filter((p: any) => p.status === 'submitted')
+            if (subs.length > 0) {
+              subs.sort((a: any, b: any) => new Date(b.period_end).getTime() - new Date(a.period_end).getTime())
+              relevant = subs[0]
+              isSub = true
+            }
+          }
+          
+          if (relevant) {
+            let nextDate = new Date(relevant.period_end)
+            if (isSub) {
+              const freq = g.project?.reportFrequency || g.project?.frequency || 'weekly'
+              if (freq === 'daily') nextDate.setDate(nextDate.getDate() + 1)
+              else if (freq === 'biweekly') nextDate.setDate(nextDate.getDate() + 14)
+              else if (freq === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1)
+              else nextDate.setDate(nextDate.getDate() + 7)
+            }
+            dueDate = nextDate
+          }
+          return dueDate.getTime()
+        }
+        
+        return getDueDate(a) - getDueDate(b)
+      }
+      if (sortBy === 'score') {
+        return (b.avg_score || 0) - (a.avg_score || 0)
+      }
+      if (sortBy === 'reports') {
+        return (b.report_count || 0) - (a.report_count || 0)
+      }
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name)
+      }
+      return 0
+    })
+
+    return result
+  }, [initialGoals, searchQuery, selectedProject, statusFilter, sortBy])
+
+  // Legacy splits for the accordion section
+  const completedGoalsCount = initialGoals.filter(g => g.status === 'completed' || g.status === 'done').length
+
+  const showCompletedAccordion = statusFilter === 'active_all' || statusFilter === 'active' || statusFilter === 'at-risk' || statusFilter === 'review' || statusFilter === 'on-track'
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -109,12 +175,66 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
               <option value="All">All Projects</option>
               {projects.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
             </select>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{
+                padding: '7px 12px',
+                background: colors.surface,
+                border: `1px solid ${colors.border}`,
+                borderRadius: radius.md,
+                fontSize: '12.5px',
+                color: colors.text2,
+                outline: 'none',
+                cursor: 'pointer',
+                fontFamily: typography.fonts.body
+              }}
+            >
+              <optgroup label="Active">
+                <option value="active_all">All Active</option>
+                <option value="active">Only Active</option>
+                <option value="on-track">On Track</option>
+                <option value="at-risk">At Risk</option>
+                <option value="review">Needs Review</option>
+              </optgroup>
+              <optgroup label="Completed">
+                <option value="completed_all">All Completed</option>
+                <option value="completed">Completed</option>
+                <option value="done">Done</option>
+              </optgroup>
+              <option value="all">All Goals</option>
+            </select>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                style={{
+                  padding: '7px 12px',
+                  background: colors.surface,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: radius.md,
+                  fontSize: '12.5px',
+                  color: colors.text2,
+                  outline: 'none',
+                  cursor: 'pointer',
+                  fontFamily: typography.fonts.body
+                }}
+              >
+                <option value="due">Due Date</option>
+                <option value="score">Avg Score</option>
+                <option value="reports">Report Count</option>
+                <option value="name">Name</option>
+              </select>
+            </div>
           </div>
 
           {/* Right: Count & View Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="font-numeric" style={{ fontSize: '12.5px', color: colors.text3, fontWeight: 500 }}>
-              {filteredGoals.length} goals
+              {filteredAndSortedGoals.length} goals
             </div>
 
             {!readOnly && (
@@ -166,7 +286,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
           </div>
         </div>
 
-        {filteredGoals.length === 0 ? (
+        {filteredAndSortedGoals.length === 0 ? (
           <div style={{
             background: colors.surface,
             border: `1px solid ${colors.border}`,
@@ -192,7 +312,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                  {['Goal', 'Project', 'Status', 'Criteria', 'Assigned To', 'Avg Score', 'Due', ''].map((h, idx) => (
+                  {['Goal', 'Project', 'Status', 'Criteria', 'Assigned To', 'Avg Score', 'Next Report', ''].map((h, idx) => (
                     <th key={h} style={{
                       padding: (idx === 0) ? '10px 20px' : '10px 14px',
                       textAlign: 'left',
@@ -208,11 +328,11 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                 </tr>
               </thead>
               <tbody>
-                {filteredGoals.map((goal, i) => (
+                {filteredAndSortedGoals.map((goal, i) => (
                   <tr
                     key={goal.id}
-                    onClick={() => router.push(`${basePath}/${goal.id}`)}
-                    style={{ borderBottom: i === filteredGoals.length - 1 ? 'none' : `1px solid ${colors.border}`, cursor: 'pointer' }}
+                    onClick={() => router.push(`${basePath}/${goal.id}?${searchParams.toString()}`)}
+                    style={{ borderBottom: i === filteredAndSortedGoals.length - 1 ? 'none' : `1px solid ${colors.border}`, cursor: 'pointer' }}
                   >
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ fontWeight: typography.weight.semibold, fontSize: '13.5px', color: colors.text, letterSpacing: '-0.1px' }}>{goal.name}</div>
@@ -269,11 +389,43 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                     <td style={{ padding: '14px 20px' }}>
                       <ScoreDisplay score={goal.avg_score} size="sm" />
                     </td>
-                    <td style={{ padding: '14px 20px', fontSize: '12px', color: colors.text3 }}>
-                      {goal.deadline ? new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                    <td style={{ padding: '14px 20px', fontSize: '12px', color: colors.text }}>
+                      {(() => {
+                        const periods = goal.reporting_periods || []
+                        let relevant = periods.find((p: any) => p.status === 'pending' || p.status === 'late')
+                        let isSub = false
+                        if (!relevant) {
+                          const subs = periods.filter((p: any) => p.status === 'submitted')
+                          if (subs.length > 0) {
+                            subs.sort((a: any, b: any) => new Date(b.period_end).getTime() - new Date(a.period_end).getTime())
+                            relevant = subs[0]
+                            isSub = true
+                          }
+                        }
+                        
+                        if (relevant) {
+                          let nextDate = new Date(relevant.period_end)
+                          if (isSub) {
+                            const freq = goal.project?.reportFrequency || goal.project?.frequency || 'weekly'
+                            if (freq === 'daily') nextDate.setDate(nextDate.getDate() + 1)
+                            else if (freq === 'biweekly') nextDate.setDate(nextDate.getDate() + 14)
+                            else if (freq === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1)
+                            else nextDate.setDate(nextDate.getDate() + 7)
+                          }
+                          const dateStr = nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontWeight: 600 }}>{dateStr}</span>
+                                {isSub && <span style={{ fontSize: '10px', color: colors.green, fontWeight: 700 }}><Icon name="check" size={9} /> Submitted</span>}
+                            </div>
+                          )
+                        }
+                        
+                        return goal.deadline ? new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : <span style={{ color: colors.text3 }}>—</span>
+                      })()}
                     </td>
                     <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                      <Button variant="secondary" size="sm" onClick={() => router.push(`${basePath}/${goal.id}`)}>
+                      <Button variant="secondary" size="sm" onClick={() => router.push(`${basePath}/${goal.id}?${searchParams.toString()}`)}>
                         {readOnly ? 'View' : 'Manage'}
                       </Button>
                     </td>
@@ -284,10 +436,10 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-            {filteredGoals.map(goal => (
+            {filteredAndSortedGoals.map(goal => (
               <div
                 key={goal.id}
-                onClick={() => router.push(`${basePath}/${goal.id}`)}
+                onClick={() => router.push(`${basePath}/${goal.id}?${searchParams.toString()}`)}
                 style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden', cursor: 'pointer', transition: `all ${animation.fast}` }}
               >
                 <div style={{ height: '4px', background: `linear-gradient(90deg, ${colors.accent}, ${colors.teal})` }} />
@@ -342,7 +494,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
       </main>
 
       {/* Completed Accordion */}
-      {completedGoals.length > 0 && (
+      {showCompletedAccordion && completedGoalsCount > 0 && (
         <div style={{ padding: '0 28px 28px' }}>
           <div
             onClick={() => setIsCompletedOpen(!isCompletedOpen)}
@@ -359,15 +511,17 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
             }}
           >
             <Icon name={isCompletedOpen ? 'chevronDown' : 'chevronRight'} size={14} color={colors.text3} />
-            <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text2 }}>Completed Goals (<span style={{ fontFamily: typography.fonts.numeric, fontWeight: typography.weight.black, fontVariantNumeric: 'tabular-nums lining-nums' }}>{completedGoals.length}</span>)</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text2 }}>Completed Goals (<span style={{ fontFamily: typography.fonts.numeric, fontWeight: typography.weight.black, fontVariantNumeric: 'tabular-nums lining-nums' }}>{completedGoalsCount}</span>)</span>
           </div>
 
           {isCompletedOpen && (
             <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {completedGoals.map(goal => (
+              {initialGoals
+                .filter(g => g.status === 'completed' || g.status === 'done')
+                .map(goal => (
                 <div
                   key={goal.id}
-                  onClick={() => router.push(`${basePath}/${goal.id}`)}
+                   onClick={() => router.push(`${basePath}/${goal.id}?${searchParams.toString()}`)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

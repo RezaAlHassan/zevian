@@ -5,6 +5,7 @@ import { StatusPill } from '@/components/atoms/StatusPill'
 import { Icon } from '@/components/atoms/Icon'
 import React from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface ProjectCardProps {
   id: string
@@ -43,6 +44,8 @@ export function ProjectCard({
   readOnly = false,
   basePath = '/projects'
 }: ProjectCardProps) {
+  const searchParams = useSearchParams()
+  const view = searchParams.get('view') || 'org'
   const emojiValue = emoji || '🖥️'
   const scoreColor = getScoreColor(score)
 
@@ -54,7 +57,7 @@ export function ProjectCard({
       : 'linear-gradient(90deg, #5b7fff, #818cf8)'
 
   return (
-    <Link href={`${basePath}/${id}`} style={{ textDecoration: 'none' }}>
+    <Link href={`${basePath}/${id}?${searchParams.toString()}`} style={{ textDecoration: 'none' }}>
       <div
         className="project-card"
         style={{
@@ -69,16 +72,16 @@ export function ProjectCard({
       >
         <div style={{ height: '3px', width: '100%', background: typeof score !== 'number' || isNaN(score) ? colors.surface3 : gradient }} />
 
-        <div style={{ padding: '18px' }}>
+        <div style={{ padding: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: radius.lg,
+              width: '32px',
+              height: '32px',
+              borderRadius: radius.md,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '18px',
+              fontSize: '15px',
               background: typeof score !== 'number' || isNaN(score) ? colors.surface2 : `${scoreColor}15`,
               flexShrink: 0,
             }}>
@@ -147,15 +150,15 @@ export function ProjectCard({
             )}
           </div>
 
-          <div style={{ fontFamily: typography.fonts.display, fontSize: '15px', fontWeight: typography.weight.bold, color: colors.text, letterSpacing: '-0.2px', marginBottom: '4px' }}>
+          <div style={{ fontFamily: typography.fonts.display, fontSize: '14px', fontWeight: typography.weight.bold, color: colors.text, letterSpacing: '-0.2px', marginBottom: '2px' }}>
             {name}
           </div>
 
-          <div style={{ fontSize: '11.5px', color: colors.text3, fontWeight: 500, marginBottom: '12px' }}>
+          <div style={{ fontSize: '11px', color: colors.text3, fontWeight: 500, marginBottom: '10px' }}>
             {category} · {frequency}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
             <StatusPill status={status} score={score} />
 
             <div style={{ display: 'flex', marginLeft: '2px' }}>
@@ -204,18 +207,18 @@ export function ProjectCard({
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '8px',
-            paddingTop: '12px',
+            gap: '6px',
+            paddingTop: '10px',
             borderTop: `1px solid ${colors.border}`
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ fontSize: '10.5px', color: colors.text3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '10px', color: colors.text3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Avg Score
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="font-numeric" style={{
                   fontWeight: typography.weight.black,
-                  fontSize: '16px',
+                  fontSize: '14px',
                   color: scoreColor,
                 }}>
                   {typeof score === 'number' && !isNaN(score) ? score.toFixed(1) : '—'}
@@ -229,7 +232,7 @@ export function ProjectCard({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ fontSize: '10.5px', color: colors.text3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '10px', color: colors.text3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Reports
               </div>
               <div className="font-numeric" style={{ fontSize: '13px', color: colors.text, fontWeight: typography.weight.black }}>
@@ -238,7 +241,7 @@ export function ProjectCard({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ fontSize: '10.5px', color: colors.text3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '10px', color: colors.text3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Goals
               </div>
               <div className="font-numeric" style={{ fontSize: '13px', color: colors.text2, fontWeight: typography.weight.black }}>
@@ -247,10 +250,10 @@ export function ProjectCard({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <div style={{ fontSize: '10.5px', color: colors.text3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '10px', color: colors.text3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Last Report
               </div>
-              <div style={{ fontFamily: typography.fonts.mono, fontSize: '13px', color: status === 'at-risk' ? colors.danger : colors.text2 }}>
+              <div style={{ fontFamily: typography.fonts.mono, fontSize: '12px', color: status === 'at-risk' ? colors.danger : colors.text2 }}>
                 {lastReport}
               </div>
             </div>

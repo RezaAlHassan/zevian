@@ -3,7 +3,7 @@
 import { colors, radius, typography, animation, layout, zIndex, shadows } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 interface Props {
     isOpen: boolean
@@ -20,6 +20,27 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
     const [description, setDescription] = useState(project?.description || '')
     const [key, setKey] = useState(project?.key || (project?.id?.startsWith('mock-') ? project.id.toUpperCase() : ''))
     const [status, setStatus] = useState(project?.status || 'active')
+    const [isInitialized, setIsInitialized] = useState(false)
+
+    useEffect(() => {
+        if (isOpen) {
+            if (project) {
+                setSelectedCategory(project.category || 'Engineering')
+                setSelectedFreq(project.frequency || 'Weekly')
+                setName(project.name || '')
+                setDescription(project.description || '')
+                setKey(project.key || (project.id?.startsWith('mock-') ? project.id.toUpperCase() : ''))
+                setStatus(project.status || 'active')
+            } else {
+                setSelectedCategory('Engineering')
+                setSelectedFreq('Weekly')
+                setName('')
+                setDescription('')
+                setKey('')
+                setStatus('active')
+            }
+        }
+    }, [project, isOpen])
 
     if (!isOpen) return null
 

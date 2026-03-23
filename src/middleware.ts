@@ -77,6 +77,10 @@ export async function middleware(request: NextRequest) {
 
   // Simple Redirect Logic
   if (!user && !isAuthRoute && !isCallbackRoute && !isPublicAsset && pathname !== '/') {
+    // If it's an API route, return 401 JSON instead of redirecting (which returns HTML)
+    if (pathname.startsWith('/api')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     return createRedirect('/login')
   }
 

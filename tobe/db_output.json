@@ -1,0 +1,11 @@
+{
+  "count": 0,
+  "periods": [],
+  "settings": [
+    {
+      "manager_id": "mgr-2",
+      "global_frequency": true,
+      "allow_late_submissions": true
+    }
+  ]
+}

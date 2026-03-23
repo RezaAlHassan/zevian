@@ -8,6 +8,8 @@ import { ScoreDisplay } from '@/components/atoms/Score'
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { MetaSection } from '@/components/molecules'
+import { useSearchParams } from 'next/navigation'
+import { updateGoalMembersAction } from '@/app/actions/goalActions'
 
 import { AddGoalSheet } from './AddGoalSheet'
 import { ManageGoalTeamSheet } from './ManageGoalTeamSheet'
@@ -21,9 +23,12 @@ interface Props {
 }
 
 export function GoalDetailView({ goal, projects, employees, readOnly = false, basePath = '/goals' }: Props) {
+    const searchParams = useSearchParams()
+    const view = searchParams.get('view') || 'org'
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isManageTeamOpen, setIsManageTeamOpen] = useState(false)
     const [currentGoal, setCurrentGoal] = useState(goal)
+    const [isSavingMembers, setIsSavingMembers] = useState(false)
 
     if (!currentGoal) return null
 
@@ -53,7 +58,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                 zIndex: 90,
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: colors.text3 }}>
-                    <Link href={basePath} style={{ color: colors.text2, textDecoration: 'none' }}>Goals</Link>
+                    <Link href={`${basePath}?${searchParams.toString()}`} style={{ color: colors.text2, textDecoration: 'none' }}>Goals</Link>
                     <span style={{ color: colors.text3 }}>/</span>
                     <span style={{ color: colors.text, fontWeight: 500 }}>{goal.name}</span>
                 </div>
@@ -219,8 +224,8 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                                     <div style={{ fontSize: '11.5px', color: colors.text3 }}>by {report.employees?.name || 'Unknown'}</div>
                                                 </div>
                                                 <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <ScoreDisplay score={report.evaluationScore} size="sm" />
-                                                    <Link href={`${basePath.includes('my-') ? '/my-reports' : '/reports'}/${report.id}`}>
+                                                    <ScoreDisplay score={report.managerOverallScore ?? report.evaluationScore} size="sm" />
+                                                    <Link href={`${basePath.includes('my-') ? '/my-reports' : '/reports'}/${report.id}?${searchParams.toString()}`}>
                                                         <Button variant="secondary" size="sm" icon="chevronRight">
                                                             View
                                                         </Button>
@@ -319,8 +324,22 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                 onClose={() => setIsManageTeamOpen(false)}
                 goal={currentGoal}
                 employees={employees}
-                onSave={(newMembers) => {
+                isSaving={isSavingMembers}
+                onSave={async (newMembers) => {
+                    setIsSavingMembers(true)
+                    const memberIds = newMembers.map((m) => m.employee.id)
+                    const result = await updateGoalMembersAction(
+                        currentGoal.id,
+                        memberIds,
+                        currentGoal.projectId || currentGoal.project?.id
+                    )
+                    setIsSavingMembers(false)
+                    if (result.error) {
+                        console.error('Failed to save goal members:', result.error)
+                        return
+                    }
                     setCurrentGoal({ ...currentGoal, goal_members: newMembers })
+                    setIsManageTeamOpen(false)
                 }}
             />
         </div>
