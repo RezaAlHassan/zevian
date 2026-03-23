@@ -166,8 +166,11 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                         ))}
                                     </div>
                                 ) : (
-                                    <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3 }}>
+                                    <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
                                         <div style={{ fontSize: '14px', fontWeight: 500 }}>No goals defined yet.</div>
+                                        <Button variant="primary" size="sm" icon="plus" onClick={() => router.push(`/goals?new=true&project=${project.id}`)}>
+                                            Create First Goal
+                                        </Button>
                                     </div>
                                 )}
                             </div>
