@@ -5,6 +5,7 @@ import { reportService, employeeService, projectService, goalService, customMetr
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { revalidatePath } from 'next/cache'
 import { getPeriodKey } from '@/utils/reportPeriod'
+import { withRetry } from '@/lib/ai/withRetry'
 
 export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', startDate?: string, endDate?: string) {
     try {
@@ -538,26 +539,10 @@ Return ONLY a JSON object in this format:
   "summary": "A 2-3 sentence AI summary of the overall performance."
 }`
 
-        let result: any;
-        let retries = 3;
-        let delay = 2000;
-
-        while (retries > 0) {
-            try {
-                result = await model.generateContent(prompt);
-                break; // Success
-            } catch (err: any) {
-                const isRateLimit = err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('Too Many Requests');
-                if (isRateLimit && retries > 1) {
-                    console.warn(`[analyzeReportAction] Rate limit hit. Retrying in ${delay}ms... (${retries - 1} retries left)`);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    retries--;
-                    delay *= 2;
-                } else {
-                    throw err;
-                }
-            }
-        }
+        const result = await withRetry(
+            'analyzeReportAction',
+            () => model.generateContent(prompt)
+        );
         
         const response = await result.response
         const text = response.text()

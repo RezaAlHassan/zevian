@@ -11,8 +11,13 @@ export default async function EmployeeProjectPage({ params }: { params: { id: st
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) notFound()
 
-    const employee = await employeeService.getByAuthId(user.id)
-    if (!employee) notFound()
+    const [employee, data, { data: employeesData }] = await Promise.all([
+        employeeService.getByAuthId(user.id),
+        projectService.getById(params.id),
+        supabase.from('employees').select('id, name, role').order('name')
+    ]);
+
+    if (!employee || !data) notFound()
 
     let project = null;
     let goals = [];
@@ -20,9 +25,14 @@ export default async function EmployeeProjectPage({ params }: { params: { id: st
     let activity = [];
 
     try {
-        const data = await projectService.getById(params.id);
         if (data) {
-            const assigneesData = await projectService.getAssignees(params.id);
+            const [assigneesData, fetchedGoals, fetchedReports, fetchedActivity] = await Promise.all([
+                projectService.getAssignees(params.id),
+                goalService.getByProjectId(params.id),
+                projectService.getProjectReports(params.id),
+                projectService.getRecentActivity(params.id)
+            ]);
+
             const members = assigneesData?.map((a: any) => ({
                 employee: {
                     id: a.assignee_id,
@@ -31,15 +41,10 @@ export default async function EmployeeProjectPage({ params }: { params: { id: st
                 }
             })) || [];
 
-            goals = await goalService.getByProjectId(params.id);
-            // Filter: employees only see goals they are explicitly assigned to
-            goals = goals.filter((g: any) =>
-                (g.goal_members || []).some((m: any) => m.employee.id === employee.id)
-            );
-            reports = await projectService.getProjectReports(params.id);
+            goals = fetchedGoals;
             // Filter reports to only show current employee's reports
-            reports = reports.filter((r: any) => r.employeeId === employee.id);
-            activity = await projectService.getRecentActivity(params.id);
+            reports = fetchedReports.filter((r: any) => r.employeeId === employee.id);
+            activity = fetchedActivity;
 
             project = {
                 ...data,
@@ -61,12 +66,7 @@ export default async function EmployeeProjectPage({ params }: { params: { id: st
 
     if (!project) notFound()
 
-    const { data: employees } = await supabase
-        .from('employees')
-        .select('id, name, role')
-        .order('name');
-
-    const mappedEmployees = (employees || []).map((e: any) => ({
+    const mappedEmployees = (employeesData || []).map((e: any) => ({
         ...e,
         full_name: e.name
     }))
