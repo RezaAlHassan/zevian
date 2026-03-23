@@ -17,9 +17,9 @@ type TabId = 'general' | 'metrics' | 'users' | 'advanced'
 
 interface Props {
     organization?: Organization
-    employees: any[]
-    customMetrics: any[]
-    currentUserPermissions: {
+    employees: Employee[]
+    customMetrics: CustomMetric[]
+    currentUserPermissions?: {
         canInviteUsers?: boolean
         canManageSettings?: boolean
         canSetGlobalFrequency?: boolean
