@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { runMissedReportCheck } from '@/lib/reportingPeriodsMaintenance';
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Scheduled Cron Job Endpoint for Checking Missed Reports
  * 

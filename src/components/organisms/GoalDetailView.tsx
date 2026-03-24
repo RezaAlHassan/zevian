@@ -8,7 +8,7 @@ import { ScoreDisplay } from '@/components/atoms/Score'
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { MetaSection } from '@/components/molecules'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { updateGoalMembersAction } from '@/app/actions/goalActions'
 
 import { AddGoalSheet } from './AddGoalSheet'
@@ -23,6 +23,7 @@ interface Props {
 }
 
 export function GoalDetailView({ goal, projects, employees, readOnly = false, basePath = '/goals' }: Props) {
+    const router = useRouter()
     const searchParams = useSearchParams()
     const view = searchParams.get('view') || 'org'
     const [isEditOpen, setIsEditOpen] = useState(false)

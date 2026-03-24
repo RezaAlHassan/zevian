@@ -6,6 +6,7 @@ import { colors, layout, componentTokens, typography, animation, radius } from '
 import { Header, EmployeeHeader } from '@/components/atoms'
 import { Icon } from '@/components/atoms/Icon'
 import { useState } from 'react'
+import Image from 'next/image'
 
 interface Props {
     userName: string

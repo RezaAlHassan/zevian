@@ -7,6 +7,7 @@ import { Header } from '@/components/atoms/Header'
 import { Icon } from '@/components/atoms/Icon'
 import { useState } from 'react'
 import { InviteModal } from '@/components/molecules/InviteModal'
+import Image from 'next/image'
 
 interface Props {
   userName: string
@@ -79,7 +80,7 @@ export function AppShellClient({ userName, orgName, userRole, canManageSettings,
       <aside style={t.root}>
         {/* Logo */}
         <div style={{ ...t.logo, padding: '9px 16px' }}>
-          <img src="/logo.png" alt="Zevian" style={{ height: '36px', width: 'auto', display: 'block' }} />
+          <Image src="/logo.png" alt="Zevian" height={36} width={100} style={{ width: 'auto', display: 'block' }} priority />
         </div>
 
         {/* Org name */}

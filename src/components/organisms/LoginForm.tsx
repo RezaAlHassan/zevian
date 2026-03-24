@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { colors, typography, radius, shadows, animation } from '@/design-system'
+import Image from 'next/image'
 
 export function LoginForm() {
   const router = useRouter()
@@ -60,7 +61,7 @@ export function LoginForm() {
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '36px', justifyContent: 'center' }}>
-        <img src="/logo.png" alt="Zevian" style={{ height: '40px', width: 'auto' }} />
+        <Image src="/logo.png" alt="Zevian" height={40} width={100} style={{ width: 'auto' }} priority />
       </div>
 
       <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius['2xl'], padding: '32px' }}>
