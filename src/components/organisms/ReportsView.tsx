@@ -9,6 +9,7 @@ import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import React, { useState, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { Report } from '@/types'
+import { calculateReportStatus } from '@/lib/utils/reportStatus'
 
 interface ReportsViewProps {
   initialReports: any[]
@@ -46,7 +47,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
         goalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         projectName.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const status = report.reviewedBy ? 'reviewed' : (report.evaluationScore !== null ? 'scored' : 'pending')
+      const status = calculateReportStatus(report)
       const matchesStatus = statusFilter === 'all' || status === statusFilter
       const matchesProject = projectFilter === 'all' || projectName === projectFilter
 
@@ -225,7 +226,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
                 const goalName = report.goals?.name || 'Unknown'
                 const projectName = report.goals?.projects?.name || 'Unknown'
                 const score = report.managerOverallScore ?? report.evaluationScore
-                const status = report.isOnLeave ? 'on-leave' : (report.reviewedBy ? 'reviewed' : (report.evaluationScore !== null ? 'scored' : 'pending'))
+                const status = calculateReportStatus(report)
 
                 return (
                   <tr
@@ -307,7 +308,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
             const goalName = report.goals?.name || 'Unknown'
             const projectName = report.goals?.projects?.name || 'Unknown'
             const score = report.managerOverallScore ?? report.evaluationScore
-            const status = report.isOnLeave ? 'on-leave' : (report.reviewedBy ? 'reviewed' : (report.evaluationScore !== null ? 'scored' : 'pending'))
+            const status = calculateReportStatus(report)
 
             return (
               <div

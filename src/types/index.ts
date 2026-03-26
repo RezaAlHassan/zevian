@@ -95,6 +95,7 @@ export interface Report {
     status?: 'pending' | 'scored' | 'reviewed' | 'late';
     aiSummary?: string;
     evaluationReasoning?: string;
+    isOnLeave?: boolean;
     managerOverrideScore?: number;
     managerOverallScore?: number;
     managerOverrideReasoning?: string;
