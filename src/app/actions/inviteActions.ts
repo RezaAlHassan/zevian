@@ -55,16 +55,12 @@ export async function inviteEmployeesAction(data: {
         const initialProjectIds = data.role === 'manager' ? data.assignments : []
         const initialGoalIds = data.role === 'employee' ? data.assignments : []
 
-        const results = []
-
-        for (const email of data.emails) {
-            // Generate a secure token
+        // Generate invitation records
+        const adminClient = createAdminClient()
+        const invitationsToInsert = data.emails.map(email => {
             const token = crypto.randomBytes(32).toString('hex')
-
-            // Create invitation record (using admin client to bypass RLS and ensure all columns are written)
-            const adminClient = createAdminClient()
-            const invId = `inv-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-            const { data: invData, error: invError } = await (adminClient.from('invitations') as any).insert({
+            const invId = `inv-${Date.now()}-${Math.floor(Math.random() * 1000000)}`
+            return {
                 id: invId,
                 token,
                 email,
@@ -79,19 +75,25 @@ export async function inviteEmployeesAction(data: {
                 initial_manager_id: data.managerId || null,
                 permission_template: data.permissionTemplate || 'standard',
                 custom_permissions: data.customPermissions || null,
-            }).select().single()
+            }
+        })
 
-            if (invError) throw invError
-            const invitation = invData
+        // Bulk insert invitations
+        const { data: insertedInvitations, error: invError } = await (adminClient.from('invitations') as any)
+            .insert(invitationsToInsert)
+            .select()
 
-            // Construct the accept link
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-            const acceptLink = `${baseUrl}/accept-invite?token=${token}`
+        if (invError) throw invError
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+        // Send emails in parallel
+        const results = await Promise.all(insertedInvitations.map(async (invitation: any) => {
+            const acceptLink = `${baseUrl}/accept-invite?token=${invitation.token}`
             console.log('--- TEST INVITATION LINK ---')
             console.log(acceptLink)
             console.log('----------------------------')
 
-            // Send Email using Resend
             const emailTemplate = (
                 `<div>
                     <h1>You've been invited to join Zevian!</h1>
@@ -99,21 +101,19 @@ export async function inviteEmployeesAction(data: {
                     <p><a href="${acceptLink}">${acceptLink}</a></p>
                  </div>`
             )
-            // Note: Since emailService requires a React element, we may need to adapt this
-            // or use a simple raw email sending if the Resend client allows HTML format.
-            // For now, let's assume we can build a simple React component or string HTML.
 
-            // Here we use a fake component for simplicity, or we update the emailService 
-            // to accept simple HTML strings.
-
-            await sendEmail({
-                to: email,
-                subject: "You're invited to Zevian",
-                html: emailTemplate,
-            })
-
-            results.push({ email, success: true })
-        }
+            try {
+                await sendEmail({
+                    to: invitation.email,
+                    subject: "You're invited to Zevian",
+                    html: emailTemplate,
+                })
+                return { email: invitation.email, success: true }
+            } catch (emailError) {
+                console.error(`Failed to send email to ${invitation.email}:`, emailError)
+                return { email: invitation.email, success: false, error: 'Email failed to send' }
+            }
+        }))
 
         return { success: true, results }
     } catch (error: any) {
