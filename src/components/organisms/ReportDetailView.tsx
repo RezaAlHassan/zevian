@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { Report } from '@/types'
 import { useScoreReport } from '@/hooks/useScoreReport'
 import { overrideReportScoreAction } from '@/app/actions/reportActions'
+import { calculateReportStatus } from '@/lib/utils/reportStatus'
 
 interface ReportDetailProps {
     report: Report
@@ -75,7 +76,11 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
     const employeeName = report.employees?.name || 'Unknown'
     const goalName = report.goals?.name || 'Unknown Goal'
     const projectName = report.goals?.projects?.name || 'Unknown Project'
-    const status = report.reviewedBy ? 'reviewed' : (effectiveScore ? 'scored' : 'pending')
+    const status = calculateReportStatus({
+        isOnLeave: report.isOnLeave,
+        reviewedBy: report.reviewedBy,
+        evaluationScore: effectiveScore
+    })
 
     return (
         <div style={{ background: colors.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
