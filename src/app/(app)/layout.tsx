@@ -17,6 +17,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     return <AppShellServer profile={null}>{children}</AppShellServer>
   }
 
+  if (employee.isActive === false) {
+    redirect('/login')
+  }
+
   // RBAC Check: Only managers and admins can access routes in (app)
   if (employee.role === 'employee') {
     redirect('/my-dashboard')

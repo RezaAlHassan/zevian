@@ -75,8 +75,8 @@ export function EmployeeDashboardView({ data, showDateSelector = true }: Props) 
                 handledGoalIds.add(gid)
                 const isSubmitted = p.status === 'submitted'
                 const pEnd = p.periodEnd || p.period_end
-                
-                let dateToUse = new Date(pEnd)
+
+                let dateToUse = new Date(typeof pEnd === 'string' && !pEnd.includes('T') ? pEnd + 'T12:00:00' : pEnd)
                 const freq = goal.projectFrequency || goal.project?.reportFrequency || goal.project?.report_frequency || goal.project?.frequency || 'weekly'
                 
                 // If the most relevant period is already submitted, the *next* report is due one frequency after its end date.
@@ -108,7 +108,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true }: Props) 
         (goals || []).forEach((g: any) => {
             if (handledGoalIds.has(g.id) || !g.deadline) return
             
-            const deadline = new Date(g.deadline)
+            const deadline = new Date(typeof g.deadline === 'string' && !g.deadline.includes('T') ? g.deadline + 'T12:00:00' : g.deadline)
             const midnightDeadline = new Date(deadline)
             midnightDeadline.setHours(0,0,0,0)
             

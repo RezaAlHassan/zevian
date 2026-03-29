@@ -29,13 +29,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [projectFilter, setProjectFilter] = useState('all')
   const [sortBy, setSortBy] = useState<'due' | 'score'>('due')
-
-  const projectOptions = useMemo(() => {
-    const projects = new Set(initialReports.map(r => r.goals?.projects?.name).filter(Boolean))
-    return Array.from(projects).sort()
-  }, [initialReports])
 
   const filteredAndSortedReports = useMemo(() => {
     let result = initialReports.filter(report => {
@@ -49,9 +43,8 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
 
       const status = calculateReportStatus(report)
       const matchesStatus = statusFilter === 'all' || status === statusFilter
-      const matchesProject = projectFilter === 'all' || projectName === projectFilter
 
-      return matchesSearch && matchesStatus && matchesProject
+      return matchesSearch && matchesStatus
     })
 
     // Sorting
@@ -67,7 +60,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
     })
 
     return result
-  }, [searchQuery, statusFilter, projectFilter, sortBy, initialReports])
+  }, [searchQuery, statusFilter, sortBy, initialReports])
 
   const kpis = [
     { label: role === 'manager' ? 'Total Reports' : 'My Reports', value: kpiData.totalReports.toString(), icon: 'fileText' as const, sub: role === 'manager' ? 'Direct reports total' : 'All your submissions', color: colors.accent },
@@ -107,17 +100,6 @@ export function ReportsView({ initialReports, kpiData, role = 'manager' }: Repor
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-
-          <select
-            style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12.5px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
-          >
-            <option value="all">All Projects</option>
-            {projectOptions.map(p => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
 
           <select
             style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12.5px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}

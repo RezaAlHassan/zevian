@@ -20,6 +20,7 @@ interface Props {
     projects: any[]
     employees: any[]
     goal?: any
+    onCreated?: (goalId: string) => void
 }
 
 const importanceWeights = { low: 1, medium: 2, high: 3, critical: 5 }
@@ -63,7 +64,7 @@ const templates = {
     }
 }
 
-export function AddGoalSheet({ isOpen, onClose, projects, employees, goal }: Props) {
+export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCreated }: Props) {
     const [name, setName] = useState('')
     const [selectedProjectId, setSelectedProjectId] = useState('')
     const [deadline, setDeadline] = useState('')
@@ -228,7 +229,11 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal }: Pro
                 criteria
             })
             if (res.success) {
+                const isNew = !goal?.id || goal.id.startsWith('mock-')
                 onClose()
+                if (isNew && res.goalId && onCreated) {
+                    onCreated(res.goalId)
+                }
             } else {
                 alert(res.error || 'Failed to save goal')
             }

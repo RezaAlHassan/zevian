@@ -291,6 +291,31 @@ Round to 1 decimal place.
       if (validScores.length > 0) {
         await supabase.from('criterion_scores').upsert(validScores)
       }
+
+      // Also save full analysis (with evidence/reasoning) to report_criterion_scores for display
+      await supabase.from('report_criterion_scores').delete().eq('report_id', reportId)
+      const fullScores = criteria_scores.map((cs: any) => ({
+        report_id: reportId,
+        criterion_name: cs.name,
+        score: cs.score,
+        evidence: cs.evidence || null,
+        reasoning: cs.reasoning || null,
+      }))
+      if (fullScores.length > 0) {
+        await supabase.from('report_criterion_scores').insert(fullScores)
+      }
+
+      // Also save org metric scores to report_criterion_scores
+      if (org_metrics?.length > 0) {
+        const orgMetricScores = org_metrics.map((m: any) => ({
+          report_id: reportId,
+          criterion_name: m.name,
+          score: m.score,
+          evidence: null,
+          reasoning: m.reasoning || null,
+        }))
+        await supabase.from('report_criterion_scores').insert(orgMetricScores)
+      }
     }
 
     // Update overall report score (saving the integrity flags to ai_summary for manager visibility or just appending them)

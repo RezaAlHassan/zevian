@@ -12,6 +12,11 @@ export default async function EmployeeLayout({ children }: { children: React.Rea
     }
 
     const employee = await employeeService.getByAuthId(user.id)
+
+    if (employee?.isActive === false) {
+        redirect('/login')
+    }
+
     const organization = employee?.organizationId ? { name: 'Zevian' } : null // Using a default for now if org fetch is separate, but shells expect organizations object
 
     // Shell expects a specific profile structure

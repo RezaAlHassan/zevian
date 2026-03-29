@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { employeeService, reportService, goalService } from '@/../databaseService2'
 
-export async function getEmployeesAction() {
+export async function getEmployeesAction(view?: 'org' | 'direct') {
     try {
         const supabase = createServerClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -13,13 +13,37 @@ export async function getEmployeesAction() {
             return { error: 'Not authenticated' }
         }
 
-        const staffMembers = await employeeService.getStaffMembers()
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee) {
+            return { error: 'Employee record not found' }
+        }
 
-        // Fetch all reports to calculate avg scores and last report dates
-        const allReports = await reportService.getAll()
+        const isSenior = employee.isAccountOwner ||
+            employee.role === 'admin' ||
+            (employee.permissions?.canViewOrganizationWide ?? false)
+        const effectiveView = view ?? (isSenior ? 'org' : 'direct')
 
-        // Fetch all goals to calculate goal counts
-        const allGoals = await goalService.getAll()
+        // Enforce: non-senior managers cannot use org view
+        const safeView = (!isSenior && effectiveView === 'org') ? 'direct' : effectiveView
+
+        const staffMembers = safeView === 'direct'
+            ? await employeeService.getTeamMembers(employee.id)
+            : await employeeService.getStaffMembers()
+
+        // Resolve manager names for org view
+        let managerNameMap: Record<string, string> = {}
+        if (safeView === 'org') {
+            const managers = await employeeService.getManagers()
+            for (const m of managers) {
+                managerNameMap[m.id] = m.name
+            }
+        }
+
+        // Fetch reports and goals, then filter to only relevant employees
+        const [allReports, allGoals] = await Promise.all([
+            reportService.getAll(),
+            goalService.getAll()
+        ])
 
         const employeesWithMetrics = staffMembers.map((emp: any) => {
             const empReports = allReports.filter((r: any) => r.employeeId === emp.id)
@@ -44,11 +68,12 @@ export async function getEmployeesAction() {
                 lastReport: lastReportDate && lastReportDate !== 'Pending'
                     ? new Date(lastReportDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : 'Pending',
-                trend: 0 // Placeholder for now
+                trend: 0, // Placeholder for now
+                managerName: emp.managerId ? (managerNameMap[emp.managerId] || null) : null
             }
         })
 
-        return { employees: employeesWithMetrics }
+        return { employees: employeesWithMetrics, isSenior, effectiveView: safeView }
     } catch (error) {
         console.error('getEmployeesAction Error:', error)
         return { error: 'Failed to fetch employees' }
@@ -108,6 +133,73 @@ export async function updatePasswordAction(password: string) {
     } catch (error) {
         console.error('updatePasswordAction Error:', error)
         return { success: false, error: 'Failed to update password' }
+    }
+}
+
+export async function deactivateEmployeeAction(employeeId: string) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+        if (authError || !user) return { success: false, error: 'Not authenticated' }
+
+        const currentUser = await employeeService.getByAuthId(user.id)
+        if (!currentUser || (currentUser.role !== 'manager' && !currentUser.isAccountOwner)) {
+            return { success: false, error: 'Unauthorized' }
+        }
+
+        await employeeService.update(employeeId, { isActive: false } as any)
+        revalidatePath('/organization')
+        return { success: true }
+    } catch (error) {
+        console.error('deactivateEmployeeAction Error:', error)
+        return { success: false, error: 'Failed to deactivate employee' }
+    }
+}
+
+export async function reactivateEmployeeAction(employeeId: string) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+        if (authError || !user) return { success: false, error: 'Not authenticated' }
+
+        const currentUser = await employeeService.getByAuthId(user.id)
+        if (!currentUser || (currentUser.role !== 'manager' && !currentUser.isAccountOwner)) {
+            return { success: false, error: 'Unauthorized' }
+        }
+
+        await employeeService.update(employeeId, { isActive: true } as any)
+        revalidatePath('/organization')
+        return { success: true }
+    } catch (error) {
+        console.error('reactivateEmployeeAction Error:', error)
+        return { success: false, error: 'Failed to reactivate employee' }
+    }
+}
+
+export async function updateEmployeeManagerAction(employeeId: string, managerId: string | null) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+        if (authError || !user) {
+            return { success: false, error: 'Not authenticated' }
+        }
+
+        const currentUser = await employeeService.getByAuthId(user.id)
+        if (!currentUser || (currentUser.role !== 'manager' && !currentUser.isAccountOwner)) {
+            return { success: false, error: 'Unauthorized' }
+        }
+
+        await employeeService.update(employeeId, { managerId: managerId } as any)
+
+        revalidatePath('/organization')
+
+        return { success: true }
+    } catch (error) {
+        console.error('updateEmployeeManagerAction Error:', error)
+        return { success: false, error: 'Failed to update manager' }
     }
 }
 

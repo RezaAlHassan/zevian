@@ -283,7 +283,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                             height: '24px'
                                         }}
                                     >
-                                        Manage
+                                        Assign Employees
                                     </Button>
                                 )}
                             </div>

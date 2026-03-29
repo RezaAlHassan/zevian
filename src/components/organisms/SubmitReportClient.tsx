@@ -19,6 +19,7 @@ interface Props {
     initialGoals: any[]
     initialMetrics: any[]
     employeeId: string
+    goalWeight?: number
     aiConfig?: {
         allowLate?: boolean
         allowLateSubmissions?: boolean
@@ -33,7 +34,7 @@ interface Props {
     pendingPeriods?: any[]
 }
 
-export function SubmitReportClient({ initialProjects, initialGoals, initialMetrics, employeeId, aiConfig, backdateSettings, pendingPeriods }: Props) {
+export function SubmitReportClient({ initialProjects, initialGoals, initialMetrics, employeeId, goalWeight = 70, aiConfig, backdateSettings, pendingPeriods }: Props) {
     const router = useRouter()
     const [currentStep, setCurrentStep] = useState(1)
 
@@ -163,15 +164,24 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
             ...analysisResults.orgMetrics.map((m: any) => m.reason)
         ].filter(Boolean).join(' ')
 
-        const allCriterionScores = analysisResults.goals.flatMap((g: any) => 
-            g.criteria.map((c: any) => ({
-                goalId: g.id,
-                criterionName: c.name,
-                score: c.score,
-                reasoning: c.reason,
-                evidence: c.evidence
+        const allCriterionScores = [
+            ...analysisResults.goals.flatMap((g: any) =>
+                g.criteria.map((c: any) => ({
+                    goalId: g.id,
+                    criterionName: c.name,
+                    score: c.score,
+                    reasoning: c.reason,
+                    evidence: c.evidence
+                }))
+            ),
+            ...(analysisResults.orgMetrics || []).map((m: any) => ({
+                goalId: selectedGoalId,
+                criterionName: m.name,
+                score: m.score,
+                reasoning: m.reason,
+                evidence: undefined
             }))
-        )
+        ]
 
         const result = await submitReportAction({
             goalIds: [selectedGoalId],
@@ -398,7 +408,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
     }
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '24px', alignItems: 'start', paddingBottom: '120px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '24px', alignItems: 'start', padding: layout.contentPadding, paddingBottom: '120px' }}>
             {/* ── Main Flow ───────────────────────── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
@@ -598,8 +608,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                         </div>
                         
                         <div style={{ padding: '16px 20px', background: colors.surface2, borderTop: `1px solid ${colors.border}` }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Button variant="secondary" size="sm" icon="linkExternal">Attach evidence</Button>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                     <span style={{ fontSize: '13px', fontWeight: 700, color: reportText.length >= 50 ? colors.green : colors.text3 }} className="font-numeric">
                                         {reportText.length} / 3,000 chars
@@ -633,17 +642,44 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                     initialOpenIndices={currentStep === 3 ? [0, 1] : [0]}
                     items={[
                         ...(currentStep === 3 ? [{
-                            title: "How to write a report",
+                            title: "How are reports scored",
                             content: (
-                                <div style={{ paddingTop: '8px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <div style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.6 }}>
-                                            <div style={{ fontWeight: 800, color: colors.accent, marginBottom: '2px' }}>① Show your work</div>
-                                            Say <strong>"Refactored the auth module, reducing API response time by 30%."</strong>
+                                <div style={{ paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {/* Score breakdown */}
+                                    <div style={{ fontSize: '12px', color: colors.text3, lineHeight: 1.6 }}>
+                                        AI reads your report against your goal's criteria &amp; instructions, your org's metrics, and past submission history to produce a score.
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '20px', fontWeight: 900, color: colors.accent, lineHeight: 1 }}>{goalWeight}%</div>
+                                            <div style={{ fontSize: '10px', fontWeight: 700, color: colors.accent, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Goal Alignment</div>
+                                            <div style={{ fontSize: '10.5px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>Criteria &amp; instructions</div>
                                         </div>
-                                        <div style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.6 }}>
-                                            <div style={{ fontWeight: 800, color: colors.accent, marginBottom: '2px' }}>② Address criteria directly</div>
-                                            Scores are based exclusively on goal criteria and org metrics.
+                                        <div style={{ flex: 1, background: `${colors.purple}12`, border: `1px solid ${colors.purple}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '20px', fontWeight: 900, color: colors.purple, lineHeight: 1 }}>{100 - goalWeight}%</div>
+                                            <div style={{ fontSize: '10px', fontWeight: 700, color: colors.purple, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Org Metrics</div>
+                                            <div style={{ fontSize: '10.5px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>{initialMetrics.length} metric{initialMetrics.length !== 1 ? 's' : ''} active</div>
+                                        </div>
+                                    </div>
+                                    {/* Divider */}
+                                    <div style={{ borderTop: `1px solid ${colors.border}` }} />
+                                    {/* Tips section */}
+                                    <div>
+                                        <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Tips to score higher</div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.5 }}>
+                                                <div style={{ fontWeight: 800, color: colors.accent, marginBottom: '3px' }}>① Be specific</div>
+                                                <span style={{ color: colors.danger, opacity: 0.8 }}>✗ "Worked on the app"</span><br />
+                                                <span style={{ color: colors.green }}>✓ "Fixed login bug, cut load time by 40%"</span>
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.5 }}>
+                                                <div style={{ fontWeight: 800, color: colors.accent, marginBottom: '3px' }}>② Explain what you did and why</div>
+                                                Don't just list tasks — say what changed or improved as a result.
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.5 }}>
+                                                <div style={{ fontWeight: 800, color: colors.accent, marginBottom: '3px' }}>③ Cover your goal and org metrics</div>
+                                                Touch on both — the AI only scores what it sees in your report.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -651,26 +687,80 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                         }] : []),
                         {
                             title: "Selected Context",
+                            content: (() => {
+                                const selectedGoal = currentStep === 3 && selectedGoalId
+                                    ? eligibleGoals.find(g => g.id === selectedGoalId)
+                                    : null
+                                return (
+                                    <div style={{ paddingTop: '8px' }}>
+                                        {selectedProjectId ? (
+                                            <div style={{ fontSize: '13px', color: colors.text2, marginBottom: '8px' }}>
+                                                <strong>Project:</strong> <br/>
+                                                {initialProjects.find(p => p.id === selectedProjectId)?.name || 'Unknown'}
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: '12px', color: colors.text3 }}>No project selected.</div>
+                                        )}
+                                        {selectedDate && (
+                                            <div style={{ fontSize: '13px', color: colors.text2, marginTop: '8px' }}>
+                                                <strong>Submission Date:</strong> <br/>
+                                                {selectedDate}
+                                                {isBackdatedSelection && <span style={{ color: colors.warn, marginLeft: '4px', fontSize: '11px', fontWeight: 800 }}>(LATE)</span>}
+                                            </div>
+                                        )}
+                                        {selectedGoal && (
+                                            <>
+                                                <div style={{ borderTop: `1px solid ${colors.border}`, margin: '12px 0' }} />
+                                                <div style={{ fontSize: '13px', color: colors.text2, marginBottom: '10px' }}>
+                                                    <strong>Goal:</strong> <br/>
+                                                    {selectedGoal.name}
+                                                </div>
+                                                <div style={{ fontSize: '11.5px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Instructions</div>
+                                                <div style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.6, marginBottom: '12px' }}>
+                                                    {selectedGoal.instructions || 'No instructions provided.'}
+                                                </div>
+                                                {selectedGoal.criteria && selectedGoal.criteria.length > 0 && (
+                                                    <>
+                                                        <div style={{ fontSize: '11.5px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Evaluation Criteria</div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                            {selectedGoal.criteria.map((c: any, i: number) => (
+                                                                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12.5px', color: colors.text2, padding: '4px 0', borderBottom: `1px solid ${colors.border}` }}>
+                                                                    <span>{c.name}</span>
+                                                                    {c.weight != null && (
+                                                                        <span style={{ fontSize: '11px', fontWeight: 700, color: colors.accent, background: `${colors.accent}18`, borderRadius: '4px', padding: '1px 6px', marginLeft: '8px', flexShrink: 0 }}>
+                                                                            {c.weight}%
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )
+                            })()
+                        },
+                        ...(currentStep === 3 ? [{
+                            title: "Organisation Metrics",
                             content: (
                                 <div style={{ paddingTop: '8px' }}>
-                                    {selectedProjectId ? (
-                                        <div style={{ fontSize: '13px', color: colors.text2, marginBottom: '8px' }}>
-                                            <strong>Project:</strong> <br/>
-                                            {initialProjects.find(p => p.id === selectedProjectId)?.name || 'Unknown'}
-                                        </div>
+                                    {initialMetrics.length === 0 ? (
+                                        <div style={{ fontSize: '12px', color: colors.text3 }}>No metrics configured.</div>
                                     ) : (
-                                        <div style={{ fontSize: '12px', color: colors.text3 }}>No project selected.</div>
-                                    )}
-                                    {selectedDate && (
-                                        <div style={{ fontSize: '13px', color: colors.text2, marginTop: '8px' }}>
-                                            <strong>Submission Date:</strong> <br/>
-                                            {selectedDate}
-                                            {isBackdatedSelection && <span style={{ color: colors.warn, marginLeft: '4px', fontSize: '11px', fontWeight: 800 }}>(LATE)</span>}
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            {initialMetrics.map((m: any, i: number) => (
+                                                <div key={m.id || i} style={{ paddingTop: i === 0 ? '0' : '10px', paddingBottom: '10px', borderBottom: i < initialMetrics.length - 1 ? `1px solid ${colors.border}` : 'none' }}>
+                                                    <div style={{ fontSize: '12.5px', fontWeight: 800, color: colors.text2, marginBottom: '2px' }}>{m.name}</div>
+                                                    <div style={{ fontSize: '12px', color: colors.text3, lineHeight: 1.5 }}>{m.description || 'No description.'}</div>
+                                                </div>
+                                            ))}
                                         </div>
                                     )}
                                 </div>
                             )
-                        }
+                        }] : []),
                     ]}
                 />
             </div>

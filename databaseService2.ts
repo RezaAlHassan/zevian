@@ -240,9 +240,9 @@ export const projectService = {
         const { data, error } = await supabase
             .from('projects')
             .select(`
-                *, 
+                *,
                 project_assignees(assignee_id, assignee_type, employees(name)),
-                goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score))
+                goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score, submission_date))
             `)
             .order('created_at', { ascending: false });
 
@@ -255,9 +255,9 @@ export const projectService = {
         const { data, error } = await supabase
             .from('projects')
             .select(`
-                *, 
+                *,
                 project_assignees(assignee_id, assignee_type, employees(name)),
-                goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score))
+                goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score, submission_date))
             `)
             .eq('id', id)
             .single();
@@ -291,6 +291,18 @@ export const projectService = {
 
         let avgScore: number | null = scoredReports > 0 ? Number((totalScore / scoredReports).toFixed(1)) : null;
 
+        // Find the latest report submission date
+        let lastReportAt: string | null = null;
+        goals.forEach((goal: any) => {
+            const reports = goal.reports || [];
+            reports.forEach((report: any) => {
+                const date = report.submission_date || report.created_at;
+                if (date && (!lastReportAt || new Date(date) > new Date(lastReportAt))) {
+                    lastReportAt = date;
+                }
+            });
+        });
+
         // Determine derived status
         let derivedStatus = 'active'; // Default
         if (goals.length > 0) {
@@ -316,6 +328,7 @@ export const projectService = {
             total_goals: goals.length,
             report_count: reportCount,
             avg_score: avgScore,
+            last_report_at: lastReportAt,
             status: dbProject.status || derivedStatus,
             emoji: '🖥️' // Fallback emoji
         };
@@ -599,9 +612,9 @@ export const projectService = {
         const { data, error } = await supabase
             .from('projects')
             .select(`
-                *, 
+                *,
                 project_assignees(assignee_id, assignee_type, employees(name)),
-                goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score))
+                goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score, submission_date))
             `)
             .in('id', allProjIds)
             .order('created_at', { ascending: false });
@@ -1304,6 +1317,7 @@ function dbEmployeeToEmployee(dbEmployee: any): Employee {
             canOverrideAIScores: (Array.isArray(dbEmployee.employee_permissions) ? dbEmployee.employee_permissions[0] : dbEmployee.employee_permissions).can_override_ai_scores,
         } : undefined,
         skillAnalysis: dbEmployee.skill_analysis || undefined,
+        isActive: dbEmployee.is_active ?? true,
     };
 }
 
@@ -1354,7 +1368,7 @@ export const employeeService = {
             .eq('role', 'manager')
             .order('name', { ascending: true });
         if (error) throw error;
-        return data ? data.map(dbEmployeeToEmployee) : [];
+        return data ? data.map(dbEmployeeToEmployee).filter(e => e.isActive !== false) : [];
     },
 
     async getTeamMembers(managerId: string) {
@@ -1364,7 +1378,7 @@ export const employeeService = {
             .eq('manager_id', managerId)
             .order('name', { ascending: true });
         if (error) throw error;
-        return data ? data.map(dbEmployeeToEmployee) : [];
+        return data ? data.map(dbEmployeeToEmployee).filter(e => e.isActive !== false) : [];
     },
 
     async getStaffMembers() {
@@ -1376,7 +1390,7 @@ export const employeeService = {
             .order('name', { ascending: true });
 
         if (error) throw error;
-        return data ? data.map(dbEmployeeToEmployee) : [];
+        return data ? data.map(dbEmployeeToEmployee).filter(e => e.isActive !== false) : [];
     },
 
     async getByOrganizationId(organizationId: string) {
@@ -1442,6 +1456,7 @@ export const employeeService = {
         if (updates.joinDate !== undefined) dbUpdates.join_date = updates.joinDate;
         if (updates.authUserId !== undefined) dbUpdates.auth_user_id = updates.authUserId;
         if (updates.skillAnalysis !== undefined) dbUpdates.skill_analysis = updates.skillAnalysis;
+        if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
         const { data, error } = await supabase
             .from('employees')
@@ -1924,18 +1939,20 @@ export const dashboardService = {
         if (projectsError) throw projectsError;
         const projectIds = (projectsData || []).map((p: any) => p.id);
 
-        // 3. Get employees
+        // 3. Get employees (active only — inactive excluded from averages and team performance)
         let employeesQuery = supabase
             .from('employees')
             .select('*')
             .eq('organization_id', orgId);
-        
+
         if (view === 'direct') {
             employeesQuery = employeesQuery.eq('manager_id', managerId);
         }
-        
-        const { data: employeesData, error: employeesError } = await employeesQuery;
+
+        const { data: employeesDataRaw, error: employeesError } = await employeesQuery;
         if (employeesError) throw employeesError;
+        // Filter inactive in JS — safe whether or not the is_active column exists yet
+        const employeesData = (employeesDataRaw || []).filter((e: any) => e.is_active !== false);
         const directReportIds = (employeesData || []).map((e: any) => e.id);
 
         // 4. Get reports
@@ -1990,15 +2007,38 @@ export const dashboardService = {
             : 0;
 
         // Organization Metrics average score
-        const selectedMetrics = managerData.organizations?.selected_metrics || [];
+        // selected_metrics stores IDs (e.g. 'communication'); map to display names used in report_criterion_scores
+        const DEFAULT_METRIC_ID_TO_NAME: Record<string, string> = {
+            'communication': 'Communication',
+            'initiative': 'Initiative',
+            'collaboration': 'Collaboration',
+            'delivery': 'On-time Delivery',
+            'quality': 'Work Quality',
+            'problem_solving': 'Problem Solving',
+            'documentation': 'Documentation',
+            'growth': 'Learning & Growth',
+            'ownership': 'Ownership & Accountability',
+        };
+        const selectedMetricIds = managerData.organizations?.selected_metrics || [];
+        const selectedMetricNames = new Set<string>(
+            selectedMetricIds.map((id: string) => DEFAULT_METRIC_ID_TO_NAME[id]).filter(Boolean)
+        );
+        // Also include active custom metric names
+        const { data: customMetricsData } = await supabase
+            .from('organization_custom_metrics')
+            .select('name')
+            .eq('organization_id', orgId)
+            .eq('is_active', true);
+        (customMetricsData || []).forEach((m: any) => selectedMetricNames.add(m.name));
+
         let orgTotalScore = 0;
         let orgScoreCount = 0;
 
-        if (reportsData && selectedMetrics.length > 0) {
+        if (reportsData && selectedMetricNames.size > 0) {
             reportsData.forEach((r: any) => {
                 const scores = r.report_criterion_scores || [];
                 scores.forEach((s: any) => {
-                    if (selectedMetrics.includes(s.criterion_name)) {
+                    if (selectedMetricNames.has(s.criterion_name)) {
                         orgTotalScore += Number(s.score);
                         orgScoreCount++;
                     }
@@ -2047,7 +2087,7 @@ export const dashboardService = {
         // Team Performance (Employees)
         // In Org view, show everyone. In Direct view, show only direct reports.
         const teamPerformance = (employeesData || [])
-            .filter((e: any) => e.id !== managerId) // Exclude self
+            .filter((e: any) => e.id !== managerId && e.role === 'employee') // Exclude self and managers
             .map((e: any) => {
             const empReports = (reportsData || []).filter((r: any) => r.employee_id === e.id);
             const empScore = empReports.length > 0

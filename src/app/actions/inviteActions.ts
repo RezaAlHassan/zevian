@@ -13,11 +13,30 @@ export async function getInviteModalDataAction() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { success: false, error: 'Not authenticated' }
 
-        const [managers, goals, projects] = await Promise.all([
-            employeeService.getManagers(),
-            goalService.getAll(),
-            projectService.getAll()
-        ])
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee) return { success: false, error: 'Employee not found' }
+
+        const isSenior = employee.isAccountOwner ||
+            employee.role === 'admin' ||
+            (employee.permissions?.canViewOrganizationWide ?? false)
+
+        const managers = await employeeService.getManagers()
+
+        let projects, goals
+        if (isSenior) {
+            // Senior managers can assign to any project/goal in the org
+            ;[projects, goals] = await Promise.all([
+                projectService.getAll(),
+                goalService.getAll()
+            ])
+        } else {
+            // Regular managers can only assign to projects they are assigned to
+            // and goals within those projects
+            projects = await projectService.getByEmployeeId(employee.id)
+            const projectIds = new Set(projects.map((p: any) => p.id))
+            const allGoals = await goalService.getAll()
+            goals = allGoals.filter((g: any) => projectIds.has(g.projectId))
+        }
 
         return { success: true, managers, goals, projects }
     } catch (error: any) {

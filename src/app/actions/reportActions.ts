@@ -2,6 +2,7 @@
 
 import { createServerClient, createAdminClient } from '@/lib/supabase/server'
 import { reportService, employeeService, projectService, goalService, customMetricService, organizationService, notificationService } from '@/../databaseService2'
+import { DEFAULT_ORG_METRICS } from '@/constants/metrics'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { revalidatePath } from 'next/cache'
 import { getPeriodKey } from '@/utils/reportPeriod'
@@ -24,11 +25,17 @@ export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', 
         }
 
         if (employee.role !== 'manager' && employee.role !== 'admin' && !employee.isAccountOwner) {
-            // For non-managers, they might only see their own reports 
+            // For non-managers, they might only see their own reports
             return { reports: [], kpis: { totalReports: 0, avgScore: 0, pendingReview: 0, overrides: 0 } }
         }
 
-        const reports: any[] = await reportService.getManagerReports(employee.id, view, employee.organizationId, startDate, endDate)
+        // Enforce: non-senior managers cannot use org view
+        const isSenior = employee.isAccountOwner ||
+            employee.role === 'admin' ||
+            (employee.permissions?.canViewOrganizationWide ?? false)
+        const safeView = (!isSenior && view === 'org') ? 'direct' : view
+
+        const reports: any[] = await reportService.getManagerReports(employee.id, safeView, employee.organizationId, startDate, endDate)
 
         // Calculate KPIs
         const totalReports = reports.length
@@ -211,6 +218,13 @@ export async function getSubmitReportDataAction() {
             organizationService.getById(employee.organizationId)
         ])
 
+        const selectedMetricIds: string[] = organization.selectedMetrics ?? []
+        const activeDefaultMetrics = DEFAULT_ORG_METRICS
+            .filter(m => selectedMetricIds.includes(m.id))
+            .map(m => ({ id: m.id, name: m.name, description: m.desc, isActive: true }))
+        const activeCustomMetrics = customMetrics.filter((m: any) => m.isActive !== false)
+        const allMetrics = [...activeDefaultMetrics, ...activeCustomMetrics]
+
         // Only include projects that actually have goals assigned to this employee
         const employeeGoalProjectIds = new Set(goals.map((g: any) => g.projectId))
         const filteredProjects = projects.filter((p: any) => employeeGoalProjectIds.has(p.id))
@@ -249,9 +263,10 @@ export async function getSubmitReportDataAction() {
             data: {
                 projects: filteredProjects,
                 goals: goals,
-                metrics: customMetrics,
+                metrics: allMetrics,
                 employeeId: employee.id,
                 aiConfig: organization.aiConfig,
+                goalWeight: organization.goalWeight ?? 70,
                 backdateSettings: backdateSettings,
                 pendingPeriods: pendingPeriods || []
             }
@@ -571,16 +586,21 @@ export async function overrideReportScoreAction(reportId: string, newScore: numb
         if (authError || !user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
-        if (!employee || employee.role !== 'manager') {
+        if (!employee || (employee.role !== 'manager' && employee.role !== 'admin')) {
             return { error: 'Unauthorized: Only managers can override scores' }
         }
 
         const report = await reportService.getById(reportId)
         if (!report) return { error: 'Report not found' }
 
-        // Security check: Make sure this manager actually manages the employee who wrote the report
+        // Security check: direct manager OR org-wide permission
         const reportOwner = await employeeService.getById(report.employeeId!)
-        if (reportOwner.managerId !== employee.id) {
+        const isDirectManager = reportOwner.managerId === employee.id
+        const hasOrgWideAccess = employee.isAccountOwner ||
+            employee.role === 'admin' ||
+            (employee.permissions?.canViewOrganizationWide ?? false)
+
+        if (!isDirectManager && !hasOrgWideAccess) {
             return { error: 'Unauthorized: You are not the manager for this employee' }
         }
 

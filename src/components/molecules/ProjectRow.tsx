@@ -184,7 +184,7 @@ export function ProjectRow({
                                     <Button variant="ghost" size="sm" icon="check" onClick={onComplete} style={{ color: colors.green }}>{null}</Button>
                                 )}
                                 {onEdit && (
-                                    <Button variant="ghost" size="sm" icon="settings" onClick={onEdit} style={{ color: colors.accent }}>{null}</Button>
+                                    <Button variant="ghost" size="sm" icon="users" onClick={onEdit} style={{ color: colors.accent }}>{null}</Button>
                                 )}
                                 {onDelete && (
                                     <Button variant="ghost" size="sm" icon="trash" onClick={onDelete} style={{ color: colors.danger }}>{null}</Button>

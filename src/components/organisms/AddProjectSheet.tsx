@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }: Props) {
-    const [selectedCategory, setSelectedCategory] = useState(project?.category || 'Engineering')
+    const [selectedCategory, setSelectedCategory] = useState(project?.category || 'Sales')
     const [selectedFreq, setSelectedFreq] = useState(project?.frequency || 'Weekly')
     const [name, setName] = useState(project?.name || '')
     const [description, setDescription] = useState(project?.description || '')
@@ -34,7 +34,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                 setKey(project.key || (project.id?.startsWith('mock-') ? project.id.toUpperCase() : ''))
                 setStatus(project.status || 'active')
             } else {
-                setSelectedCategory('Engineering')
+                setSelectedCategory('Sales')
                 setSelectedFreq('Weekly')
                 setName('')
                 setDescription('')
@@ -47,11 +47,12 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
     if (!isOpen) return null
 
     const categories = [
+        { label: 'Sales', emoji: '💰' },
+        { label: 'Operations', emoji: '⚙️' },
         { label: 'Engineering', emoji: '🖥️' },
-        { label: 'Design', emoji: '🎨' },
         { label: 'Marketing', emoji: '📣' },
-        { label: 'Product', emoji: '⚙️' },
-        { label: 'Operations', emoji: '🔬' },
+        { label: 'Customer Support', emoji: '🎧' },
+        { label: 'Recruitment', emoji: '🤝' },
         { label: 'Other', emoji: '📊' },
     ]
 

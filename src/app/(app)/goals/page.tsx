@@ -7,7 +7,6 @@ import { createServerClient } from '@/lib/supabase/server'
 export const metadata: Metadata = { title: 'Goals' }
 
 export default async function GoalsPage({ searchParams }: { searchParams: { view?: string } }) {
-  const view = searchParams.view || 'org'
   const supabase = createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -15,15 +14,16 @@ export default async function GoalsPage({ searchParams }: { searchParams: { view
   const employee = await employeeService.getByAuthId(user.id)
   if (!employee) return null
 
+  const canViewOrg = employee.isAccountOwner || employee.permissions?.canViewOrganizationWide || employee.role === 'admin'
+  const effectiveView = searchParams.view ?? (canViewOrg ? 'org' : 'direct')
+
   let [goals, projects, employees] = await Promise.all([
     goalService.getAll(),
     projectService.getAll(),
     employeeService.getAll()
   ])
 
-  const canViewOrg = employee.isAccountOwner || employee.permissions?.canViewOrganizationWide || employee.role === 'admin'
-
-  if (!(canViewOrg && view === 'org')) {
+  if (!(canViewOrg && effectiveView === 'org')) {
     // Filter to Direct Reports only using centralized service logic
     [goals, projects] = await Promise.all([
       goalService.getByEmployeeId(employee.id),

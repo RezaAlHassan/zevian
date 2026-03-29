@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { dashboardService, employeeService, organizationService, customMetricService, goalService, reportService, notificationService, leaveService } from '@/../databaseService2'
 import { CustomMetric } from '@/types'
 
-export async function getDashboardDataAction(view: 'org' | 'direct' = 'org', startDate?: string, endDate?: string) {
+export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?: string, endDate?: string) {
     try {
         const supabase = createServerClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -22,12 +22,18 @@ export async function getDashboardDataAction(view: 'org' | 'direct' = 'org', sta
 
         const organization = await organizationService.getById(employee.organizationId)
         const customMetrics = await customMetricService.getByOrganizationId(employee.organizationId)
-        
+
         // Only include active metrics
         organization.customMetrics = customMetrics.filter((m: CustomMetric) => m.isActive)
 
         if (employee.role === 'manager' || employee.role === 'admin') {
-            const data = await dashboardService.getManagerDashboardData(employee.id, view, startDate, endDate)
+            // Senior roles (owner, admin, or org-wide permission) default to org view;
+            // regular managers default to direct-report view.
+            const isSenior = employee.isAccountOwner ||
+                employee.role === 'admin' ||
+                (employee.permissions?.canViewOrganizationWide ?? false)
+            const effectiveView = view ?? (isSenior ? 'org' : 'direct')
+            const data = await dashboardService.getManagerDashboardData(employee.id, effectiveView, startDate, endDate)
             return { ...data, organization }
         }
 

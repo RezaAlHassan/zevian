@@ -156,9 +156,6 @@ export function Header({ title, subtitle, userName = 'JD', showViewSwitcher = fa
 
       {/* Header Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: '12px' }}>
-        <div className="header-icon-btn">
-          <Icon name="search" size={16} />
-        </div>
         <Link href="/notifications" style={{ textDecoration: 'none' }}>
           <div className="header-icon-btn">
             <Icon name="bell" size={16} />

@@ -39,7 +39,7 @@ export async function upsertProjectAction(formData: any) {
 
         revalidatePath('/dashboard')
         revalidatePath('/projects')
-        return { success: true }
+        return { success: true, projectId: projectData.id }
     } catch (error: any) {
         console.error('upsertProjectAction Error:', error)
         return { error: error.message || 'Failed to save project' }
@@ -103,6 +103,40 @@ export async function updateProjectStatusAction(projectId: string, status: strin
         return { success: true }
     } catch (error: any) {
         return { error: error.message || 'Failed to update status' }
+    }
+}
+
+export async function updateProjectMembersAction(projectId: string, memberIds: string[]) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Not authenticated' }
+
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) {
+            return { error: 'Unauthorized: Only managers can manage project assignments' }
+        }
+
+        // Delete existing assignees then insert new list
+        await supabase.from('project_assignees').delete().eq('project_id', projectId)
+
+        if (memberIds.length > 0) {
+            const rows = memberIds.map(id => ({
+                project_id: projectId,
+                assignee_id: id,
+                assignee_type: 'manager',
+            }))
+            const { error: insertError } = await supabase.from('project_assignees').insert(rows)
+            if (insertError) throw insertError
+        }
+
+        revalidatePath('/projects')
+        revalidatePath('/dashboard')
+        revalidatePath(`/projects/${projectId}`)
+        return { success: true }
+    } catch (error: any) {
+        console.error('updateProjectMembersAction Error:', error)
+        return { error: error.message || 'Failed to update project members' }
     }
 }
 

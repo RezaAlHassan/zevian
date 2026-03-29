@@ -25,7 +25,7 @@ export default async function DashboardPage({
 }: {
   searchParams: { view?: string; start?: string; end?: string }
 }) {
-  const view = (searchParams.view as 'org' | 'direct') || 'org'
+  const view = searchParams.view as 'org' | 'direct' | undefined
   const startDate = searchParams.start
   const endDate = searchParams.end
 

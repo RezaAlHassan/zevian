@@ -41,10 +41,21 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
 
     const handleScore = async () => {
         if (!report.id || evaluationData) return
-        
+
         const result = await scoreReport(report.id)
         if (result) {
-            setEvaluationData(result)
+            setEvaluationData({
+                overall_score: result.overall_score,
+                criterion_scores: (result as any).criteria_scores?.map((c: any) => ({
+                    criterionName: c.name,
+                    score: c.score,
+                    evidence: c.evidence,
+                    reasoning: c.reasoning,
+                    confidence: c.confidence,
+                    weight: c.weight
+                })) || [],
+                summary: result.summary
+            })
         }
     }
 
@@ -268,7 +279,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
             {/* Tabs */}
             <div style={{ display: 'flex', borderBottom: `1px solid ${colors.border}`, padding: '0 26px', background: colors.surface }}>
                 {[
-                    { id: 'breakdown', label: 'Criteria Breakdown' },
+                    { id: 'breakdown', label: 'Analysis' },
                     { id: 'content', label: 'Report Content' },
                     { id: 'activity', label: 'Activity' }
                 ].map(tab => (
@@ -296,9 +307,9 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
                             <Icon name="target" size={13} color={colors.accent} />
-                            Criteria Performance
+                            Criteria Analysis
                         </div>
-                        {!hasScored ? (
+                        {!hasScored || !evaluationData?.criterion_scores?.length ? (
                             <div style={{ padding: '60px 0', textAlign: 'center' }}>
                                 <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: colors.accentGlow, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                                     <Icon name="star" size={26} color={colors.accent} />
@@ -307,25 +318,49 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                                 <div style={{ fontSize: '13px', color: colors.text3, maxWidth: '260px', margin: '0 auto' }}>Click "Score with AI" to generate an objective breakdown against each criterion.</div>
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {evaluationData?.criterion_scores?.map((c: any, idx: number) => (
-                                    <div key={idx} style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '10px', padding: '16px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                            <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>{c.criterion_id || c.criterionName || 'Criterion'}</span>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                                            <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                {evaluationData?.criterion_scores?.map((c: any, idx: number) => {
+                                    const noEvidence = !c.evidence || c.evidence === 'No specific evidence found.'
+                                    const confidenceColor = c.confidence === 'high' ? colors.green : c.confidence === 'medium' ? colors.warn : colors.danger
+                                    return (
+                                        <div key={idx} style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '10px', padding: '16px' }}>
+                                            {/* Header */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>{c.criterionName || c.criterion_id || 'Criterion'}</span>
+                                                {c.confidence && (
+                                                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: `${confidenceColor}18`, color: confidenceColor, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                        {c.confidence} confidence
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {/* Score bar */}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                                                 <ScoreDisplay score={c.score ?? 0} size="md" showBar={false} />
-                                                <ScoreBar score={c.score ?? 0} />
+                                                <div style={{ flex: 1 }}>
+                                                    <ScoreBar score={c.score ?? 0} />
+                                                </div>
                                             </div>
+                                            {/* Evidence */}
+                                            {noEvidence ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', background: `${colors.warn}12`, border: `1px solid ${colors.warn}30`, borderRadius: '6px', padding: '8px 12px', marginBottom: '8px', fontSize: '12px', color: colors.warn }}>
+                                                    <Icon name="alert" size={13} color={colors.warn} />
+                                                    No specific evidence found in report
+                                                </div>
+                                            ) : (
+                                                <div style={{ background: `${colors.teal}10`, borderLeft: `3px solid ${colors.teal}`, borderRadius: '0 6px 6px 0', padding: '8px 12px', marginBottom: '8px' }}>
+                                                    <div style={{ fontSize: '10px', fontWeight: 700, color: colors.teal, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Evidence</div>
+                                                    <div style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.6, fontStyle: 'italic' }}>"{c.evidence}"</div>
+                                                </div>
+                                            )}
+                                            {/* Reasoning */}
+                                            {(c.reasoning || c.feedback) && (
+                                                <div style={{ background: colors.surface3, padding: '10px 12px', borderRadius: '7px', fontSize: '12.5px', color: colors.text2, lineHeight: 1.6 }}>
+                                                    {c.reasoning || c.feedback}
+                                                </div>
+                                            )}
                                         </div>
-                                        {(c.feedback || c.reasoning) && (
-                                            <div style={{ background: colors.surface3, padding: '10px 12px', borderRadius: '7px', fontSize: '12.5px', color: colors.text2, lineHeight: 1.6, marginBottom: '8px' }}>
-                                                {c.feedback || c.reasoning}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         )}
                     </div>

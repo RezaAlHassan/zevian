@@ -9,7 +9,7 @@ import { Card, InviteModal } from '@/components/molecules'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { Organization, Employee, CustomMetric } from '@/types'
 import { updateOrganizationAction, createCustomMetricAction, updateCustomMetricAction, deleteCustomMetricAction } from '@/app/actions/organizationActions'
-import { updateEmployeePermissionsAction } from '@/app/actions/employeeActions'
+import { updateEmployeePermissionsAction, updateEmployeeManagerAction, deactivateEmployeeAction, reactivateEmployeeAction } from '@/app/actions/employeeActions'
 import { updateManagerSettingsAction } from '@/app/actions/managerSettingsActions'
 import { ManagePermissionsModal } from '@/components/organisms/ManagePermissionsModal'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -38,17 +38,21 @@ export function OrganizationView({ organization, employees, customMetrics, curre
 
     const [localEmployees, setLocalEmployees] = useState(employees)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
+    const [managerIds, setManagerIds] = useState<Record<string, string>>(() =>
+        Object.fromEntries((employees || []).map(e => [e.id, e.managerId || '']))
+    )
 
     React.useEffect(() => {
         setLocalEmployees(employees)
+        setManagerIds(Object.fromEntries((employees || []).map(e => [e.id, e.managerId || ''])))
     }, [employees])
 
+    const tabParam = searchParams.get('tab') as TabId
     React.useEffect(() => {
-        const tab = searchParams.get('tab') as TabId
-        if (tab && ['general', 'metrics', 'users', 'advanced'].includes(tab)) {
-            setActiveTab(tab)
+        if (tabParam && ['general', 'metrics', 'users', 'advanced'].includes(tabParam)) {
+            setActiveTab(tabParam)
         }
-    }, [searchParams])
+    }, [tabParam])
 
     React.useEffect(() => {
         if (successMessage) {
@@ -62,6 +66,8 @@ export function OrganizationView({ organization, employees, customMetrics, curre
     const [isSaving, setIsSaving] = useState(false)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [selectedEmployeeForPermissions, setSelectedEmployeeForPermissions] = useState<Employee | null>(null)
+    const [deactivateConfirmId, setDeactivateConfirmId] = useState<string | null>(null)
+    const [usersSubTab, setUsersSubTab] = useState<'active' | 'inactive'>('active')
     const memberCount = 7
 
     const metrics = DEFAULT_ORG_METRICS
@@ -194,9 +200,9 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                     { id: 'general', label: 'General', icon: 'settings' },
                     { id: 'metrics', label: 'Metrics', icon: 'target' },
                     { id: 'users', label: 'Users', icon: 'users' },
-                    { id: 'advanced', label: 'Advanced', icon: 'sparkles', danger: true },
                 ].filter(tab => {
-                    if (tab.id === 'general' || tab.id === 'metrics' || tab.id === 'advanced') {
+                    if (tab.id === 'advanced') return false
+                    if (tab.id === 'general' || tab.id === 'metrics') {
                         return currentUserPermissions?.isAccountOwner || currentUserPermissions?.canManageSettings
                     }
                     return true
@@ -533,105 +539,210 @@ export function OrganizationView({ organization, employees, customMetrics, curre
 
                 {activeTab === 'users' && (
                     <div className="fade-in">
-                        {successMessage && (
-                            <div style={{
-                                position: 'fixed',
-                                top: '100px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                background: colors.green,
-                                color: '#fff',
-                                padding: '12px 24px',
-                                borderRadius: radius.lg,
-                                boxShadow: shadows.cardHover,
-                                zIndex: 1000,
-                                fontSize: '14px',
-                                fontWeight: 600,
-                                animation: 'modalSlideUp 0.3s ease both'
-                            }}>
-                                <Icon name="check" size={16} style={{ marginRight: '8px' }} />
-                                {successMessage}
-                            </div>
-                        )}
-                        <Card title={`Active Members (${localEmployees.length})`} icon="users" action={
-                        (currentUserPermissions?.isAccountOwner || currentUserPermissions?.canInviteUsers) ? (
-                            <Button variant="primary" size="sm" icon="plus" onClick={() => setShowInviteModal(true)}>Invite Member</Button>
-                        ) : null
-                    }>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Member</th>
-                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Role</th>
-                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Reports To</th>
-                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Joined</th>
-                                        <th style={{ textAlign: 'right', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {localEmployees.map(e => (
-                                        <tr key={e.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
-                                            <td style={{ padding: '12px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: getAvatarGradient(e.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#fff' }}>
-                                                        {getInitials(e.name)}
-                                                    </div>
-                                                    <div>
-                                                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{e.name}</div>
-                                                        <div style={{ fontSize: '11px', color: colors.text3 }}>{e.email}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '12px' }}>
-                                                <span style={{
-                                                    padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                                                    background: e.isAccountOwner ? colors.purpleGlow : (e.role === 'manager' ? colors.accentGlow : colors.surface),
-                                                    color: e.isAccountOwner ? colors.purple : (e.role === 'manager' ? colors.accent : colors.text3)
-                                                }}>
-                                                    {e.isAccountOwner ? 'Owner' : e.role}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '12px' }}>
-                                                <select
-                                                    defaultValue={e.managerId || ''}
-                                                    style={{ 
-                                                        background: colors.surface2, 
-                                                        border: `1px solid ${colors.border}`, 
-                                                        borderRadius: '6px', 
-                                                        padding: '4px 8px', 
-                                                        fontSize: '12px', 
-                                                        color: colors.text, 
-                                                        outline: 'none',
-                                                        width: '140px'
-                                                    }}
-                                                >
-                                                    <option value="">No Manager</option>
-                                                    {localEmployees.filter(m => (m.role === 'manager' || m.isAccountOwner) && m.id !== e.id).map(m => (
-                                                        <option key={m.id} value={m.id}>{m.name}</option>
+                        {/* Deactivate confirmation modal */}
+                        {deactivateConfirmId && (() => {
+                            const target = localEmployees.find(e => e.id === deactivateConfirmId)
+                            return (
+                                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, padding: '28px', width: '380px', boxShadow: shadows.cardHover }}>
+                                        <div style={{ fontSize: '16px', fontWeight: 700, color: colors.text, marginBottom: '8px' }}>Deactivate {target?.name}?</div>
+                                        <div style={{ fontSize: '13px', color: colors.text3, lineHeight: 1.6, marginBottom: '24px' }}>
+                                            They will lose access immediately. Historical reports and scores are preserved. You can reactivate them at any time from the Inactive tab.
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                            <Button variant="secondary" size="sm" onClick={() => setDeactivateConfirmId(null)}>Cancel</Button>
+                                            <Button
+                                                variant="primary"
+                                                size="sm"
+                                                style={{ background: colors.danger, borderColor: colors.danger }}
+                                                onClick={async () => {
+                                                    await deactivateEmployeeAction(deactivateConfirmId)
+                                                    setLocalEmployees(prev => prev.map(e => e.id === deactivateConfirmId ? { ...e, isActive: false } : e))
+                                                    setDeactivateConfirmId(null)
+                                                }}
+                                            >
+                                                Deactivate
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })()}
+
+                        {/* Sub-tab toggle */}
+                        {(() => {
+                            const activeEmps = localEmployees.filter(e => e.isActive !== false)
+                            const inactiveEmps = localEmployees.filter(e => e.isActive === false)
+                            return (
+                                <>
+                                    <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', background: colors.surface2, padding: '4px', borderRadius: radius.md, width: 'fit-content', border: `1px solid ${colors.border}` }}>
+                                        {(['active', 'inactive'] as const).map(tab => (
+                                            <button
+                                                key={tab}
+                                                onClick={() => setUsersSubTab(tab)}
+                                                style={{
+                                                    padding: '6px 16px', borderRadius: radius.sm, fontSize: '12px', fontWeight: 600,
+                                                    background: usersSubTab === tab ? colors.surface : 'transparent',
+                                                    color: usersSubTab === tab ? colors.text : colors.text3,
+                                                    border: usersSubTab === tab ? `1px solid ${colors.border}` : '1px solid transparent',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {tab === 'active' ? `Active (${activeEmps.length})` : `Inactive (${inactiveEmps.length})`}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {usersSubTab === 'active' && (
+                                        <Card title={`Active Members (${activeEmps.length})`} icon="users" action={
+                                            (currentUserPermissions?.isAccountOwner || currentUserPermissions?.canInviteUsers) ? (
+                                                <Button variant="primary" size="sm" icon="plus" onClick={() => setShowInviteModal(true)}>Invite Member</Button>
+                                            ) : null
+                                        }>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                <thead>
+                                                    <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
+                                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Member</th>
+                                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Role</th>
+                                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Reports To</th>
+                                                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Joined</th>
+                                                        <th style={{ textAlign: 'right', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {activeEmps.map(e => (
+                                                        <tr key={e.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
+                                                            <td style={{ padding: '12px' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: getAvatarGradient(e.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#fff' }}>
+                                                                        {getInitials(e.name)}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div style={{ fontSize: '13px', fontWeight: 600 }}>{e.name}</div>
+                                                                        <div style={{ fontSize: '11px', color: colors.text3 }}>{e.email}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td style={{ padding: '12px' }}>
+                                                                <span style={{
+                                                                    padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                                                                    background: e.isAccountOwner ? colors.purpleGlow : (e.role === 'manager' ? colors.accentGlow : colors.surface),
+                                                                    color: e.isAccountOwner ? colors.purple : (e.role === 'manager' ? colors.accent : colors.text3)
+                                                                }}>
+                                                                    {e.isAccountOwner ? 'Owner' : e.role}
+                                                                </span>
+                                                            </td>
+                                                            <td style={{ padding: '12px' }}>
+                                                                <select
+                                                                    value={managerIds[e.id] ?? ''}
+                                                                    onChange={async (ev) => {
+                                                                        const newManagerId = ev.target.value
+                                                                        setManagerIds(prev => ({ ...prev, [e.id]: newManagerId }))
+                                                                        await updateEmployeeManagerAction(e.id, newManagerId || null)
+                                                                    }}
+                                                                    style={{
+                                                                        background: colors.surface2,
+                                                                        border: `1px solid ${colors.border}`,
+                                                                        borderRadius: '6px',
+                                                                        padding: '4px 8px',
+                                                                        fontSize: '12px',
+                                                                        color: colors.text,
+                                                                        outline: 'none',
+                                                                        width: '140px'
+                                                                    }}
+                                                                >
+                                                                    <option value="">No Manager</option>
+                                                                    {activeEmps.filter(m => (m.role === 'manager' || m.isAccountOwner) && m.id !== e.id).map(m => (
+                                                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </td>
+                                                            <td style={{ padding: '12px', fontSize: '12px', color: colors.text3 }}>{e.joinDate ? new Date(e.joinDate).toLocaleDateString() : 'N/A'}</td>
+                                                            <td style={{ padding: '12px', textAlign: 'right' }}>
+                                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                                    {(e.role === 'manager' || e.isAccountOwner) && (
+                                                                        <Button variant="secondary" size="sm" icon="settings" onClick={() => setSelectedEmployeeForPermissions(e)}>
+                                                                            Permissions
+                                                                        </Button>
+                                                                    )}
+                                                                    {!e.isAccountOwner && (
+                                                                        <Button
+                                                                            variant="secondary"
+                                                                            size="sm"
+                                                                            style={{ color: colors.danger, borderColor: colors.danger + '40' }}
+                                                                            onClick={() => setDeactivateConfirmId(e.id)}
+                                                                        >
+                                                                            Deactivate
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
                                                     ))}
-                                                </select>
-                                            </td>
-                                            <td style={{ padding: '12px', fontSize: '12px', color: colors.text3 }}>{e.joinDate ? new Date(e.joinDate).toLocaleDateString() : 'N/A'}</td>
-                                            <td style={{ padding: '12px', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                    {(e.role === 'manager' || e.isAccountOwner) && (
-                                                        <Button 
-                                                            variant="secondary" 
-                                                            size="sm" 
-                                                            icon="settings"
-                                                            onClick={() => setSelectedEmployeeForPermissions(e)}
-                                                        >
-                                                            Permissions
-                                                        </Button>
-                                                    )}
-                                                    {!e.isAccountOwner && <Button variant="secondary" size="sm" style={{ color: colors.danger, borderColor: colors.danger + '40' }}>Remove</Button>}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </Card>
+                                                </tbody>
+                                            </table>
+                                        </Card>
+                                    )}
+
+                                    {usersSubTab === 'inactive' && (
+                                        <Card title={`Inactive Members (${inactiveEmps.length})`} icon="users">
+                                            {inactiveEmps.length === 0 ? (
+                                                <div style={{ padding: '32px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>No inactive members.</div>
+                                            ) : (
+                                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                    <thead>
+                                                        <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
+                                                            <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Member</th>
+                                                            <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Role</th>
+                                                            <th style={{ textAlign: 'left', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Joined</th>
+                                                            <th style={{ textAlign: 'right', padding: '12px', fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {inactiveEmps.map(e => (
+                                                            <tr key={e.id} style={{ borderBottom: `1px solid ${colors.border}`, opacity: 0.6 }}>
+                                                                <td style={{ padding: '12px' }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: colors.surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: colors.text3 }}>
+                                                                            {getInitials(e.name)}
+                                                                        </div>
+                                                                        <div>
+                                                                            <div style={{ fontSize: '13px', fontWeight: 600 }}>{e.name}</div>
+                                                                            <div style={{ fontSize: '11px', color: colors.text3 }}>{e.email}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td style={{ padding: '12px' }}>
+                                                                    <span style={{
+                                                                        padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
+                                                                        background: colors.surface2, color: colors.text3
+                                                                    }}>
+                                                                        {e.isAccountOwner ? 'Owner' : e.role}
+                                                                    </span>
+                                                                </td>
+                                                                <td style={{ padding: '12px', fontSize: '12px', color: colors.text3 }}>{e.joinDate ? new Date(e.joinDate).toLocaleDateString() : 'N/A'}</td>
+                                                                <td style={{ padding: '12px', textAlign: 'right' }}>
+                                                                    <Button
+                                                                        variant="secondary"
+                                                                        size="sm"
+                                                                        onClick={async () => {
+                                                                            await reactivateEmployeeAction(e.id)
+                                                                            setLocalEmployees(prev => prev.map(emp => emp.id === e.id ? { ...emp, isActive: true } : emp))
+                                                                        }}
+                                                                    >
+                                                                        Reactivate
+                                                                    </Button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            )}
+                                        </Card>
+                                    )}
+                                </>
+                            )
+                        })()}
                     </div>
                 )}
 

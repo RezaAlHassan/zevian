@@ -17,6 +17,7 @@ interface Employee {
     role: 'manager' | 'employee'
     avatarUrl?: string
     managerId?: string | null
+    managerName?: string | null
     joinDate?: string
     email: string
     avgScore: number
@@ -29,13 +30,13 @@ interface Employee {
 
 interface EmployeesViewProps {
     employees: Employee[]
+    effectiveView?: 'org' | 'direct'
 }
 
-export function EmployeesView({ employees: initialEmployees }: EmployeesViewProps) {
+export function EmployeesView({ employees: initialEmployees, effectiveView = 'org' }: EmployeesViewProps) {
     const router = useRouter()
     const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
     const [searchQuery, setSearchQuery] = useState('')
-    const [roleFilter, setRoleFilter] = useState('')
     const [perfFilter, setPerfFilter] = useState('')
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [leaveModalData, setLeaveModalData] = useState<{ isOpen: boolean; empId: string; empName: string }>({
@@ -46,26 +47,27 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
 
     const filteredEmployees = useMemo(() => {
         return initialEmployees.filter(emp => {
+            if (emp.role === 'manager') return false
             const matchesSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (emp.title || '').toLowerCase().includes(searchQuery.toLowerCase())
-            const matchesRole = roleFilter ? emp.role === roleFilter : true
             const matchesPerf = perfFilter ? (
                 perfFilter === 'hi' ? emp.avgScore >= 7.5 :
                     perfFilter === 'mid' ? (emp.avgScore >= 6 && emp.avgScore < 7.5) :
                         emp.avgScore < 6
             ) : true
 
-            return matchesSearch && matchesRole && matchesPerf
+            return matchesSearch && matchesPerf
         })
-    }, [initialEmployees, searchQuery, roleFilter, perfFilter])
+    }, [initialEmployees, searchQuery, perfFilter])
 
     const stats = useMemo(() => {
+        const nonManagers = initialEmployees.filter(e => e.role !== 'manager')
         return {
-            teamSize: initialEmployees.length,
-            avgScore: (initialEmployees.reduce((acc, curr) => acc + curr.avgScore, 0) / initialEmployees.length).toFixed(1),
-            onTrack: initialEmployees.filter(e => e.avgScore >= 7.5).length,
-            atRisk: initialEmployees.filter(e => e.avgScore < 6.0).length,
-            pending: initialEmployees.filter(e => !e.lastReport || e.lastReport === 'Pending').length, // Simplified logic
+            teamSize: nonManagers.length,
+            avgScore: nonManagers.length ? (nonManagers.reduce((acc, curr) => acc + curr.avgScore, 0) / nonManagers.length).toFixed(1) : '0.0',
+            onTrack: nonManagers.filter(e => e.avgScore >= 7.5).length,
+            atRisk: nonManagers.filter(e => e.avgScore < 6.0).length,
+            pending: nonManagers.filter(e => !e.lastReport || e.lastReport === 'Pending').length,
         }
     }, [initialEmployees])
 
@@ -135,17 +137,6 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
                             }}
                         />
                     </div>
-
-                    <select
-                        value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
-                        style={selectStyle}
-                    >
-                        <option value="">All Roles</option>
-                        <option value="owner">Owner</option>
-                        <option value="manager">Manager</option>
-                        <option value="employee">Employee</option>
-                    </select>
 
                     <select
                         value={perfFilter}
@@ -228,6 +219,7 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
                             <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
                                 <th style={tableHeaderStyle}>Employee</th>
                                 <th style={tableHeaderStyle}>Role</th>
+                                {effectiveView === 'org' && <th style={tableHeaderStyle}>Reports To</th>}
                                 <th style={tableHeaderStyle}>Avg Score</th>
                                 <th style={tableHeaderStyle}>Goals</th>
                                 <th style={tableHeaderStyle}>Last Report</th>
@@ -284,6 +276,11 @@ export function EmployeesView({ employees: initialEmployees }: EmployeesViewProp
                                             {emp.role}
                                         </div>
                                     </td>
+                                    {effectiveView === 'org' && (
+                                        <td style={{ padding: '14px', fontSize: '12.5px', color: colors.text2 }}>
+                                            {emp.managerName || <span style={{ color: colors.text3 }}>--</span>}
+                                        </td>
+                                    )}
                                     <td style={{ padding: '14px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <span className="font-numeric" style={{ fontWeight: 700, fontSize: '15.5px', color: emp.avgScore >= 7.5 ? colors.green : emp.avgScore >= 6 ? colors.warn : colors.danger }}>

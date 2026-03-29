@@ -122,9 +122,9 @@ export function ProjectCard({
                       justifyContent: 'center',
                       cursor: 'pointer',
                     }}
-                    title="Edit Project"
+                    title="Assign Managers"
                   >
-                    <Icon name="settings" size={14} />
+                    <Icon name="users" size={14} />
                   </div>
                 )}
                 {onDelete && (

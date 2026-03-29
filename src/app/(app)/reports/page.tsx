@@ -11,11 +11,12 @@ export default async function ReportsPage({
 }: {
   searchParams: { view?: string; start?: string; end?: string }
 }) {
-  const view = (searchParams.view as 'org' | 'direct') || 'org'
+  // The action itself enforces permission — non-senior managers are forced to 'direct'
+  const view = searchParams.view as 'org' | 'direct' | undefined
   const startDate = searchParams.start
   const endDate = searchParams.end
 
-  const data = await getReportsByManagerAction(view, startDate, endDate)
+  const data = await getReportsByManagerAction(view ?? 'org', startDate, endDate)
 
   if (data.error || !data.reports) {
     return (

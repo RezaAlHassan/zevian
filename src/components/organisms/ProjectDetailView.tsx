@@ -12,6 +12,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 
 import { AddProjectSheet } from './AddProjectSheet'
 import { ManageTeamSheet } from './ManageTeamSheet'
+import { updateProjectMembersAction, upsertProjectAction } from '@/app/actions/projectActions'
 
 interface Props {
     project: any
@@ -27,6 +28,17 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
     const view = searchParams.get('view') || 'org'
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isManageTeamOpen, setIsManageTeamOpen] = useState(false)
+
+    const handleSaveProject = async (updatedProject: any) => {
+        const res = await upsertProjectAction(updatedProject)
+        if (res.success) {
+            setIsEditOpen(false)
+            router.refresh()
+        } else {
+            alert(res.error || 'Failed to save project')
+        }
+    }
+    const [isSavingMembers, setIsSavingMembers] = useState(false)
 
     if (!project) return null
 
@@ -267,7 +279,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                     Team Members ({members.length})
                                 </div>
                                 {!readOnly && (
-                                    <Button variant="ghost" size="sm" onClick={() => setIsManageTeamOpen(true)}>Edit</Button>
+                                    <Button variant="ghost" size="sm" onClick={() => setIsManageTeamOpen(true)}>Assign Managers</Button>
                                 )}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -352,12 +364,22 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                 onClose={() => setIsEditOpen(false)}
                 employees={employees}
                 project={project}
+                onSave={handleSaveProject}
             />
             <ManageTeamSheet
                 isOpen={isManageTeamOpen}
                 onClose={() => setIsManageTeamOpen(false)}
                 project={project}
                 employees={employees}
+                isSaving={isSavingMembers}
+                onSave={async (newMembers) => {
+                    setIsSavingMembers(true)
+                    const memberIds = newMembers.map((m: any) => m.employee.id)
+                    await updateProjectMembersAction(project.id, memberIds)
+                    setIsSavingMembers(false)
+                    setIsManageTeamOpen(false)
+                    router.refresh()
+                }}
             />
         </div>
     )

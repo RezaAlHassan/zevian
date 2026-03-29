@@ -150,8 +150,8 @@ export function Calendar({ mode = 'range', onRangeSelect, onSelect, initialDate,
                     {monthNames[month]} {year}
                 </div>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                    <button onClick={prevMonth} style={navBtnStyle}><Icon name="chevronDown" size={12} style={{ transform: 'rotate(90deg)' }} /></button>
-                    <button onClick={nextMonth} style={navBtnStyle}><Icon name="chevronDown" size={12} style={{ transform: 'rotate(-90deg)' }} /></button>
+                    <button type="button" onClick={prevMonth} style={navBtnStyle}><Icon name="chevronDown" size={12} style={{ transform: 'rotate(90deg)' }} /></button>
+                    <button type="button" onClick={nextMonth} style={navBtnStyle}><Icon name="chevronDown" size={12} style={{ transform: 'rotate(-90deg)' }} /></button>
                 </div>
             </div>
 

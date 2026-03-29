@@ -93,8 +93,6 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
     const tabs = [
         { id: 'profile', label: 'Profile', icon: 'user' },
         { id: 'security', label: 'Security', icon: 'key' },
-        ...(role === 'manager' ? [{ id: 'billing', label: 'Billing', icon: 'briefcase' }] : []),
-        { id: 'danger', label: 'Account', icon: 'alert', danger: true },
     ]
 
 
@@ -113,15 +111,15 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
                             padding: '9px 12px',
                             borderRadius: '9px',
                             cursor: 'pointer',
-                            color: activeTab === tab.id ? (tab.danger ? colors.danger : colors.accent) : colors.text3,
+                            color: activeTab === tab.id ? colors.accent : colors.text3,
                             fontSize: '13px',
                             fontWeight: 600,
-                            background: activeTab === tab.id ? (tab.danger ? colors.dangerGlow : colors.accentGlow) : 'transparent',
+                            background: activeTab === tab.id ? colors.accentGlow : 'transparent',
                             marginBottom: '2px',
                             transition: `all ${animation.fast}`
                         }}
                     >
-                        <Icon name={tab.icon as any} size={15} color={activeTab === tab.id ? (tab.danger ? colors.danger : colors.accent) : colors.text3} />
+                        <Icon name={tab.icon as any} size={15} color={activeTab === tab.id ? colors.accent : colors.text3} />
                         {tab.label}
                     </div>
                 ))}

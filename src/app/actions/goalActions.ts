@@ -45,7 +45,7 @@ export async function upsertGoalAction(formData: any) {
         revalidatePath('/goals')
         revalidatePath('/dashboard')
         revalidatePath(`/projects/${formData.selectedProjectId}`)
-        return { success: true }
+        return { success: true, goalId: goalData.id }
     } catch (error: any) {
         console.error('upsertGoalAction Error:', error)
         return { error: error.message || 'Failed to save goal' }

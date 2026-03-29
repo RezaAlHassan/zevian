@@ -75,7 +75,7 @@ export function Accordion({ items, allowMultiple = false, initialOpenIndices = [
             </button>
             <div 
               style={{ 
-                maxHeight: isOpen ? '500px' : '0', 
+                maxHeight: isOpen ? '1200px' : '0',
                 overflow: 'hidden', 
                 transition: `max-height ${animation.base} ease`,
                 background: colors.surface

@@ -10,7 +10,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { AddGoalSheet } from '@/components/organisms/AddGoalSheet'
 import { MetaSection } from '@/components/molecules'
 
-import { deleteGoalAction, updateGoalStatusAction } from '@/app/actions/goalActions'
+import { deleteGoalAction, updateGoalStatusAction, updateGoalMembersAction } from '@/app/actions/goalActions'
+import { ManageGoalTeamSheet } from '@/components/organisms/ManageGoalTeamSheet'
 
 interface GoalsProps {
   goals: any[]
@@ -35,6 +36,9 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
   const [sortBy, setSortBy] = useState<'due' | 'score' | 'reports' | 'name'>('due')
   const [isCompletedOpen, setIsCompletedOpen] = useState(false)
   const [loading, setLoading] = useState<string | null>(null)
+  const [newlyCreatedGoal, setNewlyCreatedGoal] = useState<any>(null)
+  const [isManageGoalTeamOpen, setIsManageGoalTeamOpen] = useState(false)
+  const [isSavingGoalMembers, setIsSavingGoalMembers] = useState(false)
 
   // Filter and Sort goals
   const filteredAndSortedGoals = React.useMemo(() => {
@@ -125,10 +129,10 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
     }
   }
 
-  const openEdit = (goal: any, e: React.MouseEvent) => {
+  const openAssign = (goal: any, e: React.MouseEvent) => {
     e.stopPropagation()
-    setEditingGoal(goal)
-    setIsAddOpen(true)
+    setNewlyCreatedGoal(goal)
+    setIsManageGoalTeamOpen(true)
   }
 
   return (
@@ -562,8 +566,8 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                         <Button
                           variant="secondary"
                           size="sm"
-                          icon="edit"
-                          onClick={(e) => openEdit(goal, e)}
+                          icon="users"
+                          onClick={(e) => openAssign(goal, e)}
                         >{null}</Button>
                         <Button
                           variant="secondary"
@@ -593,6 +597,32 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
         projects={projects}
         employees={employees}
         goal={editingGoal}
+        onCreated={(goalId) => {
+          setNewlyCreatedGoal({ id: goalId, goal_members: [] })
+          setIsManageGoalTeamOpen(true)
+        }}
+      />
+
+      <ManageGoalTeamSheet
+        isOpen={isManageGoalTeamOpen}
+        onClose={() => {
+          setIsManageGoalTeamOpen(false)
+          setNewlyCreatedGoal(null)
+          router.refresh()
+        }}
+        goal={newlyCreatedGoal || { id: '', goal_members: [] }}
+        employees={employees}
+        isSaving={isSavingGoalMembers}
+        onSave={async (newMembers) => {
+          if (!newlyCreatedGoal) return
+          setIsSavingGoalMembers(true)
+          const memberIds = newMembers.map((m: any) => m.employee.id)
+          await updateGoalMembersAction(newlyCreatedGoal.id, memberIds)
+          setIsSavingGoalMembers(false)
+          setIsManageGoalTeamOpen(false)
+          setNewlyCreatedGoal(null)
+          router.refresh()
+        }}
       />
     </div>
   )

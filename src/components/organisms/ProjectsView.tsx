@@ -6,7 +6,8 @@ import { Icon } from '@/components/atoms/Icon'
 import { ProjectCard } from '@/components/molecules/ProjectCard'
 import { ProjectRow } from '@/components/molecules/ProjectRow'
 import { AddProjectSheet } from '@/components/organisms/AddProjectSheet'
-import { upsertProjectAction, deleteProjectAction, updateProjectStatusAction } from '@/app/actions/projectActions'
+import { ManageTeamSheet } from '@/components/organisms/ManageTeamSheet'
+import { upsertProjectAction, deleteProjectAction, updateProjectStatusAction, updateProjectMembersAction } from '@/app/actions/projectActions'
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -37,13 +38,15 @@ function formatRelativeTime(dateStr: string | null): string {
 
 export function ProjectsView({ projects, employees, readOnly = false, basePath = '/projects' }: ProjectsViewProps) {
   const router = useRouter()
-  const [localProjects, setLocalProjects] = useState(projects)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isCompletedOpen, setIsCompletedOpen] = useState(false)
+  const [managingTeamProject, setManagingTeamProject] = useState<any>(null)
+  const [isManageTeamOpen, setIsManageTeamOpen] = useState(false)
+  const [isSavingTeamMembers, setIsSavingTeamMembers] = useState(false)
 
   // Confirmation Modal State
   const [confModal, setConfModal] = useState<{
@@ -53,8 +56,8 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
     projectName: string;
   }>({ show: false, type: 'complete', projectId: null, projectName: '' })
 
-  const activeProjects = localProjects.filter(p => p.status !== 'completed' && p.status !== 'done')
-  const completedProjects = localProjects.filter(p => p.status === 'completed' || p.status === 'done')
+  const activeProjects = projects.filter(p => p.status !== 'completed' && p.status !== 'done')
+  const completedProjects = projects.filter(p => p.status === 'completed' || p.status === 'done')
 
   const filteredProjects = activeProjects.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -69,8 +72,8 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
   const handleEdit = (project: any, e?: React.MouseEvent) => {
     e?.preventDefault()
     e?.stopPropagation()
-    setEditingProject(project)
-    setIsAddOpen(true)
+    setManagingTeamProject(project)
+    setIsManageTeamOpen(true)
   }
 
   const handleDelete = (id: string, name: string, e?: React.MouseEvent) => {
@@ -100,12 +103,18 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
 
   const handleSaveProject = async (updatedProject: any) => {
     setLoading(true)
+    const isNew = !editingProject
     try {
       const res = await upsertProjectAction(updatedProject)
       if (res.success) {
         setIsAddOpen(false)
         setEditingProject(null)
-        router.refresh()
+        if (isNew && res.projectId) {
+          setManagingTeamProject({ id: res.projectId, name: updatedProject.name, project_members: [] })
+          setIsManageTeamOpen(true)
+        } else {
+          router.refresh()
+        }
       } else {
         alert(res.error || 'Failed to save project')
       }
@@ -282,7 +291,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
                   id={p.id}
                   name={p.name}
                   category={p.category || 'General'}
-                  frequency={p.frequency || 'Weekly'}
+                  frequency={p.reportFrequency ? p.reportFrequency.charAt(0).toUpperCase() + p.reportFrequency.slice(1) : 'Weekly'}
                   status={p.status || 'active'}
                   score={p.avg_score}
                   reportCount={p.report_count || 0}
@@ -331,7 +340,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
                     name={p.name}
                     description={p.description || 'No description provided.'}
                     category={p.category || 'General'}
-                    frequency={p.frequency || 'Weekly'}
+                    frequency={p.reportFrequency ? p.reportFrequency.charAt(0).toUpperCase() + p.reportFrequency.slice(1) : 'Weekly'}
                     status={p.status || 'active'}
                     score={p.avg_score}
                     reportCount={p.report_count || 0}
@@ -482,6 +491,29 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
         project={editingProject}
         onSave={handleSaveProject}
       />
+
+      {managingTeamProject && (
+        <ManageTeamSheet
+          isOpen={isManageTeamOpen}
+          onClose={() => {
+            setIsManageTeamOpen(false)
+            setManagingTeamProject(null)
+            router.refresh()
+          }}
+          project={managingTeamProject}
+          employees={employees}
+          isSaving={isSavingTeamMembers}
+          onSave={async (newMembers) => {
+            setIsSavingTeamMembers(true)
+            const memberIds = newMembers.map((m: any) => m.employee.id)
+            await updateProjectMembersAction(managingTeamProject.id, memberIds)
+            setIsSavingTeamMembers(false)
+            setIsManageTeamOpen(false)
+            setManagingTeamProject(null)
+            router.refresh()
+          }}
+        />
+      )}
 
       <style jsx>{`
         .fade-in {
