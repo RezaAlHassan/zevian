@@ -1368,7 +1368,7 @@ export const employeeService = {
             .eq('role', 'manager')
             .order('name', { ascending: true });
         if (error) throw error;
-        return data ? data.map(dbEmployeeToEmployee).filter(e => e.isActive !== false) : [];
+        return data ? data.map(dbEmployeeToEmployee).filter((e: Employee) => e.isActive !== false) : [];
     },
 
     async getTeamMembers(managerId: string) {
@@ -1378,7 +1378,7 @@ export const employeeService = {
             .eq('manager_id', managerId)
             .order('name', { ascending: true });
         if (error) throw error;
-        return data ? data.map(dbEmployeeToEmployee).filter(e => e.isActive !== false) : [];
+        return data ? data.map(dbEmployeeToEmployee).filter((e: Employee) => e.isActive !== false) : [];
     },
 
     async getStaffMembers() {
@@ -1390,7 +1390,7 @@ export const employeeService = {
             .order('name', { ascending: true });
 
         if (error) throw error;
-        return data ? data.map(dbEmployeeToEmployee).filter(e => e.isActive !== false) : [];
+        return data ? data.map(dbEmployeeToEmployee).filter((e: Employee) => e.isActive !== false) : [];
     },
 
     async getByOrganizationId(organizationId: string) {
