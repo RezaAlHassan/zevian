@@ -104,7 +104,7 @@ export async function inviteEmployeesAction(data: {
 
         if (invError) throw invError
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'
 
         // Send emails in parallel
         const results = await Promise.all(insertedInvitations.map(async (invitation: any) => {
