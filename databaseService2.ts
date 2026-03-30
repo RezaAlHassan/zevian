@@ -2270,12 +2270,11 @@ export const invitationService = {
             .from('invitations')
             .select('*')
             .eq('token', token)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
-        if (error) {
-            if (error.code === 'PGRST116') return null; // not found
-            throw error;
-        }
+        if (error) throw error;
+        if (!data) return null;
         return {
             id: data.id,
             token: data.token,

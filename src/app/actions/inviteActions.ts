@@ -104,7 +104,7 @@ export async function inviteEmployeesAction(data: {
 
         if (invError) throw invError
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
         // Send emails in parallel
         const results = await Promise.all(insertedInvitations.map(async (invitation: any) => {
@@ -218,7 +218,7 @@ export async function acceptInviteAction(token: string, data: { name: string, ti
             }))
             // We need to make sure the table exists, assuming goal_assignees is created as per schema.sql
             // Wait! The user's system may not have `goal_assignees` executed yet, we might fall back to projects if they fail.
-            const { error: gaError } = await supabaseAdmin.from('goal_assignees').insert(gaInsert as any).select().maybeSingle()
+            const { error: gaError } = await supabaseAdmin.from('goal_assignees').insert(gaInsert as any)
             if (gaError && gaError.code !== '42P01') {
                 throw gaError // Throw unless table doesn't exist yet
             }

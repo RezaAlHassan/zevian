@@ -12,12 +12,6 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: [
       '@supabase/supabase-js',
-      'html-to-text',
-      'htmlparser2',
-      'domhandler',
-      'dom-serializer',
-      'deepmerge',
-      '@selderee/plugin-htmlparser2',
     ],
   },
 }
