@@ -7,6 +7,39 @@ import { withRetry } from '@/lib/ai/withRetry'
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 
 /**
+ * Detects if the report content is largely copied from the goal instructions.
+ * Uses 6-gram (6-word sequence) overlap: if >35% of the report's n-grams
+ * appear verbatim in the instructions, the report is flagged as copied.
+ */
+function detectCopiedInstructions(reportContent: string, instructions: string): boolean {
+  if (!reportContent || !instructions) return false;
+
+  const normalize = (t: string) =>
+    t.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+
+  const reportWords = normalize(reportContent).split(' ').filter(w => w.length > 0);
+  const instrWords = normalize(instructions).split(' ').filter(w => w.length > 0);
+
+  const N = 6;
+  if (reportWords.length < 10 || instrWords.length < N) return false;
+
+  const instrNgrams = new Set<string>();
+  for (let i = 0; i <= instrWords.length - N; i++) {
+    instrNgrams.add(instrWords.slice(i, i + N).join(' '));
+  }
+
+  let matchCount = 0;
+  const totalNgrams = Math.max(1, reportWords.length - N + 1);
+  for (let i = 0; i <= reportWords.length - N; i++) {
+    if (instrNgrams.has(reportWords.slice(i, i + N).join(' '))) {
+      matchCount++;
+    }
+  }
+
+  return matchCount / totalNgrams > 0.35;
+}
+
+/**
  * POST /api/ai/score-report
  * Server-side only — Gemini API key never reaches the browser.
  *
@@ -93,6 +126,26 @@ export async function POST(req: NextRequest) {
         }
     }
 
+    // 1.6 Detect copy-paste gaming: report copied from goal instructions → score 0
+    if (goal?.instructions && detectCopiedInstructions(r.content, goal.instructions)) {
+      const zeroSummary = '[FLAGS: GOAL_INSTRUCTIONS_COPIED] Report content was copied directly from the goal instructions. This is not a valid performance report and has been scored 0.';
+      await (supabase.from('reports') as any)
+        .update({ evaluation_score: 0, ai_summary: zeroSummary, status: 'reviewed' })
+        .eq('id', reportId);
+      return NextResponse.json({
+        overall_score: 0,
+        criteria_scores: criteria.map((c: any) => ({
+          name: c.name, weight: c.weight, score: 0, confidence: 'high',
+          evidence: 'No evidence found — report was copied from goal instructions.',
+          reasoning: 'Report content matches the goal instructions verbatim. No actual work was demonstrated.',
+        })),
+        org_metrics: allOrgMetrics.map(m => ({ name: m.name, score: 0, reasoning: 'Report flagged as copied from instructions.' })),
+        summary: zeroSummary,
+        integrity_flags: ['GOAL_INSTRUCTIONS_COPIED'],
+        overall_confidence: 'high',
+      });
+    }
+
     // 2. Build scoring prompt
     const criteriaListJSON = JSON.stringify(criteria.map((c: any) => ({ name: c.name, weight: c.weight })));
 
@@ -157,6 +210,13 @@ You need a minimum substance threshold. If the report contains fewer than 3 dist
 
 ### Rule 5 — Criterion Name Mention ≠ Criterion Addressed
 If a criterion is named in the report but no actual work related to it is described, score that criterion 1–2. The employee must demonstrate work, not just acknowledge the criterion exists.
+
+### Rule 7 — Goal Instructions Copy Detection
+If the report_text is substantially identical to, or clearly derived by paraphrasing, the goal_instructions — meaning the employee has copied the manager's instructions back as their own report rather than describing actual work they did — you MUST:
+- Assign a score of 0 for ALL criteria and org_metrics.
+- Set \`integrity_flags\` to include "GOAL_INSTRUCTIONS_COPIED".
+- Set \`overall_reasoning\` to explain that the report contains no original work evidence and mirrors the goal instructions.
+This applies regardless of length, formatting differences, or minor word substitutions. The test is: could this report have been written by someone who did NO work at all, simply by reading the instructions?
 
 ### Rule 6 — Confidence Calibration
 For every criterion score you assign, you must also assign a confidence level: "high", "medium", or "low".

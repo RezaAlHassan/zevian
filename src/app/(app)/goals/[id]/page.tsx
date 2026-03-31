@@ -65,7 +65,7 @@ export default async function GoalPage({ params }: { params: { id: string } }) {
 
     const [{ data: projects }, { data: employees }] = await Promise.all([
         supabase.from('projects').select('id, name'),
-        supabase.from('employees').select('id, name').eq('role', 'employee').order('name')
+        supabase.from('employees').select('id, name').eq('role', 'employee').eq('is_active', true).order('name')
     ])
 
     const mappedEmployees = (employees || []).map((e: any) => ({

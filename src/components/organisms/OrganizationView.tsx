@@ -196,11 +196,11 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                 padding: '20px 12px',
                 overflowY: 'auto'
             }}>
-                {[
+                {(([
                     { id: 'general', label: 'General', icon: 'settings' },
                     { id: 'metrics', label: 'Metrics', icon: 'target' },
                     { id: 'users', label: 'Users', icon: 'users' },
-                ].filter(tab => {
+                ] as { id: string; label: string; icon: string; danger?: boolean }[])).filter(tab => {
                     if (tab.id === 'advanced') return false
                     if (tab.id === 'general' || tab.id === 'metrics') {
                         return currentUserPermissions?.isAccountOwner || currentUserPermissions?.canManageSettings

@@ -1,13 +1,3 @@
-import {
-    Html,
-    Body,
-    Container,
-    Text,
-    Preview,
-    Section,
-    Heading,
-    Link,
-} from '@react-email/components';
 import * as React from 'react';
 
 interface WelcomeEmailProps {
@@ -15,91 +5,88 @@ interface WelcomeEmailProps {
     orgName: string;
 }
 
-export const WelcomeEmail = ({
-    userName,
-    orgName,
-}: WelcomeEmailProps) => {
+export const WelcomeEmail = ({ userName, orgName }: WelcomeEmailProps) => {
     return (
-        <Html>
-            <Preview>Welcome to Zevian, {userName}!</Preview>
-            <Body style={main}>
-                <Container style={container}>
-                    <Heading style={h1}>Zevian</Heading>
-                    <Section>
-                        <Text style={text}>Hi {userName},</Text>
-                        <Text style={text}>
+        <html>
+            <head />
+            <body style={main}>
+                <div style={container}>
+                    <h1 style={h1}>Zevian</h1>
+                    <div>
+                        <p style={text}>Hi {userName},</p>
+                        <p style={text}>
                             Welcome to Zevian! Your organization, <strong>{orgName}</strong>, is now ready for action.
-                        </Text>
-                        <Text style={text}>
+                        </p>
+                        <p style={text}>
                             You can now start tracking goals, managing projects, and using AI to streamline your team's reporting.
-                        </Text>
-                        <Section style={btnContainer}>
-                            <Link style={button} href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard`}>
+                        </p>
+                        <div style={btnContainer}>
+                            <a style={button} href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard`}>
                                 Go to Dashboard
-                            </Link>
-                        </Section>
-                        <Text style={text}>
+                            </a>
+                        </div>
+                        <p style={text}>
                             If you have any questions, feel free to reply to this email or check out our documentation.
-                        </Text>
-                    </Section>
-                    <Text style={footer}>
+                        </p>
+                    </div>
+                    <p style={footer}>
                         © 2026 Zevian AI. All rights reserved.
-                    </Text>
-                </Container>
-            </Body>
-        </Html>
+                    </p>
+                </div>
+            </body>
+        </html>
     );
 };
 
-const main = {
+const main: React.CSSProperties = {
     backgroundColor: '#f6f9fc',
     fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
 };
 
-const container = {
+const container: React.CSSProperties = {
     backgroundColor: '#ffffff',
     margin: '0 auto',
     padding: '20px 0 48px',
     marginBottom: '64px',
 };
 
-const h1 = {
+const h1: React.CSSProperties = {
     color: '#3182ce',
     fontSize: '24px',
     fontWeight: 'bold',
-    textAlign: 'center' as const,
+    textAlign: 'center',
     margin: '30px 0',
 };
 
-const text = {
+const text: React.CSSProperties = {
     color: '#525f7f',
     fontSize: '16px',
     lineHeight: '24px',
-    textAlign: 'left' as const,
+    textAlign: 'left',
     padding: '0 40px',
 };
 
-const btnContainer = {
-    textAlign: 'center' as const,
+const btnContainer: React.CSSProperties = {
+    textAlign: 'center',
     margin: '32px 0',
 };
 
-const button = {
+const button: React.CSSProperties = {
     backgroundColor: '#3182ce',
     borderRadius: '5px',
     color: '#fff',
     fontSize: '16px',
     fontWeight: 'bold',
     textDecoration: 'none',
-    textAlign: 'center' as const,
+    textAlign: 'center',
     display: 'block',
     padding: '12px 24px',
 };
 
-const footer = {
+const footer: React.CSSProperties = {
     color: '#8898aa',
     fontSize: '12px',
     lineHeight: '16px',
-    textAlign: 'center' as const,
+    textAlign: 'center',
     padding: '0 40px',
 };

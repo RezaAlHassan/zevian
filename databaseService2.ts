@@ -1232,14 +1232,16 @@ export const reportService = {
             const { data: directReports } = await supabase
                 .from('employees')
                 .select('id')
-                .eq('manager_id', managerId);
+                .eq('manager_id', managerId)
+                .eq('is_active', true);
             employeeIds = (directReports || []).map((e: any) => e.id);
         } else if (organizationId) {
             // Get all employees in organization
             const { data: orgEmployees } = await supabase
                 .from('employees')
                 .select('id')
-                .eq('organization_id', organizationId);
+                .eq('organization_id', organizationId)
+                .eq('is_active', true);
             employeeIds = (orgEmployees || []).map((e: any) => e.id);
         }
 
@@ -1368,7 +1370,7 @@ export const employeeService = {
             .eq('role', 'manager')
             .order('name', { ascending: true });
         if (error) throw error;
-        return data ? data.map(dbEmployeeToEmployee).filter(e => e.isActive !== false) : [];
+        return data ? data.map(dbEmployeeToEmployee).filter((e: Employee) => e.isActive !== false) : [];
     },
 
     async getTeamMembers(managerId: string) {
@@ -1378,7 +1380,7 @@ export const employeeService = {
             .eq('manager_id', managerId)
             .order('name', { ascending: true });
         if (error) throw error;
-        return data ? data.map(dbEmployeeToEmployee).filter(e => e.isActive !== false) : [];
+        return data ? data.map(dbEmployeeToEmployee).filter((e: Employee) => e.isActive !== false) : [];
     },
 
     async getStaffMembers() {
@@ -1390,7 +1392,7 @@ export const employeeService = {
             .order('name', { ascending: true });
 
         if (error) throw error;
-        return data ? data.map(dbEmployeeToEmployee).filter(e => e.isActive !== false) : [];
+        return data ? data.map(dbEmployeeToEmployee).filter((e: Employee) => e.isActive !== false) : [];
     },
 
     async getByOrganizationId(organizationId: string) {
@@ -2270,12 +2272,11 @@ export const invitationService = {
             .from('invitations')
             .select('*')
             .eq('token', token)
-            .single();
+            .limit(1)
+            .maybeSingle();
 
-        if (error) {
-            if (error.code === 'PGRST116') return null; // not found
-            throw error;
-        }
+        if (error) throw error;
+        if (!data) return null;
         return {
             id: data.id,
             token: data.token,
