@@ -68,6 +68,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
         .from('employees')
         .select('id, name, role')
         .eq('role', 'manager')
+        .eq('is_active', true)
         .order('name');
 
     const mappedEmployees = (employees || []).map((e: any) => ({

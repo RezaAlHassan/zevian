@@ -1232,14 +1232,16 @@ export const reportService = {
             const { data: directReports } = await supabase
                 .from('employees')
                 .select('id')
-                .eq('manager_id', managerId);
+                .eq('manager_id', managerId)
+                .eq('is_active', true);
             employeeIds = (directReports || []).map((e: any) => e.id);
         } else if (organizationId) {
             // Get all employees in organization
             const { data: orgEmployees } = await supabase
                 .from('employees')
                 .select('id')
-                .eq('organization_id', organizationId);
+                .eq('organization_id', organizationId)
+                .eq('is_active', true);
             employeeIds = (orgEmployees || []).map((e: any) => e.id);
         }
 
