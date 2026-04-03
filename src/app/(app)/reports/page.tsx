@@ -9,7 +9,7 @@ export const metadata = {
 export default async function ReportsPage({
   searchParams
 }: {
-  searchParams: { view?: string; start?: string; end?: string }
+  searchParams: { view?: string; start?: string; end?: string; search?: string }
 }) {
   // The action itself enforces permission — non-senior managers are forced to 'direct'
   const view = searchParams.view as 'org' | 'direct' | undefined
@@ -23,6 +23,7 @@ export default async function ReportsPage({
       <ReportsView
         initialReports={[]}
         kpiData={{ totalReports: 0, avgScore: 0, pendingReview: 0, overrides: 0 }}
+        initialSearch={searchParams.search}
       />
     )
   }
@@ -31,6 +32,7 @@ export default async function ReportsPage({
     <ReportsView
       initialReports={data.reports}
       kpiData={data.kpis || { totalReports: 0, avgScore: 0, pendingReview: 0, overrides: 0 }}
+      initialSearch={searchParams.search}
     />
   )
 }

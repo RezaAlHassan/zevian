@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { colors, radius, typography, animation, layout, shadows, getAvatarGradient, getInitials } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
@@ -35,9 +35,13 @@ interface EmployeesViewProps {
 
 export function EmployeesView({ employees: initialEmployees, effectiveView = 'org' }: EmployeesViewProps) {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
     const [searchQuery, setSearchQuery] = useState('')
     const [perfFilter, setPerfFilter] = useState('')
+    const [sortDir, setSortDir] = useState<'asc' | 'desc'>(
+        searchParams.get('sort') === 'score-high' ? 'desc' : 'asc'
+    )
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [leaveModalData, setLeaveModalData] = useState<{ isOpen: boolean; empId: string; empName: string }>({
         isOpen: false,
@@ -46,7 +50,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
     })
 
     const filteredEmployees = useMemo(() => {
-        return initialEmployees.filter(emp => {
+        const filtered = initialEmployees.filter(emp => {
             if (emp.role === 'manager') return false
             const matchesSearch = emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (emp.title || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -55,10 +59,13 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                     perfFilter === 'mid' ? (emp.avgScore >= 6 && emp.avgScore < 7.5) :
                         emp.avgScore < 6
             ) : true
-
             return matchesSearch && matchesPerf
         })
-    }, [initialEmployees, searchQuery, perfFilter])
+
+        return [...filtered].sort((a, b) =>
+            sortDir === 'desc' ? b.avgScore - a.avgScore : a.avgScore - b.avgScore
+        )
+    }, [initialEmployees, searchQuery, perfFilter, sortDir])
 
     const stats = useMemo(() => {
         const nonManagers = initialEmployees.filter(e => e.role !== 'manager')
@@ -148,6 +155,24 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                         <option value="mid">Needs Review (6-7.4)</option>
                         <option value="lo">At Risk (&lt;6)</option>
                     </select>
+
+                    <button
+                        onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+                        style={{
+                            padding: '8px 12px',
+                            background: colors.surface2,
+                            border: `1px solid ${colors.borderHover}`,
+                            borderRadius: radius.lg,
+                            fontSize: '12.5px',
+                            fontWeight: 700,
+                            color: colors.text,
+                            cursor: 'pointer',
+                            transition: `all ${animation.fast}`,
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        Score {sortDir === 'desc' ? '↓' : '↑'}
+                    </button>
 
                     <Button variant="primary" size="sm" icon="plus" onClick={() => setShowInviteModal(true)}>Invite Member</Button>
                 </div>

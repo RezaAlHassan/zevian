@@ -198,12 +198,21 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                         <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
                             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div style={{ fontWeight: 600, fontSize: '14px', color: colors.text }}>Recent Reports ({reports.length})</div>
+                                {reports.length > 3 && (
+                                    <Link href={`/reports?search=${encodeURIComponent(goal.name)}`}>
+                                        <Button variant="ghost" size="sm" icon="chevronRight">
+                                            See All
+                                        </Button>
+                                    </Link>
+                                )}
                             </div>
                             <div style={{ padding: '0px' }}>
                                 {reports.length > 0 ? (
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        {reports.map((report: any, i: number) => (
-                                            <div key={report.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', borderBottom: i === reports.length - 1 ? 'none' : `1px solid ${colors.border}` }}>
+                                        {reports.slice(0, 3).map((report: any, i: number) => {
+                                            const displayCount = Math.min(reports.length, 3);
+                                            return (
+                                            <div key={report.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', borderBottom: i === displayCount - 1 ? 'none' : `1px solid ${colors.border}` }}>
                                                 <div style={{
                                                     width: '32px',
                                                     height: '32px',
@@ -233,7 +242,8 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                                     </Link>
                                                 </div>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>

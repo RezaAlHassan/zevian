@@ -6,6 +6,7 @@ import React from 'react'
 import { Button } from '@/components/atoms/Button'
 
 interface EmployeeRowProps {
+  id?: string
   name: string
   role: string
   score?: number | null
@@ -13,19 +14,26 @@ interface EmployeeRowProps {
   baselineRequired?: boolean
   compliance?: any
   onGrantLeave?: () => void
+  onClick?: () => void
 }
 
-export function EmployeeRow({ name, role, score, status, baselineRequired, compliance, onGrantLeave }: EmployeeRowProps) {
+export function EmployeeRow({ id, name, role, score, status, baselineRequired, compliance, onGrantLeave, onClick }: EmployeeRowProps) {
   const scoreColor = getScoreColor(score || 0)
 
   return (
     <div
+      onClick={onClick}
+      onMouseEnter={onClick ? e => (e.currentTarget.style.background = colors.surface2) : undefined}
+      onMouseLeave={onClick ? e => (e.currentTarget.style.background = 'transparent') : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        padding: '12px 0',
+        padding: '12px 16px',
         borderBottom: `1px solid ${colors.border}`,
+        cursor: onClick ? 'pointer' : 'default',
+        borderRadius: radius.lg,
+        transition: `background ${animation.fast}`,
       }}
     >
       <Avatar name={name} size="lg" />

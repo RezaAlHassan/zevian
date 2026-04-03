@@ -2,15 +2,16 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { colors, radius, typography, animation, getAvatarGradient, getInitials, getScoreColor, shadows } from '@/design-system'
+import { colors, animation, shadows } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms'
-import { ScoreDisplay, MiniBar, ScoreBar } from '@/components/atoms/Score'
+import { ScoreDisplay, ScoreBar } from '@/components/atoms/Score'
 import { StatusPill } from '@/components/atoms/StatusPill'
-import { SkillSpider, DateRangeSelector } from '@/components/molecules'
+import { DateRangeSelector } from '@/components/molecules'
 import { EmployeeDashboardView } from '@/components/organisms/EmployeeDashboardView'
 import { getEmployeeDetailedDataAction } from '@/app/actions/dashboardActions'
 import { ApproveLeaveModal } from '@/components/organisms/ApproveLeaveModal'
+import { AISummaryCard } from '@/components/molecules/AISummaryCard'
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 
@@ -86,7 +87,12 @@ export default function EmployeeDetailPage() {
                     <span style={{ color: colors.text, fontWeight: 500 }}>{employee.name}</span>
                 </div>
                 <div style={{ flex: 1 }} />
-                <DateRangeSelector 
+                {pageData.permissions?.canApproveLeave && (
+                    <Button variant="secondary" onClick={() => setIsLeaveModalOpen(true)}>
+                        Approve Leave
+                    </Button>
+                )}
+                <DateRangeSelector
                     startDate={startDate}
                     endDate={endDate}
                     onRangeChange={(start, end) => {
@@ -99,59 +105,13 @@ export default function EmployeeDetailPage() {
             </header>
 
             <div style={{ padding: '0 28px 60px' }}>
-                {/* Page Header / Hero Component */}
-                <div style={{
-                    margin: '0 -28px 28px',
-                    padding: '32px 28px',
-                    background: `linear-gradient(135deg, ${colors.accentGlow}, ${colors.tealGlow})`,
-                    borderBottom: `1px solid ${colors.border}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        <div style={{
-                            width: '64px',
-                            height: '64px',
-                            borderRadius: '16px',
-                            background: getAvatarGradient(employee.name),
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '20px',
-                            fontWeight: 800,
-                            color: '#fff',
-                            boxShadow: shadows.cardHover
-                        }}>
-                            {employee.initials}
-                        </div>
-                        <div>
-                            <h1 style={{ fontSize: '28px', fontWeight: 800, color: colors.text, marginBottom: '4px', letterSpacing: '-0.5px' }}>{employee.name}</h1>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ fontSize: '14px', color: colors.text2 }}>{employee.role}</div>
-                                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: colors.border }} />
-                                <div style={{ fontSize: '14px', color: colors.text3 }}>{employee.team}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
-                            <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.lg, padding: '12px 16px', textAlign: 'center', minWidth: '100px' }}>
-                                <div style={{ fontSize: '9px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '2px' }}>Avg Score</div>
-                                <div style={{ fontSize: '20px', fontWeight: 800, color: getScoreColor(employee.currentScore) }}>{employee.currentScore.toFixed(1)}</div>
-                            </div>
-                            <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.lg, padding: '12px 16px', textAlign: 'center', minWidth: '100px' }}>
-                                <div style={{ fontSize: '9px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '2px' }}>Goals</div>
-                                <div style={{ fontSize: '20px', fontWeight: 800, color: colors.text }}>{allGoals.length}</div>
-                            </div>
-                        </div>
-                        {pageData.permissions?.canApproveLeave && (
-                            <Button variant="secondary" onClick={() => setIsLeaveModalOpen(true)}>
-                                Approve Leave
-                            </Button>
-                        )}
-                    </div>
+                <div style={{ padding: '24px 0 20px' }}>
+                    <AISummaryCard
+                        employeeId={id}
+                        employeeName={employee.name}
+                        startDate={startDate}
+                        endDate={endDate}
+                    />
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -191,7 +151,7 @@ export default function EmployeeDetailPage() {
                     {/* Tab Content */}
                     <div style={{ minHeight: '400px' }}>
                         {activeTab === 'overview' && (
-                            <EmployeeDashboardView data={dashboardData} showDateSelector={false} />
+                            <EmployeeDashboardView data={dashboardData} showDateSelector={false} allReports={allReports} />
                         )}
 
                         {activeTab === 'goals' && (

@@ -11,6 +11,7 @@ export type IconName =
   | 'arrowUp' | 'arrowDown' | 'mail' | 'linkExternal'
   | 'layoutGrid' | 'list' | 'briefcase' | 'fileText' | 'settings' | 'users' | 'globe' | 'key' | 'user'
   | 'sparkles' | 'refresh' | 'chevronUp' | 'logOut'
+  | 'trendingUp' | 'trendingDown' | 'minus' | 'help' | 'checkCircle' | 'alertTriangle' | 'lightbulb'
 
 interface IconProps {
   name: IconName
@@ -233,6 +234,42 @@ const icons: Record<IconName, React.ReactNode> = {
   ),
   logOut: (
     <path d="M9 3h4a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9M1 8h9m-4-4l4 4-4 4" strokeWidth="1.6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  trendingUp: (
+    <path d="M1 12l4-4 3 3 5-6 2 1" strokeWidth="1.7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  trendingDown: (
+    <path d="M1 4l4 4 3-3 5 6 2-1" strokeWidth="1.7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+  ),
+  minus: (
+    <path d="M3 8h10" strokeWidth="1.8" fill="none" stroke="currentColor" strokeLinecap="round" />
+  ),
+  help: (
+    <>
+      <circle cx="8" cy="8" r="6" strokeWidth="1.6" fill="none" stroke="currentColor" />
+      <path d="M6 6.5a2 2 0 0 1 4 .7c0 1.3-2 1.8-2 3" strokeWidth="1.6" fill="none" stroke="currentColor" strokeLinecap="round" />
+      <circle cx="8" cy="12" r="0.6" fill="currentColor" stroke="none" />
+    </>
+  ),
+  checkCircle: (
+    <>
+      <circle cx="8" cy="8" r="6" strokeWidth="1.6" fill="none" stroke="currentColor" />
+      <path d="M5 8l2 2 4-4" strokeWidth="1.7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  alertTriangle: (
+    <>
+      <path d="M8 2L1 14h14L8 2z" strokeWidth="1.6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 6v4" strokeWidth="1.7" fill="none" stroke="currentColor" strokeLinecap="round" />
+      <circle cx="8" cy="12" r="0.6" fill="currentColor" stroke="none" />
+    </>
+  ),
+  lightbulb: (
+    <>
+      <path d="M8 1a5 5 0 0 1 3.5 8.5L11 11H5l-.5-1.5A5 5 0 0 1 8 1z" strokeWidth="1.6" fill="none" stroke="currentColor" />
+      <path d="M5.5 11v1a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1" strokeWidth="1.6" fill="none" stroke="currentColor" />
+      <path d="M6.5 13.5h3" strokeWidth="1.4" fill="none" stroke="currentColor" strokeLinecap="round" />
+    </>
   ),
 }
 

@@ -201,17 +201,24 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                     <Icon name="fileText" size={16} color={colors.accent} />
                                     Latest Reports ({reports.length})
                                 </div>
+                                {reports.length > 3 && (
+                                    <Link href={`/reports?search=${encodeURIComponent(project.name)}`}>
+                                        <Button variant="ghost" size="sm" icon="chevronRight">
+                                            See All
+                                        </Button>
+                                    </Link>
+                                )}
                             </div>
                             <div style={{ padding: '0px' }}>
                                 {reports.length > 0 ? (
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        {reports.slice(0, 10).map((report: any, i: number) => (
+                                        {reports.slice(0, 3).map((report: any, i: number) => (
                                             <div key={report.id} style={{
                                                 padding: '16px 20px',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 gap: '12px',
-                                                borderBottom: i === reports.length - 1 || i === 9 ? 'none' : `1px solid ${colors.border}`
+                                                borderBottom: i === Math.min(reports.length, 3) - 1 ? 'none' : `1px solid ${colors.border}`
                                             }}>
                                                 <div style={{
                                                     width: '32px',
