@@ -13,7 +13,8 @@ import {
   Card,
   SectionLabel,
   RecentReportItem,
-  DateRangeSelector
+  DateRangeSelector,
+  AIOrganizationSummaryCard,
 } from '@/components/molecules'
 import { ApproveLeaveModal } from '@/components/organisms/ApproveLeaveModal'
 import React from 'react'
@@ -293,39 +294,16 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
       {/* Inject keyframe animation */}
       <style>{`@keyframes emptyPulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.04); } }`}</style>
 
-      {/* ── AI Banner ─────────────────────────────────────── */}
-      {hasReports ? (
-        <AIBanner
-          message={teamStats?.aiSummary || `Team average is ${avgScore}. ${totalReports} reports have been submitted.`}
-          highlightedText={teamStats?.aiHighlight || `Team average is ${avgScore}.`}
+      {/* ── AI Organization Summary ───────────────────────── */}
+      {organization?.id && (
+        <AIOrganizationSummaryCard
+          organizationId={organization.id}
+          organizationName={organization.name}
+          startDate={searchParams.get('start') || undefined}
+          endDate={searchParams.get('end') || undefined}
         />
-      ) : (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 16,
-          padding: '14px 20px', background: colors.surface,
-          border: `1px solid ${colors.border}`, borderRadius: radius.xl,
-          marginBottom: 24,
-        }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md,
-            padding: '4px 10px', fontSize: 11, fontWeight: 600, color: colors.text3, whiteSpace: 'nowrap',
-          }}>
-            <Icon name="star" size={11} color={colors.text3} />
-            Zevian AI
-          </div>
-          <div style={{ fontSize: 13, color: colors.text3, flex: 1 }}>
-            <span style={{ color: colors.text2 }}>No data yet</span> — invite your team to unlock AI-powered performance summaries.
-          </div>
-          <div style={{
-            padding: '7px 16px', background: colors.surface2,
-            border: `1px solid ${colors.border}`, borderRadius: 7,
-            fontSize: '12.5px', fontWeight: 600, color: colors.text3, cursor: 'not-allowed', whiteSpace: 'nowrap',
-          }}>
-            Generate Summary
-          </div>
-        </div>
       )}
+
 
       {/* ── Action Required (Late Submissions) ──────────── */}
       {uiLateSubmissions.length > 0 && (
@@ -507,14 +485,15 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
         <Card
           title="Team Performance"
           icon="people"
-          action={hasTeam ? <span style={{ fontSize: '12px', color: colors.accent, fontWeight: 500, cursor: 'pointer' }}>See All</span> : undefined}
+          action={hasTeam ? <Link href="/employees?sort=score-high" style={{ fontSize: '12px', color: colors.accent, fontWeight: 500, textDecoration: 'none' }}>See All</Link> : undefined}
         >
           {hasTeam ? (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {teamPerformance.map((emp: any, i: number) => (
-                <EmployeeRow 
-                  key={i} 
-                  {...emp} 
+                <EmployeeRow
+                  key={i}
+                  {...emp}
+                  onClick={() => router.push(`/employees/${emp.id}`)}
                 />
               ))}
             </div>

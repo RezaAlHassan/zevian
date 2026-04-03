@@ -2,19 +2,20 @@
 
 import React, { useState, useMemo } from 'react'
 import { colors, radius, animation, getScoreColor } from '@/design-system'
-import { KPICard, Card, SkillSpider, SkillList, Sparkline, SectionLabel, DateRangeSelector } from '@/components/molecules'
-import { Icon, Badge } from '@/components/atoms'
+import { KPICard, Card, SkillSpider, SkillList, Sparkline, DateRangeSelector } from '@/components/molecules'
+import { Icon } from '@/components/atoms'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface Props {
     data: any
     showDateSelector?: boolean
+    allReports?: any[]
 }
 
-export function EmployeeDashboardView({ data, showDateSelector = true }: Props) {
-    const [openGoal, setOpenGoal] = useState<number | null>(null)
+export function EmployeeDashboardView({ data, showDateSelector = true, allReports }: Props) {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null)
 
     // Using provided data or providing empty state fallback
     const displayData = data ? data : {
@@ -33,6 +34,41 @@ export function EmployeeDashboardView({ data, showDateSelector = true }: Props) 
 
     const { me, kpis, goals, skills, history, manager, soonestPeriod, upcomingPeriods, managerSettings } = displayData
     const gracePeriodDays = managerSettings?.gracePeriodDays ?? 0
+
+    // Skill Analysis — filtered by selected goal
+    const filteredSkills = useMemo(() => {
+        if (!selectedGoalId || !allReports) return skills
+        const goalReports = allReports.filter((r: any) => r.goalId === selectedGoalId && !r.isOnLeave)
+        if (goalReports.length === 0) return []
+        const averages: Record<string, { total: number; count: number }> = {}
+        goalReports.forEach((r: any) => {
+            ;(r.criterionScores || []).forEach((cs: any) => {
+                if (!averages[cs.criterionName]) averages[cs.criterionName] = { total: 0, count: 0 }
+                averages[cs.criterionName].total += Number(cs.score)
+                averages[cs.criterionName].count += 1
+            })
+        })
+        return Object.entries(averages).map(([name, data]) => {
+            const score = data.total / data.count
+            let category: 'strength' | 'neutral' | 'weakness' = 'neutral'
+            if (score >= 8.5) category = 'strength'
+            else if (score < 7.0) category = 'weakness'
+            return { name, score: Number(score.toFixed(1)), maxScore: 10, category }
+        }).sort((a, b) => b.score - a.score)
+    }, [selectedGoalId, allReports, skills])
+
+    const skillSummaryLabel = useMemo(() => {
+        if (!selectedGoalId || !allReports) return null
+        const goalReports = allReports.filter((r: any) => r.goalId === selectedGoalId && !r.isOnLeave)
+        if (goalReports.length === 0) return null
+        const count = goalReports.length
+        const dates = goalReports.map((r: any) => new Date(r.submissionDate))
+        const minDate = new Date(Math.min(...dates.map((d: Date) => d.getTime())))
+        const maxDate = new Date(Math.max(...dates.map((d: Date) => d.getTime())))
+        const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        const dateRange = minDate.getTime() === maxDate.getTime() ? fmt(minDate) : `${fmt(minDate)} – ${fmt(maxDate)}`
+        return `Showing skills from ${count} ${count === 1 ? 'report' : 'reports'} · ${dateRange}`
+    }, [selectedGoalId, allReports])
 
     // Build the list of upcoming items: prefer period data, fall back to goals
     const upcomingItems = useMemo(() => {
@@ -189,9 +225,15 @@ export function EmployeeDashboardView({ data, showDateSelector = true }: Props) 
                     {me.initials}
                 </div>
                 <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '12px', fontWeight: 600, color: colors.text3, marginBottom: '3px' }}>Employee Performance Dashboard</div>
                     <div style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.15, marginBottom: '4px' }}>{me.name}</div>
-                    <div style={{ fontSize: '12.5px', color: colors.text2 }}>{me.role} · {me.team}</div>
+                    <div style={{ fontSize: '12.5px', color: colors.text2, marginBottom: '3px' }}>
+                        {goals.length} {goals.length === 1 ? 'Goal' : 'Goals'} · {new Set(goals.map((g: any) => g.project).filter(Boolean)).size} {new Set(goals.map((g: any) => g.project).filter(Boolean)).size === 1 ? 'Project' : 'Projects'}
+                    </div>
+                    {manager && (
+                        <div style={{ fontSize: '12px', color: colors.text3 }}>
+                            Reports to <span style={{ color: colors.text2, fontWeight: 600 }}>{manager.name}</span>
+                        </div>
+                    )}
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Average score</div>
@@ -255,86 +297,73 @@ export function EmployeeDashboardView({ data, showDateSelector = true }: Props) 
                         </div>
                     </Card>
 
-                    {/* Goals & Skills Tabs Section */}
+                    {/* Skill Analysis Section */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-                        <Card title="Skill Analysis" icon="target">
+                        <Card
+                            title="Skill Analysis"
+                            icon="target"
+                            action={
+                                goals.length > 0 ? (
+                                    <select
+                                        value={selectedGoalId ?? ''}
+                                        onChange={e => setSelectedGoalId(e.target.value || null)}
+                                        style={{
+                                            background: colors.surface2,
+                                            border: `1px solid ${colors.border}`,
+                                            borderRadius: '8px',
+                                            color: selectedGoalId ? colors.accent : colors.text3,
+                                            fontSize: '12px',
+                                            fontWeight: 600,
+                                            padding: '5px 28px 5px 10px',
+                                            cursor: 'pointer',
+                                            outline: 'none',
+                                            appearance: 'none',
+                                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                                            backgroundRepeat: 'no-repeat',
+                                            backgroundPosition: 'right 8px center',
+                                        }}
+                                    >
+                                        <option value="">All Goals</option>
+                                        {goals.filter((g: any) => g.status === 'active').map((g: any) => (
+                                            <option key={g.id} value={g.id}>{g.name}</option>
+                                        ))}
+                                    </select>
+                                ) : undefined
+                            }
+                        >
+                            {skillSummaryLabel && (
+                                <div style={{
+                                    fontSize: '11.5px',
+                                    color: colors.text3,
+                                    marginBottom: '16px',
+                                    padding: '6px 10px',
+                                    background: colors.surface2,
+                                    borderRadius: '8px',
+                                    border: `1px solid ${colors.border}`,
+                                    display: 'inline-block',
+                                }}>
+                                    {skillSummaryLabel}
+                                </div>
+                            )}
                             {me.baselineRequired ? (
                                 <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
                                     Skill breakdown requires at least 3 reports to establish a baseline.
                                 </div>
+                            ) : filteredSkills.length === 0 ? (
+                                <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
+                                    No reports with skill data found for this goal.
+                                </div>
                             ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', alignItems: 'center' }}>
-                                    <SkillSpider skills={skills} size={240} />
-                                    <div style={{ borderLeft: `1px solid ${colors.border}`, paddingLeft: '24px' }}>
-                                        <SectionLabel>Skill Breakdown</SectionLabel>
-                                        <SkillList skills={skills} />
+                                <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '28px', alignItems: 'start' }}>
+                                    <SkillSpider skills={filteredSkills} size={240} />
+                                    <div style={{ borderLeft: `1px solid ${colors.border}`, paddingLeft: '28px' }}>
+                                        <SkillList skills={filteredSkills} />
                                     </div>
                                 </div>
                             )}
                         </Card>
 
-                        <Card title="Goals & Criteria" icon="target">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {goals.map((goal: any, i: number) => (
-                                    <div key={i} style={{ borderBottom: i === goals.length - 1 ? 'none' : `1px solid ${colors.border}`, paddingBottom: '16px', marginBottom: '8px' }}>
-                                        <div
-                                            onClick={() => setOpenGoal(openGoal === i ? null : i)}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer',
-                                                padding: '12px', borderRadius: radius.lg, background: colors.surface2,
-                                                border: `1px solid ${openGoal === i ? colors.borderHover : colors.border}`
-                                            }}
-                                        >
-                                            <div style={{ width: '36px', height: '36px', borderRadius: radius.md, background: colors.surface3, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
-                                                {goal.icon}
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ fontSize: '14px', fontWeight: 600 }}>{goal.name}</div>
-                                                <div style={{ fontSize: '12px', color: colors.text3 }}>{goal.project}</div>
-                                            </div>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <div style={{ fontSize: '18px', fontWeight: 800, color: me.baselineRequired ? colors.text3 : getScoreColor(goal.score) }}>
-                                                    {me.baselineRequired ? '—' : goal.score.toFixed(1)}
-                                                </div>
-                                                <div style={{ fontSize: '11px', color: colors.text3 }}>{goal.reports} reports</div>
-                                            </div>
-                                        </div>
-                                        {openGoal === i && (
-                                            <div style={{ marginTop: '10px', padding: '12px', background: colors.surface3, borderRadius: radius.md, animation: animation.keyframes.fadeUp }}>
-                                                {me.baselineRequired ? (
-                                                    <div style={{ textAlign: 'center', fontSize: '12px', color: colors.text3, padding: '10px 0' }}>Criteria evaluation requires 3+ reports</div>
-                                                ) : (
-                                                    goal.criteria.map((c: any, ci: number) => (
-                                                        <div key={ci} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: ci === goal.criteria.length - 1 ? 0 : '10px' }}>
-                                                            <span style={{ fontSize: '12px', color: colors.text2, flex: 1 }}>{c.name} <span style={{ color: colors.text3, fontSize: '10px' }}>{c.w}%</span></span>
-                                                            <div style={{ width: '80px', height: '4px', background: colors.surface2, borderRadius: '2px', overflow: 'hidden' }}>
-                                                                <div style={{ height: '100%', width: `${c.score * 10}%`, background: getScoreColor(c.score) }} />
-                                                            </div>
-                                                            <span style={{ fontSize: '12px', fontWeight: 800, color: getScoreColor(c.score), minWidth: '24px', textAlign: 'right' }}>{c.score.toFixed(1)}</span>
-                                                        </div>
-                                                    ))
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
                     </div>
-
-                    {/* History Card */}
-                    <Card title="Report history" icon="clock">
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            {history.map((report: any, i: number) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 14px', borderRadius: radius.md, borderBottom: `1px solid ${colors.border}` }}>
-                                    <span style={{ fontSize: '12px', fontWeight: 600, color: colors.text2, width: '100px' }}>{report.date}</span>
-                                    <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text, flex: 1 }}>{report.goal}</span>
-                                    <span style={{ fontSize: '14px', fontWeight: 800, color: getScoreColor(report.score) }}>{report.score.toFixed(1)}</span>
-                                    <Badge variant="green">Reviewed</Badge>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
 
                 </div>
 
@@ -401,28 +430,6 @@ export function EmployeeDashboardView({ data, showDateSelector = true }: Props) 
                         </div>
                     </Card>
 
-
-                    {/* Manager Card */}
-                    <Card title="Reports to" icon="user">
-                        {manager ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px', background: colors.surface2, borderRadius: radius.xl }}>
-                                <div style={{
-                                    width: '40px', height: '40px', borderRadius: radius.lg,
-                                    background: `linear-gradient(135deg, ${colors.accent}, ${colors.purple})`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '14px', fontWeight: 800, color: '#fff'
-                                }}>
-                                    {manager.initials}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: '13.5px', fontWeight: 700 }}>{manager.name}</div>
-                                    <div style={{ fontSize: '11px', color: colors.text3 }}>{manager.title}</div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div style={{ fontSize: '12px', color: colors.text3, padding: '10px' }}>No manager assigned</div>
-                        )}
-                    </Card>
 
                 </div>
             </div>

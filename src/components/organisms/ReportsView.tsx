@@ -14,6 +14,7 @@ import { calculateReportStatus } from '@/lib/utils/reportStatus'
 interface ReportsViewProps {
   initialReports: any[]
   role?: 'manager' | 'employee'
+  initialSearch?: string
   kpiData: {
     totalReports: number
     avgScore: number
@@ -22,12 +23,12 @@ interface ReportsViewProps {
   }
 }
 
-export function ReportsView({ initialReports, kpiData, role = 'manager' }: ReportsViewProps) {
+export function ReportsView({ initialReports, kpiData, role = 'manager', initialSearch = '' }: ReportsViewProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const view = searchParams.get('view') || 'org'
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(initialSearch)
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState<'due' | 'score'>('due')
 

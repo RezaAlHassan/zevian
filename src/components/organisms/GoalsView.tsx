@@ -338,7 +338,9 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                   <tr
                     key={goal.id}
                     onClick={() => router.push(`${basePath}/${goal.id}?${searchParams.toString()}`)}
-                    style={{ borderBottom: i === filteredAndSortedGoals.length - 1 ? 'none' : `1px solid ${colors.border}`, cursor: 'pointer' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = colors.surface2)}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    style={{ borderBottom: i === filteredAndSortedGoals.length - 1 ? 'none' : `1px solid ${colors.border}`, cursor: 'pointer', transition: `background ${animation.fast}` }}
                   >
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ fontWeight: typography.weight.semibold, fontSize: '13.5px', color: colors.text, letterSpacing: '-0.1px' }}>{goal.name}</div>
@@ -452,6 +454,8 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
               <div
                 key={goal.id}
                 onClick={() => router.push(`${basePath}/${goal.id}?${searchParams.toString()}`)}
+                onMouseEnter={e => { e.currentTarget.style.background = colors.surface2; e.currentTarget.style.borderColor = colors.borderHover }}
+                onMouseLeave={e => { e.currentTarget.style.background = colors.surface; e.currentTarget.style.borderColor = colors.border }}
                 style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden', cursor: 'pointer', transition: `all ${animation.fast}` }}
               >
                 <div style={{ height: '4px', background: `linear-gradient(90deg, ${colors.accent}, ${colors.teal})` }} />
@@ -533,7 +537,9 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                 .map(goal => (
                 <div
                   key={goal.id}
-                   onClick={() => router.push(`${basePath}/${goal.id}?${searchParams.toString()}`)}
+                  onClick={() => router.push(`${basePath}/${goal.id}?${searchParams.toString()}`)}
+                  onMouseEnter={e => { e.currentTarget.style.background = colors.surface2; e.currentTarget.style.borderColor = colors.borderHover }}
+                  onMouseLeave={e => { e.currentTarget.style.background = colors.surface; e.currentTarget.style.borderColor = colors.border }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -542,7 +548,8 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                     background: colors.surface,
                     border: `1px solid ${colors.border}`,
                     borderRadius: radius.xl,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    transition: `all ${animation.fast}`,
                   }}
                 >
                   <div style={{
