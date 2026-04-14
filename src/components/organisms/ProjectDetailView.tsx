@@ -38,6 +38,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
             alert(res.error || 'Failed to save project')
         }
     }
+
     const [isSavingMembers, setIsSavingMembers] = useState(false)
 
     if (!project) return null
@@ -69,6 +70,11 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                     <span style={{ color: colors.text, fontWeight: 500 }}>{project.name}</span>
                 </div>
                 <div style={{ flex: 1 }} />
+                {!readOnly && (
+                    <Link href={`/projects/${project.id}/ai-context`} style={{ textDecoration: 'none' }}>
+                        <Button variant="secondary" size="sm" icon="sparkles">Project Memory</Button>
+                    </Link>
+                )}
                 {!readOnly && <Button variant="secondary" size="sm" icon="settings" onClick={() => setIsEditOpen(true)}>Settings</Button>}
             </header>
 

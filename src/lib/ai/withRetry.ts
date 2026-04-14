@@ -13,8 +13,12 @@ export async function withRetry<T>(
         } catch (err: any) {
             const isRateLimit =
                 err?.status === 429 ||
+                err?.status === 503 ||
                 err?.message?.includes('429') ||
+                err?.message?.includes('503') ||
                 err?.message?.includes('Too Many Requests') ||
+                err?.message?.includes('Service Unavailable') ||
+                err?.message?.includes('high demand') ||
                 err?.message?.includes('Quota');
 
             if (isRateLimit && retries > 1) {

@@ -16,7 +16,7 @@ export async function completeOnboardingAction(data: {
     // Goal data from templates
     goalName?: string;
     goalInstructions?: string;
-    criteria?: { name: string; weight: number }[];
+    criteria?: { name: string; weight: number; target_description?: string }[];
 }) {
     const supabase = createServerClient()
 
@@ -116,6 +116,7 @@ export async function completeOnboardingAction(data: {
                 name: c.name,
                 weight: c.weight,
                 display_order: index,
+                target_description: c.target_description ?? null,
             }))
 
             const { error: criteriaError } = await supabase

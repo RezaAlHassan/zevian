@@ -341,12 +341,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                                                 </div>
                                             </div>
                                             {/* Evidence */}
-                                            {noEvidence ? (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', background: `${colors.warn}12`, border: `1px solid ${colors.warn}30`, borderRadius: '6px', padding: '8px 12px', marginBottom: '8px', fontSize: '12px', color: colors.warn }}>
-                                                    <Icon name="alert" size={13} color={colors.warn} />
-                                                    No specific evidence found in report
-                                                </div>
-                                            ) : (
+                                            {!noEvidence && (
                                                 <div style={{ background: `${colors.teal}10`, borderLeft: `3px solid ${colors.teal}`, borderRadius: '0 6px 6px 0', padding: '8px 12px', marginBottom: '8px' }}>
                                                     <div style={{ fontSize: '10px', fontWeight: 700, color: colors.teal, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Evidence</div>
                                                     <div style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.6, fontStyle: 'italic' }}>"{c.evidence}"</div>

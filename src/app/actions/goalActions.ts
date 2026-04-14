@@ -31,7 +31,8 @@ export async function upsertGoalAction(formData: any) {
             criteria: (formData.criteria || []).map((c: any) => ({
                 id: c.id.startsWith('ai-') || c.id.startsWith('tmpl-') || !isNaN(Number(c.id)) ? `crit-${Math.random().toString(36).substring(2, 7)}` : c.id,
                 name: c.name,
-                weight: c.weight
+                weight: c.weight,
+                target_description: c.target_description ?? null
             })),
             assignees: [] // Default for now
         }
@@ -155,7 +156,25 @@ export async function updateGoalMembersAction(goalId: string, memberIds: string[
             return { error: 'Unauthorized: Only managers can manage goal assignments' }
         }
 
+        // Capture current assignees before the update so we can diff
+        const { data: currentAssignees } = await supabase
+            .from('goal_assignees')
+            .select('assignee_id')
+            .eq('goal_id', goalId)
+        const previousIds = (currentAssignees || []).map((a: any) => a.assignee_id)
+
         await goalService.updateGoalAssignees(goalId, memberIds)
+
+        // Generate reporting periods for any newly added employees
+        const newlyAdded = memberIds.filter(id => !previousIds.includes(id))
+        if (newlyAdded.length > 0) {
+            const { setupPeriodsForNewAssignment } = await import('@/lib/reportingPeriods')
+            for (const empId of newlyAdded) {
+                await setupPeriodsForNewAssignment(empId, undefined, goalId).catch(err =>
+                    console.error('[updateGoalMembersAction] setupPeriodsForNewAssignment failed for', empId, err)
+                )
+            }
+        }
 
         revalidatePath('/goals')
         revalidatePath('/dashboard')

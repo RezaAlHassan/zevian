@@ -18,7 +18,7 @@ import {
 interface DateRangeSelectorProps {
     startDate?: string // ISO string
     endDate?: string   // ISO string
-    onRangeChange: (start: string, end: string) => void
+    onRangeChange: (start: string | undefined, end: string | undefined) => void
 }
 
 export function DateRangeSelector({
@@ -39,9 +39,9 @@ export function DateRangeSelector({
         }
     }
 
-    const selectedRange = startDate && endDate 
+    const selectedRange = startDate && endDate
         ? `${displayFormat(startDate)} — ${displayFormat(endDate)}`
-        : 'Select Range'
+        : 'All Time'
 
     const handleRangeSelect = (start: Date, end: Date) => {
         onRangeChange(start.toISOString(), end.toISOString())
@@ -50,6 +50,12 @@ export function DateRangeSelector({
     }
 
     const setQuickRange = (range: string) => {
+        if (range === 'All Time') {
+            onRangeChange(undefined, undefined)
+            setIsOpen(false)
+            return
+        }
+
         const now = new Date()
         let start = startOfDay(now)
         let end = endOfDay(now)
@@ -85,6 +91,7 @@ export function DateRangeSelector({
     }
 
     const ranges = [
+        'All Time',
         'Today',
         'Last 7 Days',
         'Last 30 Days',

@@ -38,8 +38,9 @@ export async function POST(req: NextRequest) {
         id, content,
         employee_id,
         goal:goals(
-          id, name, instructions, project_id,
-          criteria(id, name, weight)
+          id, name, instructions, project_id, deadline,
+          project:projects(report_frequency, ai_context),
+          criteria(id, name, weight, target_description)
         )
       `)
       .eq('id', reportId)
@@ -53,19 +54,27 @@ export async function POST(req: NextRequest) {
     const goal = Array.isArray(r.goal) ? r.goal[0] : r.goal;
     const criteria = goal?.criteria ?? [];
     const projectId = goal?.project_id;
+    const goalDeadline = goal?.deadline ?? null;
+    const project = Array.isArray(goal?.project) ? goal.project[0] : goal?.project;
+    const reportFrequency: string = project?.report_frequency ?? 'weekly';
 
     // 1.5 Fetch Org Weights & KB Context
     let goalWeight = 70;
     let selectedMetricIds: string[] = [];
     let kbContext = "";
+    let allowLate = true;
+    let requireReport = true;
 
     const { data: employee } = await supabase.from('employees').select('organization_id').eq('id', r.employee_id).single();
     if (employee && (employee as any).organization_id) {
         const orgId = (employee as any).organization_id;
-        const { data: org } = await supabase.from('organizations').select('goal_weight, selected_metrics').eq('id', orgId).single();
+        const { data: org } = await supabase.from('organizations').select('goal_weight, selected_metrics, ai_config').eq('id', orgId).single();
         if (org) {
             if ((org as any).goal_weight !== undefined) goalWeight = (org as any).goal_weight;
             if ((org as any).selected_metrics) selectedMetricIds = (org as any).selected_metrics;
+            const aiConfig = (org as any).ai_config ?? {};
+            allowLate = aiConfig.allowLate ?? true;
+            requireReport = aiConfig.requireReport ?? true;
         }
     }
 
@@ -87,14 +96,49 @@ export async function POST(req: NextRequest) {
     const metricsList = allOrgMetrics.map(m => `- ${m.name}: ${m.description}`).join('\n');
 
     if (projectId) {
-        const { data: pins } = await supabase.from('knowledge_pins').select('content, section').eq('project_id', projectId);
-        if (pins && pins.length > 0) {
-            kbContext = (pins as any[]).map(p => `[${p.section.toUpperCase()}]: ${p.content}`).join('\n');
+        const projectMemory = project?.ai_context ?? null
+        if (projectMemory) {
+            kbContext = `[PROJECT MEMORY]: ${projectMemory}`
         }
     }
 
+    // 1.6 Fetch last 3 scored reports for this employee on this goal (excluding current)
+    const { data: historicalReports } = await supabase
+      .from('reports')
+      .select(`
+        id, submission_date, evaluation_score,
+        report_criterion_scores(criterion_name, score, evidence)
+      `)
+      .eq('employee_id', r.employee_id)
+      .eq('goal_id', goal?.id)
+      .neq('id', reportId)
+      .order('submission_date', { ascending: false })
+      .limit(3)
+
+    const historicalScores = historicalReports ?? []
+    console.log('[score-report] historicalScores:', JSON.stringify(historicalScores, null, 2))
+
     // 2. Build scoring prompt
-    const criteriaListJSON = JSON.stringify(criteria.map((c: any) => ({ name: c.name, weight: c.weight })));
+    const criteriaBlock = criteria.map((c: any) => {
+      const historyLines = historicalScores
+        .map((h: any) => {
+          const match = (h.report_criterion_scores ?? []).find(
+            (rcs: any) => rcs.criterion_name === c.name
+          )
+          if (!match) return null
+          const date = new Date(h.submission_date)
+          const label = `Week of ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+          const evidence = match.evidence ? `"${match.evidence}"` : 'No evidence recorded'
+          return `- ${label}: ${match.score}/10 — ${evidence}`
+        })
+        .filter(Boolean)
+
+      const historyBlock = historyLines.length > 0
+        ? `Recent history:\n${historyLines.join('\n')}`
+        : 'Recent history:\nNo previous reports for this criterion.'
+
+      return `Criterion: ${c.name}\nWeight: ${c.weight}%\nTarget: ${c.target_description || 'No target set'}\n${historyBlock}`
+    }).join('\n\n');
 
     const promptText = `You are Zevian's performance evaluation engine. Your sole function is to score an employee's work report against a manager-defined set of weighted criteria. You operate with strict, non-negotiable rules to ensure scoring integrity.
 
@@ -176,13 +220,26 @@ ${r.content}
 - goal_name: 
 ${goal?.name}
 
-- goal_instructions: 
+- goal_instructions:
 ${goal?.instructions}
 
-- criteria: 
-${criteriaListJSON}
+- organization_scoring_policy:
+  - Late submissions: ${allowLate ? 'penalise late submissions by reducing score up to 1 point' : 'do not penalise late submissions'}
+  - Report requirement: ${requireReport ? 'a submitted report is mandatory for scoring' : 'scoring can proceed without a full report'}
 
-- project_context: 
+- criteria:
+${criteriaBlock}
+
+- report_frequency: ${reportFrequency}
+- goal_deadline: ${goalDeadline ? new Date(goalDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No deadline set'}
+- scoring_note: A ${reportFrequency} report is expected to cover ${
+  reportFrequency === 'daily' ? "that day's activity" :
+  reportFrequency === 'weekly' ? "full week's output" :
+  reportFrequency === 'bi-weekly' ? "two weeks' output" :
+  "full month's output"
+}. Hold the report to that standard.
+
+- project_context:
 ${kbContext || "None provided"}
 
 - organizational_metrics:
@@ -199,7 +256,7 @@ The JSON must conform exactly to this structure:
 {
   "overall_score": <number, 1 decimal place, weighted average of criteria scores>,
   "overall_confidence": <"high" | "medium" | "low">,
-  "overall_reasoning": <string, 2–4 sentences. Cite specific evidence from the report or explain the absence of it. Do not be generic.>,
+  "overall_reasoning": <string, 2–4 sentences. Summarise the employee's overall performance: what they demonstrated, how it measured against the goal's targets and expectations, and whether it represents a trend improvement or decline based on history. Do not be generic. Do not list criteria — give a holistic verdict.>,
   "integrity_flags": <array of strings, empty array [] if none. Possible values: "KEYWORD_STUFFING", "VAGUE_AFFIRMATIONS_DOMINANT", "PROMPT_INJECTION_DETECTED", "LOW_SPECIFICITY", "INSUFFICIENT_EVIDENCE">,
   "criteria_scores": [
     {
@@ -208,7 +265,7 @@ The JSON must conform exactly to this structure:
       "score": <number, 1 decimal place, 1.0–10.0>,
       "confidence": <"high" | "medium" | "low">,
       "evidence": <string, direct quote or specific reference from the report that justifies the score. If no evidence exists, write "No specific evidence found." — do not fabricate.>,
-      "reasoning": <string, 1–2 sentences explaining why this score was given, referencing the evidence or lack thereof.>
+      "reasoning": <string, 2–3 sentences. Must answer: (1) what the employee demonstrated or failed to demonstrate, (2) how that compares to the target if one was set — explicitly state whether they hit, approached, or missed it, (3) whether this is an improvement, decline, or consistent with recent history if history exists. Do not be generic. Do not restate the evidence — explain the gap or alignment between what was shown and what was expected. If no target is set, assess based on whether the evidence suggests full effort, partial effort, or minimal effort for the reporting period. For scores 8 and above: note specifically what made this report strong and whether it is repeatable or a one-off result.>
     }
   ],
   "org_metrics": [
@@ -245,7 +302,7 @@ Round to 1 decimal place.
       () => model.generateContent({
         contents: [{ role: 'user', parts: [{ text: promptText }] }],
         generationConfig: {
-          maxOutputTokens: 2048,
+          maxOutputTokens: 8192,
           temperature: 0.1, // Low temp for consistent scoring
           responseMimeType: "application/json" // Force JSON response if supported
         }
@@ -254,7 +311,42 @@ Round to 1 decimal place.
 
     // 4. Parse response
     const raw = result.response.text()
-    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim())
+
+    // Strip markdown fences, extract JSON object boundaries
+    let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+    const jsonStart = cleaned.indexOf('{')
+    const jsonEnd = cleaned.lastIndexOf('}')
+    if (jsonStart === -1 || jsonEnd === -1) {
+      console.error('[score-report] No JSON object in response (first 500 chars):', cleaned.slice(0, 500))
+      throw new Error('AI returned an unparseable response. Please try again.')
+    }
+    cleaned = cleaned.slice(jsonStart, jsonEnd + 1)
+
+    // Sanitize literal control characters inside JSON string values.
+    // The model sometimes quotes report content verbatim including raw newlines,
+    // which are not valid inside JSON strings and cause "Unterminated string" errors.
+    let sanitized = ''
+    let inString = false
+    let escaped = false
+    for (const char of cleaned) {
+      if (escaped) { sanitized += char; escaped = false; continue }
+      if (char === '\\' && inString) { escaped = true; sanitized += char; continue }
+      if (char === '"') { inString = !inString; sanitized += char; continue }
+      if (inString) {
+        if (char === '\n') { sanitized += '\\n'; continue }
+        if (char === '\r') { sanitized += '\\r'; continue }
+        if (char === '\t') { sanitized += '\\t'; continue }
+      }
+      sanitized += char
+    }
+
+    let parsed: any
+    try {
+      parsed = JSON.parse(sanitized)
+    } catch (parseErr: any) {
+      console.error('[score-report] JSON parse failed:', parseErr.message, '| first 500 chars:', sanitized.slice(0, 500))
+      throw new Error('AI returned malformed JSON. Please try again.')
+    }
 
     // Recalculate overall_score with org weights
     const { criteria_scores, org_metrics, overall_reasoning, integrity_flags, overall_confidence } = parsed

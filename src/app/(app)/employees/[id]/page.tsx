@@ -97,8 +97,13 @@ export default function EmployeeDetailPage() {
                     endDate={endDate}
                     onRangeChange={(start, end) => {
                         const params = new URLSearchParams(searchParams.toString());
-                        params.set('start', start);
-                        params.set('end', end);
+                        if (start && end) {
+                            params.set('start', start);
+                            params.set('end', end);
+                        } else {
+                            params.delete('start');
+                            params.delete('end');
+                        }
                         router.push(`?${params.toString()}`);
                     }}
                 />

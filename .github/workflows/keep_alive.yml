@@ -1,0 +1,23 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    - cron: '0 0 */5 * *'  # Runs every 5 days
+  workflow_dispatch:         # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  keep_alive:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Production Supabase
+        run: |
+          curl -X GET "${{ secrets.PROD_SUPABASE_URL }}/rest/v1/" \
+          -H "apikey: ${{ secrets.PROD_SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.PROD_SUPABASE_ANON_KEY }}"
+
+      - name: Ping Dev Supabase
+        run: |
+          curl -X GET "${{ secrets.DEV_SUPABASE_URL }}/rest/v1/" \
+          -H "apikey: ${{ secrets.DEV_SUPABASE_ANON_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.DEV_SUPABASE_ANON_KEY }}"

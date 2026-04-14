@@ -1,8 +1,10 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase/server'
+import { createServerClient, createAdminClient } from '@/lib/supabase/server'
 import { projectService, employeeService } from '@/../databaseService2'
 import { revalidatePath } from 'next/cache'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+import { withRetry } from '@/lib/ai/withRetry'
 
 export async function upsertProjectAction(formData: any) {
     try {
@@ -159,6 +161,112 @@ export async function getProjectsAction() {
         return { projects }
     } catch (error: any) {
         return { error: error.message || 'Failed to fetch projects' }
+    }
+}
+
+export async function refreshProjectMemoryAction(projectId: string) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Not authenticated' }
+
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) {
+            return { error: 'Unauthorized' }
+        }
+
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY
+        if (!GEMINI_API_KEY) return { error: 'GEMINI_API_KEY not configured' }
+
+        // Fetch current ai_context
+        const projectData = await projectService.getById(projectId)
+        const existingMemory: string = (projectData as any)?.aiContext ?? ''
+
+        // Fetch goal IDs for this project, then fetch last 10 scored reports
+        const adminClient = createAdminClient()
+        const { data: goals } = await (adminClient.from('goals') as any)
+            .select('id')
+            .eq('project_id', projectId)
+        const goalIds = (goals ?? []).map((g: any) => g.id)
+
+        if (goalIds.length === 0) {
+            return { error: 'No scored reports found for this project yet.' }
+        }
+
+        const { data: scoredReports, error: reportsError } = await (adminClient.from('reports') as any)
+            .select('report_text, evaluation_score, evaluation_reasoning')
+            .in('goal_id', goalIds)
+            .not('evaluation_score', 'is', null)
+            .order('submission_date', { ascending: false })
+            .limit(10)
+
+        if (reportsError) {
+            console.error('refreshProjectMemoryAction reports query error:', reportsError)
+            return { error: 'Failed to fetch reports' }
+        }
+
+        if (!scoredReports || scoredReports.length === 0) {
+            return { error: 'No scored reports found for this project yet.' }
+        }
+
+        const reportsSummary = scoredReports.map((r: any, i: number) =>
+            `Report ${i + 1} (overall score: ${r.evaluation_score}):\n${r.report_text?.slice(0, 600) ?? '(no content)'}${r.evaluation_reasoning ? `\nAI reasoning: ${r.evaluation_reasoning.slice(0, 200)}` : ''}`
+        ).join('\n\n---\n\n')
+
+        const prompt = `Given these ${scoredReports.length} employee reports and their scores, extract 1-5 short facts, patterns, or definitions worth remembering for future scoring in this project. Only include things not already covered in the existing memory below. Return plain text bullet points only. If nothing new, return empty string.
+
+Existing memory:
+${existingMemory || '(none)'}
+
+Reports:
+${reportsSummary}`
+
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+
+        const result = await withRetry(
+            'project-memory-refresh',
+            () => model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { maxOutputTokens: 2048, temperature: 0.3 }
+            })
+        )
+
+        const output = result.response.text().trim()
+        if (!output) {
+            return { success: true, memory: existingMemory, reportCount: scoredReports.length, noNewFacts: true }
+        }
+
+        const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        const updatedMemory = (existingMemory ? existingMemory + '\n\n' : '') + `[Auto-added ${dateStr}]:\n${output}`
+
+        await projectService.update(projectId, { aiContext: updatedMemory } as any)
+        revalidatePath(`/projects/${projectId}/ai-context`)
+
+        return { success: true, memory: updatedMemory, reportCount: scoredReports.length }
+    } catch (error: any) {
+        console.error('refreshProjectMemoryAction Error:', error)
+        return { error: error.message || 'Failed to update project memory' }
+    }
+}
+
+export async function updateProjectMemoryAction(projectId: string, memory: string) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Not authenticated' }
+
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) {
+            return { error: 'Unauthorized' }
+        }
+
+        await projectService.update(projectId, { aiContext: memory } as any)
+
+        revalidatePath(`/projects/${projectId}/ai-context`)
+        return { success: true }
+    } catch (error: any) {
+        return { error: error.message || 'Failed to update project memory' }
     }
 }
 

@@ -20,8 +20,10 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
             return { error: 'Employee or Organization not found' }
         }
 
-        const organization = await organizationService.getById(employee.organizationId)
-        const customMetrics = await customMetricService.getByOrganizationId(employee.organizationId)
+        const [organization, customMetrics] = await Promise.all([
+            organizationService.getById(employee.organizationId),
+            customMetricService.getByOrganizationId(employee.organizationId),
+        ])
 
         // Only include active metrics
         organization.customMetrics = customMetrics.filter((m: CustomMetric) => m.isActive)
@@ -33,18 +35,16 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
                 employee.role === 'admin' ||
                 (employee.permissions?.canViewOrganizationWide ?? false)
             const effectiveView = view ?? (isSenior ? 'org' : 'direct')
-            const data = await dashboardService.getManagerDashboardData(employee.id, effectiveView, startDate, endDate)
+            // Enforce: non-senior managers cannot use org view even if ?view=org is in the URL
+            const safeView = (!isSenior && effectiveView === 'org') ? 'direct' : effectiveView
+            const data = await dashboardService.getManagerDashboardData(employee.id, safeView, startDate, endDate)
             return { ...data, organization }
         }
 
-        // For employees: run missed-report maintenance check silently on load
-        try {
-            const { runMissedCheckForEmployee } = await import('@/lib/reportingPeriodsMaintenance')
-            await runMissedCheckForEmployee(employee.id)
-        } catch (maintError) {
-            // Non-fatal: log but do not block the dashboard
-            console.warn('[Dashboard] Missed report check failed:', maintError)
-        }
+        // For employees: run missed-report maintenance check in the background — must not block load
+        import('@/lib/reportingPeriodsMaintenance').then(({ runMissedCheckForEmployee }) =>
+            runMissedCheckForEmployee(employee.id)
+        ).catch(e => console.warn('[Dashboard] Missed report check failed:', e))
 
         let soonestPeriod: any = null
         let upcomingPeriods: any[] = []

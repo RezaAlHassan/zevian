@@ -285,8 +285,13 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
           endDate={searchParams.get('end') || undefined}
           onRangeChange={(start, end) => {
             const params = new URLSearchParams(searchParams.toString());
-            params.set('start', start);
-            params.set('end', end);
+            if (start && end) {
+              params.set('start', start);
+              params.set('end', end);
+            } else {
+              params.delete('start');
+              params.delete('end');
+            }
             router.push(`?${params.toString()}`);
           }}
         />

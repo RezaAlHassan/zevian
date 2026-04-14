@@ -9,9 +9,8 @@ import { analyzeReportAction, submitReportAction, getEligibleGoalsAction } from 
 
 const STEPS = [
     { id: 1, label: 'Context' },
-    { id: 2, label: 'Goal' },
-    { id: 3, label: 'Write' },
-    { id: 4, label: 'Review' },
+    { id: 2, label: 'Write' },
+    { id: 3, label: 'Review' },
 ]
 
 interface Props {
@@ -44,7 +43,13 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
 
     const todayStr = new Date().toLocaleDateString('en-CA')  // YYYY-MM-DD local
     const minDateStr = (() => {
-        if (!isLateAllowed || backdateLimitDays === null) return todayStr
+        if (!isLateAllowed) return todayStr
+        if (backdateLimitDays === null) {
+            // Late submissions allowed but no explicit limit — default to 7 days back
+            const d = new Date()
+            d.setDate(d.getDate() - 7)
+            return d.toLocaleDateString('en-CA')
+        }
         if (backdateLimitDays === 0) return '2020-01-01'  // effectively unlimited
         const d = new Date()
         d.setDate(d.getDate() - backdateLimitDays)
@@ -52,17 +57,18 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
     })()
 
     // ── Wizard State ──────────────────────────────────────────
-    // Step 1: Context
+    // Step 1: Context (project + date + goal)
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
     const [selectedDate, setSelectedDate] = useState(todayStr)
     const isBackdatedSelection = selectedDate < todayStr
 
-    // Step 2: Goals
+    // Goals (loaded dynamically when project or date changes)
     const [eligibleGoals, setEligibleGoals] = useState<any[]>([])
     const [isLoadingGoals, setIsLoadingGoals] = useState(false)
+    const [goalsLoaded, setGoalsLoaded] = useState(false)
     const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null)
-    
-    // Step 3: Write & Submit
+
+    // Step 2: Write
     const [reportText, setReportText] = useState('')
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [analysisResults, setAnalysisResults] = useState<any>(null)
@@ -71,58 +77,60 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
     const [isSuccess, setIsSuccess] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Reset Step 2 if Step 1 changes
+    // Load eligible goals whenever project or date changes
     useEffect(() => {
+        if (!selectedProjectId) {
+            setEligibleGoals([])
+            setGoalsLoaded(false)
+            setSelectedGoalId(null)
+            return
+        }
+
+        let cancelled = false
+        setIsLoadingGoals(true)
+        setGoalsLoaded(false)
         setSelectedGoalId(null)
         setEligibleGoals([])
-    }, [selectedProjectId, selectedDate])
 
-    // ── Navigation Logic ──────────────────────────────────────
-    const handleNextStep1 = async () => {
-        if (!selectedProjectId) return
-        
-        setIsLoadingGoals(true)
-        setCurrentStep(2) // Move to step 2 visually first for feedback
-        
-        try {
-            const res = await getEligibleGoalsAction(employeeId, selectedProjectId, selectedDate)
+        getEligibleGoalsAction(employeeId, selectedProjectId, selectedDate).then(res => {
+            if (cancelled) return
             if (res.success && res.data) {
                 setEligibleGoals(res.data)
             } else {
-                setError(res.error || 'Failed to load goals.')
-                setCurrentStep(1) // Fallback
+                setEligibleGoals([])
             }
-        } catch (err) {
-            console.error(err)
-            setError('Failed to fetch eligible goals.')
-            setCurrentStep(1) // Fallback
-        } finally {
+            setGoalsLoaded(true)
             setIsLoadingGoals(false)
-        }
-    }
+        }).catch(() => {
+            if (!cancelled) {
+                setEligibleGoals([])
+                setGoalsLoaded(true)
+                setIsLoadingGoals(false)
+            }
+        })
 
-    const selectGoal = (id: string) => {
-        setSelectedGoalId(id)
-        setCurrentStep(3)
-        setTimeout(() => {
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-        }, 100)
+        return () => { cancelled = true }
+    }, [selectedProjectId, selectedDate, employeeId])
+
+    // ── Navigation ────────────────────────────────────────────
+    const handleContinueToWrite = () => {
+        if (!selectedProjectId || !selectedGoalId) return
+        setCurrentStep(2)
+        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100)
     }
 
     const goBack = () => {
-        if (currentStep > 1) {
-            setCurrentStep(currentStep - 1)
-        }
+        if (currentStep > 1) setCurrentStep(currentStep - 1)
     }
 
     // ── Actions ──────────────────────────────────────────────
     const handleAnalyze = async () => {
         setIsAnalyzing(true)
         setError(null)
-        setIsModalOpen(true) 
+        setIsModalOpen(true)
 
         const goalsToAnalyze = eligibleGoals.filter(g => g.id === selectedGoalId)
-        
+
         try {
             const result = await analyzeReportAction({
                 reportText,
@@ -149,7 +157,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
 
     const handleConfirmSubmit = async () => {
         if (!analysisResults || !selectedGoalId) return
-        
+
         setIsSubmitting(true)
         setError(null)
 
@@ -236,29 +244,24 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
 
     const canAnalyze = reportText.trim().length >= 50
 
-    // ── Urgent Goals Helper ─────────────────────────────
+    // ── Urgent Goals Sidebar ────────────────────────────
     const urgentGoals = useMemo(() => {
         if (!initialGoals || initialGoals.length === 0) return []
 
         const now = new Date()
-        
+
         const mapped = initialGoals.map((goal: any) => {
             const project = initialProjects.find(p => p.id === goal.projectId)
-            
-            // Find all periods for this goal
+
             const goalPeriods = (pendingPeriods || []).filter((p: any) => p.goal_id === goal.id)
-            
-            // Find the most relevant period: First look for the earliest pending/late period.
-            // If none, look for the most recent submitted period.
+
             let relevantPeriod = goalPeriods.find((p: any) => p.status === 'pending' || p.status === 'late')
-            
+
             let isSubmitted = false
             let hasPeriod = false
             if (!relevantPeriod) {
-                // Get the latest submitted period
                 const submittedPeriods = goalPeriods.filter((p: any) => p.status === 'submitted')
                 if (submittedPeriods.length > 0) {
-                    // Sort by period_end descending to get the most recent
                     submittedPeriods.sort((a: any, b: any) => new Date(b.period_end).getTime() - new Date(a.period_end).getTime())
                     relevantPeriod = submittedPeriods[0]
                     isSubmitted = true
@@ -269,20 +272,19 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
             let diffDays = 0
             let endDate = new Date()
             let nextDueDate = new Date()
-            
+
             if (relevantPeriod) {
                 endDate = new Date(relevantPeriod.period_end)
                 nextDueDate = new Date(endDate)
-                
+
                 if (isSubmitted) {
-                    // Calculate next due date
                     const freq = project?.frequency || 'weekly'
                     if (freq === 'daily') nextDueDate.setDate(nextDueDate.getDate() + 1)
                     else if (freq === 'biweekly') nextDueDate.setDate(nextDueDate.getDate() + 14)
                     else if (freq === 'monthly') nextDueDate.setMonth(nextDueDate.getMonth() + 1)
-                    else nextDueDate.setDate(nextDueDate.getDate() + 7) // weekly
+                    else nextDueDate.setDate(nextDueDate.getDate() + 7)
                 }
-                
+
                 const diffTime = (isSubmitted ? nextDueDate : endDate).getTime() - now.getTime()
                 diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
             }
@@ -300,14 +302,11 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
             }
         })
 
-        // Sort: pending/late first, submitted last
-        // Among pending/late: lowest daysDue first
-        // Among submitted: don't sort or sort by daysDue
         mapped.sort((a, b) => {
             if (a.isSubmitted !== b.isSubmitted) return a.isSubmitted ? 1 : -1
             return a.daysDue - b.daysDue
         })
-        
+
         return mapped.slice(0, 3)
     }, [pendingPeriods, initialGoals, initialProjects])
 
@@ -318,12 +317,12 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                     <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', marginLeft: '4px' }}>
                         Urgent Goals
                     </div>
-                    <div style={{ 
-                        padding: '16px', 
-                        background: colors.surface, 
-                        border: `1px solid ${colors.border}`, 
-                        borderRadius: radius.lg, 
-                        textAlign: 'center' 
+                    <div style={{
+                        padding: '16px',
+                        background: colors.surface,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: radius.lg,
+                        textAlign: 'center'
                     }}>
                         <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: `${colors.green}15`, color: colors.green, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                             <Icon name="check" size={20} />
@@ -334,17 +333,17 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                 </div>
             )
         }
-        
+
         return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', marginLeft: '4px' }}>
                     Urgent Goals
                 </div>
                 {urgentGoals.map(ug => (
-                    <div key={ug.id} style={{ 
-                        padding: '14px', 
-                        background: ug.isLate ? colors.dangerGlow : colors.surface, 
-                        border: `1px solid ${ug.isLate ? 'rgba(240,68,56,0.15)' : colors.border}`, 
+                    <div key={ug.id} style={{
+                        padding: '14px',
+                        background: ug.isLate ? colors.dangerGlow : colors.surface,
+                        border: `1px solid ${ug.isLate ? 'rgba(240,68,56,0.15)' : colors.border}`,
                         borderRadius: radius.lg,
                         display: 'flex',
                         flexDirection: 'column',
@@ -352,28 +351,22 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                             <div style={{ fontSize: '13px', fontWeight: 700, color: ug.isSubmitted ? colors.text3 : colors.text, lineHeight: 1.3, textDecoration: ug.isSubmitted ? 'line-through' : 'none' }}>{ug.goalName}</div>
-                            
+
                             {ug.isSubmitted ? (
-                                <div style={{ 
+                                <div style={{
                                     display: 'flex', alignItems: 'center', gap: '4px',
-                                    fontSize: '10px', 
-                                    fontWeight: 800, 
-                                    color: colors.green,
-                                    whiteSpace: 'nowrap',
-                                    padding: '3px 6px',
-                                    background: `${colors.green}15`,
-                                    borderRadius: '4px'
+                                    fontSize: '10px', fontWeight: 800, color: colors.green,
+                                    whiteSpace: 'nowrap', padding: '3px 6px',
+                                    background: `${colors.green}15`, borderRadius: '4px'
                                 }}>
                                     <Icon name="check" size={10} />
                                     Submitted
                                 </div>
                             ) : ug.hasPeriod ? (
-                                <div style={{ 
-                                    fontSize: '10px', 
-                                    fontWeight: 800, 
+                                <div style={{
+                                    fontSize: '10px', fontWeight: 800,
                                     color: ug.isLate ? colors.danger : colors.warn,
-                                    whiteSpace: 'nowrap',
-                                    padding: '3px 6px',
+                                    whiteSpace: 'nowrap', padding: '3px 6px',
                                     background: ug.isLate ? 'rgba(240,68,56,0.1)' : 'rgba(245,158,11,0.12)',
                                     borderRadius: '4px'
                                 }}>
@@ -407,13 +400,15 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
         )
     }
 
+    const selectedGoal = eligibleGoals.find(g => g.id === selectedGoalId) ?? null
+
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '24px', alignItems: 'start', padding: layout.contentPadding, paddingBottom: '120px' }}>
             {/* ── Main Flow ───────────────────────── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
                 <StepTracker steps={STEPS} currentStep={currentStep} />
-                
+
                 {error && (
                     <div style={{ padding: '12px 16px', background: `${colors.warn}10`, border: `1px solid ${colors.warn}30`, borderRadius: radius.lg, color: colors.warn, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Icon name="alert" size={16} color={colors.warn} />
@@ -421,9 +416,11 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                     </div>
                 )}
 
-                {/* STEP 1: Context Selection */}
+                {/* ── STEP 1: Context (Project + Date + Goal) ── */}
                 {currentStep === 1 && (
                     <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '16px', overflow: 'visible', animation: `fadeIn ${animation.fast}` }}>
+
+                        {/* Project selection */}
                         <div style={{ padding: '24px 24px 16px 24px', borderBottom: `1px solid ${colors.border}` }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: `${colors.accent}15`, color: colors.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -431,7 +428,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                 </div>
                                 <div>
                                     <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.3px', margin: 0, color: colors.text }}>Project Context</h2>
-                                    <p style={{ fontSize: '13px', color: colors.text3, margin: '2px 0 0 0' }}>Select the specific project you are reporting on.</p>
+                                    <p style={{ fontSize: '13px', color: colors.text3, margin: '2px 0 0 0' }}>Select the project and goal you are reporting on.</p>
                                 </div>
                             </div>
                         </div>
@@ -455,15 +452,15 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                         boxShadow: selectedProjectId === p.id ? `0 4px 12px ${colors.accent}15` : 'none'
                                     }}
                                 >
-                                    <Icon name={selectedProjectId === p.id ? "check" : "briefcase"} size={16} />
+                                    <Icon name={selectedProjectId === p.id ? 'check' : 'briefcase'} size={16} />
                                     {p.name}
                                 </div>
                             ))}
                         </div>
 
-                        {/* Date Selector */}
+                        {/* Date selector */}
                         {isLateAllowed && (
-                            <div style={{ padding: '24px', background: `${colors.surface2}`, borderTop: `1px solid ${colors.border}` }}>
+                            <div style={{ padding: '20px 24px', background: colors.surface2, borderTop: `1px solid ${colors.border}` }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
                                     <div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
@@ -471,19 +468,17 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                             <span style={{ fontSize: '14px', fontWeight: 800, color: colors.text }}>Submission Date</span>
                                         </div>
                                         <div style={{ fontSize: '12px', color: colors.text3, maxWidth: '300px' }}>
-                                            What date are you submitting this report for? 
+                                            What date are you submitting this report for?
                                             {backdateLimitDays !== null && backdateLimitDays > 0 ? ` You can backdate up to ${backdateLimitDays} days.` : ''}
                                         </div>
                                     </div>
-                                    <div>
-                                        <DatePicker
-                                            selectedDate={selectedDate}
-                                            onDateChange={setSelectedDate}
-                                            minDate={new Date(minDateStr + 'T12:00:00')}
-                                            maxDate={new Date(todayStr + 'T12:00:00')}
-                                            hasWarning={isBackdatedSelection}
-                                        />
-                                    </div>
+                                    <DatePicker
+                                        selectedDate={selectedDate}
+                                        onDateChange={setSelectedDate}
+                                        minDate={new Date(minDateStr + 'T12:00:00')}
+                                        maxDate={new Date(todayStr + 'T12:00:00')}
+                                        hasWarning={isBackdatedSelection}
+                                    />
                                 </div>
 
                                 {isBackdatedSelection && (
@@ -504,85 +499,97 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                 )}
                             </div>
                         )}
-                        <div style={{ 
-                            padding: '24px', 
-                            borderTop: `1px solid ${colors.border}`, 
-                            display: 'flex', 
+
+                        {/* Goal selection — appears once a project is chosen */}
+                        {selectedProjectId && (
+                            <div style={{ borderTop: `1px solid ${colors.border}` }}>
+                                <div style={{ padding: '20px 24px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: `${colors.purple}15`, color: colors.purple, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Icon name="target" size={14} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '15px', fontWeight: 800, color: colors.text, letterSpacing: '-0.2px' }}>Select Goal</div>
+                                        <div style={{ fontSize: '12px', color: colors.text3, marginTop: '1px' }}>Choose one active goal to report on for this period.</div>
+                                    </div>
+                                </div>
+
+                                {isLoadingGoals ? (
+                                    <div style={{ padding: '32px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
+                                        Loading eligible goals...
+                                    </div>
+                                ) : !goalsLoaded ? null : eligibleGoals.length === 0 ? (
+                                    <div style={{ padding: '32px 24px', textAlign: 'center' }}>
+                                        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: `${colors.green}15`, color: colors.green, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                                            <Icon name="check" size={22} />
+                                        </div>
+                                        <div style={{ fontSize: '15px', fontWeight: 800, color: colors.text, marginBottom: '6px' }}>All Caught Up!</div>
+                                        <p style={{ fontSize: '13px', color: colors.text3, maxWidth: '380px', margin: '0 auto', lineHeight: 1.5 }}>
+                                            You have already submitted reports for all active goals in this project for the period covering <strong>{selectedDate}</strong>.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div style={{ padding: '0 24px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
+                                        {eligibleGoals.map(goal => {
+                                            const isSelected = selectedGoalId === goal.id
+                                            return (
+                                                <div
+                                                    key={goal.id}
+                                                    onClick={() => setSelectedGoalId(goal.id)}
+                                                    style={{
+                                                        background: isSelected ? `${colors.accent}10` : colors.bg,
+                                                        border: `1.5px solid ${isSelected ? colors.accent : colors.border}`,
+                                                        borderRadius: '14px', padding: '18px', cursor: 'pointer',
+                                                        transition: `all ${animation.fast}`,
+                                                        boxShadow: isSelected ? `0 4px 16px ${colors.accent}20` : 'none',
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+                                                        <div style={{ fontSize: '14px', fontWeight: 800, color: isSelected ? colors.accent : colors.text, lineHeight: 1.3 }}>{goal.name}</div>
+                                                        {isSelected && (
+                                                            <div style={{ flexShrink: 0, width: '20px', height: '20px', borderRadius: '50%', background: colors.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                <Icon name="check" size={11} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ fontSize: '12px', color: colors.text3, marginBottom: goal.description ? '8px' : '0' }}>
+                                                        {goal.criteria?.length || 0} criteria attached
+                                                    </div>
+                                                    {goal.description && (
+                                                        <p style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.5, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                            {goal.description}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Continue button */}
+                        <div style={{
+                            padding: '20px 24px',
+                            borderTop: `1px solid ${colors.border}`,
+                            display: 'flex',
                             justifyContent: 'flex-end',
                             borderBottomLeftRadius: '16px',
                             borderBottomRightRadius: '16px'
                         }}>
-                            <Button variant="primary" icon="chevronRight" onClick={handleNextStep1} disabled={!selectedProjectId}>
-                                Select Goals
+                            <Button
+                                variant="primary"
+                                icon="chevronRight"
+                                onClick={handleContinueToWrite}
+                                disabled={!selectedProjectId || !selectedGoalId}
+                            >
+                                Continue to Write
                             </Button>
                         </div>
                     </div>
                 )}
 
-                {/* STEP 2: Goal Selection */}
-                {currentStep === 2 && (
-                    <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '16px', overflow: 'hidden', animation: `fadeIn ${animation.fast}` }}>
-                        <div style={{ padding: '24px 24px 16px 24px', borderBottom: `1px solid ${colors.border}` }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: `${colors.purple}15`, color: colors.purple, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Icon name="target" size={16} />
-                                </div>
-                                <div>
-                                    <h2 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.3px', margin: 0, color: colors.text }}>Select Goal</h2>
-                                    <p style={{ fontSize: '13px', color: colors.text3, margin: '2px 0 0 0' }}>Choose ONE active goal to report on for the selected period.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {isLoadingGoals ? (
-                            <div style={{ padding: '60px', textAlign: 'center', color: colors.text3 }}>Loading eligible goals...</div>
-                        ) : eligibleGoals.length === 0 ? (
-                            <div style={{ padding: '40px', textAlign: 'center' }}>
-                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: `${colors.green}15`, color: colors.green, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                                    <Icon name="check" size={24} />
-                                </div>
-                                <h3 style={{ fontSize: '16px', fontWeight: 800, color: colors.text, marginBottom: '8px' }}>All Caught Up!</h3>
-                                <p style={{ fontSize: '14px', color: colors.text3, maxWidth: '400px', margin: '0 auto', lineHeight: 1.5 }}>
-                                    You have already submitted reports for all active goals in this project for the reporting period encompassing <strong>{selectedDate}</strong>.
-                                </p>
-                            </div>
-                        ) : (
-                            <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                                {eligibleGoals.map(goal => {
-                                    const isSelected = selectedGoalId === goal.id
-                                    return (
-                                        <div 
-                                            key={goal.id} 
-                                            onClick={() => selectGoal(goal.id)}
-                                            style={{ 
-                                                background: isSelected ? `${colors.accent}10` : colors.bg,
-                                                border: `1.5px solid ${isSelected ? colors.accent : colors.border}`,
-                                                borderRadius: '16px', padding: '20px', cursor: 'pointer',
-                                                transition: `all ${animation.fast}`,
-                                                boxShadow: isSelected ? `0 4px 16px ${colors.accent}20` : 'none',
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
-                                                <div style={{ flex: 1 }}>
-                                                    <div style={{ fontSize: '15px', fontWeight: 800, color: colors.text, marginBottom: '4px', lineHeight: 1.3 }}>{goal.name}</div>
-                                                    <div style={{ fontSize: '12px', color: colors.text3 }}>
-                                                        {goal.criteria?.length || 0} criteria attached
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <p style={{ fontSize: '13px', color: colors.text2, lineHeight: 1.5, marginBottom: '0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                                {goal.description || 'No description provided.'}
-                                            </p>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* STEP 3: Report Editor */}
-                {currentStep === 3 && selectedGoalId && (
+                {/* ── STEP 2: Write Report ── */}
+                {currentStep === 2 && selectedGoalId && (
                     <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '16px', overflow: 'hidden', animation: `fadeIn ${animation.fast}`, display: 'flex', flexDirection: 'column' }}>
                         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: `1px solid ${colors.border}` }}>
                             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: colors.teal }} />
@@ -606,7 +613,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                 }}
                             />
                         </div>
-                        
+
                         <div style={{ padding: '16px 20px', background: colors.surface2, borderTop: `1px solid ${colors.border}` }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -634,18 +641,17 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                 )}
             </div>
 
-            {/* ── Sidebar Context ─────────────────── */}
+            {/* ── Sidebar ─────────────────── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '80px' }}>
-                {currentStep < 3 && renderUrgentGoals()}
-                <Accordion 
+                {currentStep === 1 && renderUrgentGoals()}
+                <Accordion
                     allowMultiple={true}
-                    initialOpenIndices={currentStep === 3 ? [0, 1] : [0]}
+                    initialOpenIndices={currentStep === 2 ? [0, 1] : [0]}
                     items={[
-                        ...(currentStep === 3 ? [{
+                        ...(currentStep === 2 ? [{
                             title: "How are reports scored",
                             content: (
                                 <div style={{ paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    {/* Score breakdown */}
                                     <div style={{ fontSize: '12px', color: colors.text3, lineHeight: 1.6 }}>
                                         AI reads your report against your goal's criteria &amp; instructions, your org's metrics, and past submission history to produce a score.
                                     </div>
@@ -661,9 +667,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                             <div style={{ fontSize: '10.5px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>{initialMetrics.length} metric{initialMetrics.length !== 1 ? 's' : ''} active</div>
                                         </div>
                                     </div>
-                                    {/* Divider */}
                                     <div style={{ borderTop: `1px solid ${colors.border}` }} />
-                                    {/* Tips section */}
                                     <div>
                                         <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Tips to score higher</div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -688,14 +692,11 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                         {
                             title: "Selected Context",
                             content: (() => {
-                                const selectedGoal = currentStep === 3 && selectedGoalId
-                                    ? eligibleGoals.find(g => g.id === selectedGoalId)
-                                    : null
                                 return (
                                     <div style={{ paddingTop: '8px' }}>
                                         {selectedProjectId ? (
                                             <div style={{ fontSize: '13px', color: colors.text2, marginBottom: '8px' }}>
-                                                <strong>Project:</strong> <br/>
+                                                <strong>Project:</strong> <br />
                                                 {initialProjects.find(p => p.id === selectedProjectId)?.name || 'Unknown'}
                                             </div>
                                         ) : (
@@ -703,7 +704,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                         )}
                                         {selectedDate && (
                                             <div style={{ fontSize: '13px', color: colors.text2, marginTop: '8px' }}>
-                                                <strong>Submission Date:</strong> <br/>
+                                                <strong>Submission Date:</strong> <br />
                                                 {selectedDate}
                                                 {isBackdatedSelection && <span style={{ color: colors.warn, marginLeft: '4px', fontSize: '11px', fontWeight: 800 }}>(LATE)</span>}
                                             </div>
@@ -712,7 +713,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                             <>
                                                 <div style={{ borderTop: `1px solid ${colors.border}`, margin: '12px 0' }} />
                                                 <div style={{ fontSize: '13px', color: colors.text2, marginBottom: '10px' }}>
-                                                    <strong>Goal:</strong> <br/>
+                                                    <strong>Goal:</strong> <br />
                                                     {selectedGoal.name}
                                                 </div>
                                                 <div style={{ fontSize: '11.5px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Instructions</div>
@@ -742,7 +743,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                 )
                             })()
                         },
-                        ...(currentStep === 3 ? [{
+                        ...(currentStep === 2 ? [{
                             title: "Organisation Metrics",
                             content: (
                                 <div style={{ paddingTop: '8px' }}>
@@ -765,18 +766,16 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                 />
             </div>
 
-            {/* Footer Navigation bar */}
-            {!isAnalyzing && currentStep < 4 && (
+            {/* Footer — back button */}
+            {currentStep > 1 && (
                 <footer style={{
                     position: 'fixed', bottom: 0, left: 0, right: 0, height: '80px', padding: '0 32px',
                     display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
                     background: `${colors.bg}ee`, backdropFilter: 'blur(12px)', borderTop: `1px solid ${colors.border}`, zIndex: 10
                 }}>
-                    {currentStep > 1 && (
-                        <Button variant="secondary" onClick={goBack}>
-                            Back to Step {currentStep - 1}
-                        </Button>
-                    )}
+                    <Button variant="secondary" onClick={goBack}>
+                        Back to Step {currentStep - 1}
+                    </Button>
                 </footer>
             )}
 

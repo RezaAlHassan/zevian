@@ -71,11 +71,13 @@ export interface Database {
       }
       criteria: {
         Row: {
-          id:         string
-          name:       string
-          weight:     number
-          importance: 'low' | 'medium' | 'high' | 'critical'
-          goal_id:    string
+          id:                 string
+          name:               string
+          weight:             number
+          goal_id:            string
+          display_order:      number
+          target_description: string | null
+          created_at:         string | null
         }
         Insert: Omit<Database['public']['Tables']['criteria']['Row'], 'id'>
         Update: Partial<Database['public']['Tables']['criteria']['Insert']>

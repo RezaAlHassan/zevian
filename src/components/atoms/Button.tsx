@@ -56,6 +56,7 @@ export function Button({ variant = 'primary', size = 'md', icon, loading, childr
         ...baseStyle,
         ...sizeStyles[size],
         ...variantStyles[variant],
+        ...(isActuallyDisabled ? { opacity: 0.45, cursor: 'not-allowed' } : {}),
         ...style,
       }}
       disabled={isActuallyDisabled}

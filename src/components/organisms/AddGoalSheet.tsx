@@ -12,6 +12,7 @@ interface Criterion {
     name: string
     importance: 'low' | 'medium' | 'high' | 'critical'
     weight: number
+    target_description?: string
 }
 
 interface Props {
@@ -78,6 +79,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
     const [isGenerating, setIsGenerating] = useState(false)
     const [isTemplateLoading, setIsTemplateLoading] = useState<string | null>(null)
     const [newCritName, setNewCritName] = useState('')
+    const [newCritDescription, setNewCritDescription] = useState('')
     const [newCritImportance, setNewCritImportance] = useState<'low' | 'medium' | 'high' | 'critical'>('high')
     const [showWeightsDetail, setShowWeightsDetail] = useState(true)
     const [showAiBadge, setShowAiBadge] = useState(false)
@@ -201,10 +203,16 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
             id: Date.now().toString(),
             name: newCritName,
             importance: newCritImportance,
-            weight: 0
+            weight: 0,
+            target_description: newCritDescription.trim() || undefined
         }
         setCriteria([...criteria, newCrit])
         setNewCritName('')
+        setNewCritDescription('')
+    }
+
+    const updateTargetDescription = (id: string, target_description: string) => {
+        setCriteria(criteria.map(c => c.id === id ? { ...c, target_description: target_description || undefined } : c))
     }
 
     const removeCriterion = (id: string) => {
@@ -433,81 +441,99 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                         <p style={{ fontSize: '12.5px', color: colors.text3, marginBottom: '14px', lineHeight: 1.55 }}>Add criteria and mark their importance — weights are auto-calculated.</p>
 
                         {/* Add Crit Row */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '8px', alignItems: 'center', padding: '12px', background: colors.surface2, border: `1.5px solid ${colors.border}`, borderRadius: '10px' }}>
-                            <input
-                                value={newCritName}
-                                onChange={(e) => setNewCritName(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && addCriterion()}
-                                placeholder="e.g., Code Quality..."
-                                style={{ border: 'none', background: 'transparent', padding: '6px 2px', fontSize: '13.5px', color: colors.text, outline: 'none', fontFamily: typography.fonts.display }}
-                            />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: colors.surface3, borderRadius: '8px', padding: '3px', border: `1px solid ${colors.border}` }}>
-                                {(['low', 'medium', 'high', 'critical'] as const).map(lvl => (
-                                    <div
-                                        key={lvl}
-                                        onClick={() => setNewCritImportance(lvl)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '5px',
-                                            padding: '5px 8px',
-                                            borderRadius: '6px',
-                                            fontSize: '11px',
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                            color: newCritImportance === lvl ? '#fff' : colors.text3,
-                                            background: newCritImportance === lvl ? (lvl === 'low' ? colors.text3 : lvl === 'medium' ? '#f59e0b' : lvl === 'high' ? colors.accent : '#f04438') : 'transparent',
-                                            transition: 'all 0.15s'
-                                        }}
-                                    >
-                                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }} />
-                                        {lvl.charAt(0).toUpperCase() + lvl.slice(1)}
-                                    </div>
-                                ))}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: colors.surface2, border: `1.5px solid ${colors.border}`, borderRadius: '10px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '8px', alignItems: 'center' }}>
+                                <input
+                                    value={newCritName}
+                                    onChange={(e) => setNewCritName(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && addCriterion()}
+                                    placeholder="e.g., Code Quality..."
+                                    style={{ border: 'none', background: 'transparent', padding: '6px 2px', fontSize: '13.5px', color: colors.text, outline: 'none', fontFamily: typography.fonts.display }}
+                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: colors.surface3, borderRadius: '8px', padding: '3px', border: `1px solid ${colors.border}` }}>
+                                    {(['low', 'medium', 'high', 'critical'] as const).map(lvl => (
+                                        <div
+                                            key={lvl}
+                                            onClick={() => setNewCritImportance(lvl)}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                padding: '5px 8px',
+                                                borderRadius: '6px',
+                                                fontSize: '11px',
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                color: newCritImportance === lvl ? '#fff' : colors.text3,
+                                                background: newCritImportance === lvl ? (lvl === 'low' ? colors.text3 : lvl === 'medium' ? '#f59e0b' : lvl === 'high' ? colors.accent : '#f04438') : 'transparent',
+                                                transition: 'all 0.15s'
+                                            }}
+                                        >
+                                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor' }} />
+                                            {lvl.charAt(0).toUpperCase() + lvl.slice(1)}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={addCriterion}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', background: colors.accent, border: 'none', fontSize: '12.5px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: typography.fonts.display, boxShadow: '0 0 12px rgba(91,127,255,.2)' }}
+                                >
+                                    <Icon name="plus" size={12} />
+                                    Add
+                                </button>
                             </div>
-                            <button
-                                onClick={addCriterion}
-                                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', background: colors.accent, border: 'none', fontSize: '12.5px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: typography.fonts.display, boxShadow: '0 0 12px rgba(91,127,255,.2)' }}
-                            >
-                                <Icon name="plus" size={12} />
-                                Add
-                            </button>
+                            <textarea
+                                value={newCritDescription}
+                                onChange={(e) => setNewCritDescription(e.target.value)}
+                                placeholder="e.g. Target: 35+ sits per week. Below 30 is underperforming."
+                                rows={2}
+                                style={{ border: 'none', background: 'transparent', padding: '4px 2px', fontSize: '12px', color: colors.text2, outline: 'none', fontFamily: typography.fonts.display, resize: 'none', width: '100%', lineHeight: 1.5 }}
+                            />
                         </div>
 
                         {/* Criteria List */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px' }}>
                             {criteria.map((c) => (
-                                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 13px', background: colors.surface2, border: `1.5px solid ${colors.border}`, borderRadius: '9px' }}>
-                                    <span style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: colors.text }}>{c.name}</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                        {(['low', 'medium', 'high', 'critical'] as const).map(l => (
-                                            <div
-                                                key={l}
-                                                onClick={() => updateItemImportance(c.id, l)}
-                                                style={{
-                                                    padding: '4px 8px',
-                                                    borderRadius: '5px',
-                                                    fontSize: '10px',
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer',
-                                                    background: c.importance === l ? importanceColors[l as keyof typeof importanceColors].bg : 'transparent',
-                                                    color: c.importance === l ? importanceColors[l as keyof typeof importanceColors].text : colors.text3,
-                                                    transition: 'all 0.12s'
-                                                }}
-                                            >
-                                                {importanceColors[l as keyof typeof importanceColors].label}
-                                            </div>
-                                        ))}
+                                <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 13px', background: colors.surface2, border: `1.5px solid ${colors.border}`, borderRadius: '9px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <span style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: colors.text }}>{c.name}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            {(['low', 'medium', 'high', 'critical'] as const).map(l => (
+                                                <div
+                                                    key={l}
+                                                    onClick={() => updateItemImportance(c.id, l)}
+                                                    style={{
+                                                        padding: '4px 8px',
+                                                        borderRadius: '5px',
+                                                        fontSize: '10px',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        background: c.importance === l ? importanceColors[l as keyof typeof importanceColors].bg : 'transparent',
+                                                        color: c.importance === l ? importanceColors[l as keyof typeof importanceColors].text : colors.text3,
+                                                        transition: 'all 0.12s'
+                                                    }}
+                                                >
+                                                    {importanceColors[l as keyof typeof importanceColors].label}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="font-numeric" style={{ fontSize: '12px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: colors.accentGlow, color: colors.accent, minWidth: '48px', textAlign: 'center' }}>
+                                            {c.weight}%
+                                        </div>
+                                        <button
+                                            onClick={() => removeCriterion(c.id)}
+                                            style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: colors.text3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        >
+                                            <Icon name="trash" size={13} />
+                                        </button>
                                     </div>
-                                    <div className="font-numeric" style={{ fontSize: '12px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px', background: colors.accentGlow, color: colors.accent, minWidth: '48px', textAlign: 'center' }}>
-                                        {c.weight}%
-                                    </div>
-                                    <button
-                                        onClick={() => removeCriterion(c.id)}
-                                        style={{ width: '26px', height: '26px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: colors.text3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                    >
-                                        <Icon name="trash" size={13} />
-                                    </button>
+                                    <textarea
+                                        value={c.target_description || ''}
+                                        onChange={(e) => updateTargetDescription(c.id, e.target.value)}
+                                        placeholder="e.g. Target: 35+ sits per week. Below 30 is underperforming."
+                                        rows={2}
+                                        style={{ border: 'none', background: 'transparent', padding: '2px 0', fontSize: '12px', color: colors.text2, outline: 'none', fontFamily: typography.fonts.display, resize: 'none', width: '100%', lineHeight: 1.5 }}
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -593,17 +619,24 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                 </div>
 
                 {/* Footer */}
-                <div style={{ padding: '16px 26px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexShrink: 0, background: colors.surface, position: 'sticky', bottom: 0, zIndex: 10 }}>
-                    <Button variant="secondary" onClick={onClose} style={{ borderRadius: '9px', fontFamily: typography.fonts.display }}>Cancel</Button>
-                    <Button
-                        variant="primary"
-                        onClick={handleSave}
-                        disabled={isSaveDisabled}
-                        style={{ borderRadius: '9px', fontFamily: typography.fonts.display, boxShadow: isSaveDisabled ? 'none' : '0 0 16px rgba(91,127,255,.25)' }}
-                    >
-                        <Icon name={loading ? 'refresh' : 'check'} size={14} className={loading ? 'animate-spin' : ''} />
-                        {loading ? 'Saving...' : 'Save Goal'}
-                    </Button>
+                <div style={{ padding: '16px 26px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexShrink: 0, background: colors.surface, position: 'sticky', bottom: 0, zIndex: 10 }}>
+                    {isSaveDisabled && !loading && !isGenerating && (
+                        <div style={{ fontSize: '11.5px', color: colors.text3 }}>
+                            {!name ? 'Add a goal name' : !selectedProjectId ? 'Select a project' : instructions.length < 10 ? 'Add goal instructions (min 10 chars)' : criteria.length === 0 ? 'Add at least one criterion' : ''}
+                        </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
+                        <Button variant="secondary" onClick={onClose} style={{ borderRadius: '9px', fontFamily: typography.fonts.display }}>Cancel</Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleSave}
+                            disabled={isSaveDisabled}
+                            style={{ borderRadius: '9px', fontFamily: typography.fonts.display, boxShadow: isSaveDisabled ? 'none' : '0 0 16px rgba(91,127,255,.25)' }}
+                        >
+                            <Icon name={loading ? 'refresh' : 'check'} size={14} className={loading ? 'animate-spin' : ''} />
+                            {loading ? 'Saving...' : 'Save Goal'}
+                        </Button>
+                    </div>
                 </div>
             </div>
 

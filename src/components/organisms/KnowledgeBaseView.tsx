@@ -77,7 +77,7 @@ export function KnowledgeBaseView({ projectName, projectId, pins }: Props) {
                         Project Knowledge Base
                     </h1>
                     <p style={{ fontSize: '14px', color: colors.text2, maxWidth: '600px', lineHeight: 1.6 }}>
-                        The collective brain of {projectName || 'your project'}. Essential lexicon, constraints, and benchmarks used by AI to evaluate reports.
+                        Factual reference — terminology, norms, and benchmarks the AI uses to understand your project. For instructions on <em>how</em> the AI should score, use <strong>Scoring Instructions</strong> in the project header.
                     </p>
                 </div>
 

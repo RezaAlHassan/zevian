@@ -156,6 +156,13 @@ export async function getEligibleGoalsAction(employeeId: string, projectId: stri
 
         const { findMatchingPeriod, findPeriodForBackdatedSubmission } = await import('@/lib/reportingPeriods')
 
+        // Safety net: ensure periods exist for this employee before checking eligibility.
+        // Handles cases where an employee was added to a goal after their initial onboarding.
+        const { ensurePeriodsExistForEmployee } = await import('@/lib/reportingPeriodsMaintenance')
+        await ensurePeriodsExistForEmployee(employeeId).catch(err =>
+            console.error('[getEligibleGoalsAction] ensurePeriodsExistForEmployee failed:', err)
+        )
+
         // 5. Use the exact matching logic for each goal
         const eligibleGoals = []
 

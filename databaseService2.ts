@@ -895,6 +895,7 @@ export const goalService = {
                 name: criterion.name,
                 weight: criterion.weight,
                 display_order: index,
+                target_description: criterion.target_description ?? null,
             }));
 
             const { error: criteriaError } = await supabase
@@ -963,6 +964,7 @@ export const goalService = {
                     name: criterion.name,
                     weight: criterion.weight,
                     display_order: index,
+                    target_description: criterion.target_description ?? null,
                 }));
 
                 const { error: criteriaError } = await supabase
@@ -1684,74 +1686,56 @@ export const notificationService = {
 // ============================================================================
 export const dashboardService = {
     async getEmployeeDashboardData(employeeId: string, startDate?: string, endDate?: string) {
-        // 1. Get Employee Profile with manager details
-        const { data: employeeData, error: empError } = await supabase
-            .from('employees')
-            .select('*, manager:manager_id(*)')
-            .eq('id', employeeId)
-            .single();
-
-        if (empError) throw empError;
-        const employee = dbEmployeeToEmployee(employeeData);
-        const manager = employeeData.manager ? dbEmployeeToEmployee(employeeData.manager) : null;
-
-        // 2. Get Employee's Reports with criteria scores and goal names
+        // Batch 1: all four queries are independent — run in parallel
         let reportsQuery = supabase
             .from('reports')
             .select('*, goals(id, name, project_id), report_criterion_scores(*)')
             .eq('employee_id', employeeId);
+        if (startDate) reportsQuery = reportsQuery.gte('submission_date', startDate);
+        if (endDate) reportsQuery = reportsQuery.lte('submission_date', endDate);
 
-        if (startDate) {
-            reportsQuery = reportsQuery.gte('submission_date', startDate);
-        }
-        if (endDate) {
-            reportsQuery = reportsQuery.lte('submission_date', endDate);
-        }
+        const [
+            { data: employeeData, error: empError },
+            { data: reportsData, error: reportsError },
+            { data: assignedProjects },
+            { data: assignedGoals },
+        ] = await Promise.all([
+            supabase.from('employees').select('*, manager:manager_id(*)').eq('id', employeeId).single(),
+            reportsQuery.order('submission_date', { ascending: false }),
+            supabase.from('project_assignees').select('project_id').eq('assignee_id', employeeId),
+            supabase.from('goal_assignees').select('goal_id').eq('assignee_id', employeeId),
+        ]);
 
-        const { data: reportsData, error: reportsError } = await reportsQuery.order('submission_date', { ascending: false });
-
+        if (empError) throw empError;
         if (reportsError) throw reportsError;
+
+        const employee = dbEmployeeToEmployee(employeeData);
+        const manager = employeeData.manager ? dbEmployeeToEmployee(employeeData.manager) : null;
         const reports = (reportsData || []).map(dbReportToReport);
 
-        // 3. Get Employee's Goals with projects and criteria
-        // Part A: Goals via project assignments
-        const { data: assignedProjects } = await supabase
-            .from('project_assignees')
-            .select('project_id')
-            .eq('assignee_id', employeeId);
+        // Batch 2: fetch goals from projects and direct assignments in parallel
         const empAssignedProjIds = (assignedProjects || []).map((p: any) => p.project_id);
-        
-        // Part B: Goals via direct goal assignments
-        const { data: assignedGoals } = await supabase
-            .from('goal_assignees')
-            .select('goal_id')
-            .eq('assignee_id', employeeId);
         const empAssignedGoalIds = (assignedGoals || []).map((g: any) => g.goal_id);
 
-        let goalsData: any[] = [];
-        
-        // Fetch goals from projects
-        if (empAssignedProjIds.length > 0) {
-            const { data: pGoals, error: pgError } = await supabase
-                .from('goals')
-                .select('*, projects(id, name, report_frequency), criteria(*)')
-                .in('project_id', empAssignedProjIds);
-            if (pgError) throw pgError;
-            if (pGoals) goalsData = [...goalsData, ...pGoals];
-        }
+        const [pGoalsResult, dGoalsResult] = await Promise.all([
+            empAssignedProjIds.length > 0
+                ? supabase.from('goals').select('*, projects(id, name, report_frequency), criteria(*)').in('project_id', empAssignedProjIds)
+                : Promise.resolve({ data: [] as any[], error: null }),
+            empAssignedGoalIds.length > 0
+                ? supabase.from('goals').select('*, projects(id, name, report_frequency), criteria(*)').in('id', empAssignedGoalIds)
+                : Promise.resolve({ data: [] as any[], error: null }),
+        ]);
 
-        // Fetch goals from direct assignments (and filter out duplicates)
-        if (empAssignedGoalIds.length > 0) {
-            const existingGoalIds = new Set(goalsData.map(g => g.id));
-            const newGoalIds = empAssignedGoalIds.filter((id: string) => !existingGoalIds.has(id));
-            
-            if (newGoalIds.length > 0) {
-                const { data: directGoals, error: dgError } = await supabase
-                    .from('goals')
-                    .select('*, projects(id, name, report_frequency), criteria(*)')
-                    .in('id', newGoalIds);
-                if (dgError) throw dgError;
-                if (directGoals) goalsData = [...goalsData, ...directGoals];
+        if (pGoalsResult.error) throw pGoalsResult.error;
+        if (dGoalsResult.error) throw dGoalsResult.error;
+
+        // Merge, deduplicating goals that appear in both result sets
+        const seenGoalIds = new Set<string>();
+        let goalsData: any[] = [];
+        for (const g of [...(pGoalsResult.data || []), ...(dGoalsResult.data || [])]) {
+            if (!seenGoalIds.has(g.id)) {
+                seenGoalIds.add(g.id);
+                goalsData.push(g);
             }
         }
 
@@ -1762,9 +1746,15 @@ export const dashboardService = {
         }));
 
         // 4. Aggregations
-        const currentScore = reports.length > 0 ? (reports[0].managerOverallScore ?? reports[0].evaluationScore) : 0;
-        const prevScore = reports.length > 1 ? (reports[1].managerOverallScore ?? reports[1].evaluationScore) : currentScore;
-        const delta = Number((currentScore - prevScore).toFixed(1));
+        // currentScore is the average across all reports (matches "Average score" label in the UI
+        // and is consistent with how the manager dashboard's team performance list computes employee scores)
+        const currentScore = reports.length > 0
+            ? reports.reduce((acc: number, r: any) => acc + Number(r.managerOverallScore ?? r.evaluationScore ?? 0), 0) / reports.length
+            : 0;
+        // delta = change between the two most recent individual reports (shown as "vs last report")
+        const latestScore = reports.length > 0 ? Number(reports[0].managerOverallScore ?? reports[0].evaluationScore ?? 0) : 0;
+        const prevScore = reports.length > 1 ? Number(reports[1].managerOverallScore ?? reports[1].evaluationScore ?? 0) : latestScore;
+        const delta = Number((latestScore - prevScore).toFixed(1));
 
         const activeGoalsCount = goals.filter(g => g.status === 'active').length;
         const projectsCount = new Set(goals.map(g => g.projectId)).size;
@@ -1918,91 +1908,79 @@ export const dashboardService = {
         if (managerError) throw managerError;
         const orgId = managerData.organization_id;
 
-        // 2. Get projects
+        // Batch 1: project_assignees (direct only), employees, and custom metrics are all independent
+        const [assignedResult, employeesRawResult, customMetricsResult] = await Promise.all([
+            view === 'direct'
+                ? supabase.from('project_assignees').select('project_id').eq('assignee_id', managerId)
+                : Promise.resolve({ data: null as any, error: null }),
+            view === 'direct'
+                ? supabase.from('employees').select('*').eq('organization_id', orgId).eq('manager_id', managerId)
+                : supabase.from('employees').select('*').eq('organization_id', orgId),
+            supabase.from('organization_custom_metrics').select('name').eq('organization_id', orgId).eq('is_active', true),
+        ]);
+
+        if (employeesRawResult.error) throw employeesRawResult.error;
+        // Filter inactive in JS — safe whether or not the is_active column exists yet
+        const employeesData = (employeesRawResult.data || []).filter((e: any) => e.is_active !== false);
+        const directReportIds = employeesData.map((e: any) => e.id);
+
+        // Batch 2: projects (needs assignedIds) and reports (needs directReportIds for direct view) — run in parallel
+        const assignedIds = (assignedResult.data || []).map((a: any) => a.project_id);
+
         let projectsQuery = supabase
             .from('projects')
             .select('id, name, category, report_frequency, status, created_by, project_assignees(assignee_id, employees(name))')
             .eq('organization_id', orgId);
-        
         if (view === 'direct') {
-            // For direct view, we need projects created by manager OR where manager is assigned
-            // But Supabase 'OR' across tables/filters can be tricky.
-            // Let's get assigned projects first.
-            const { data: assigned } = await supabase
-                .from('project_assignees')
-                .select('project_id')
-                .eq('assignee_id', managerId);
-            const assignedIds = (assigned || []).map((a: any) => a.project_id);
-            
             projectsQuery = projectsQuery.or(`created_by.eq.${managerId}${assignedIds.length > 0 ? `,id.in.("${assignedIds.join('","')}")` : ''}`);
         }
 
-        const { data: projectsData, error: projectsError } = await projectsQuery;
-        if (projectsError) throw projectsError;
-        const projectIds = (projectsData || []).map((p: any) => p.id);
-
-        // 3. Get employees (active only — inactive excluded from averages and team performance)
-        let employeesQuery = supabase
-            .from('employees')
-            .select('*')
-            .eq('organization_id', orgId);
-
-        if (view === 'direct') {
-            employeesQuery = employeesQuery.eq('manager_id', managerId);
-        }
-
-        const { data: employeesDataRaw, error: employeesError } = await employeesQuery;
-        if (employeesError) throw employeesError;
-        // Filter inactive in JS — safe whether or not the is_active column exists yet
-        const employeesData = (employeesDataRaw || []).filter((e: any) => e.is_active !== false);
-        const directReportIds = (employeesData || []).map((e: any) => e.id);
-
-        // 4. Get reports
         let reportsQuery = supabase
             .from('reports')
             .select('*, employees!reports_employee_id_fkey!inner(organization_id, name, manager_id), goals(project_id, name), report_criterion_scores(*)')
             .eq('employees.organization_id', orgId);
-        
         if (view === 'direct') {
-            // Reports from people this manager manages
-            if (directReportIds.length > 0) {
-                reportsQuery = reportsQuery.in('employee_id', directReportIds);
-            } else {
-                // If no direct reports, we shouldn't show any reports in direct view
-                reportsQuery = reportsQuery.eq('employee_id', 'none'); 
-            }
+            reportsQuery = directReportIds.length > 0
+                ? reportsQuery.in('employee_id', directReportIds)
+                : reportsQuery.eq('employee_id', 'none');
         }
+        if (startDate) reportsQuery = reportsQuery.gte('submission_date', startDate);
+        if (endDate) reportsQuery = reportsQuery.lte('submission_date', endDate);
 
-        if (startDate) {
-            reportsQuery = reportsQuery.gte('submission_date', startDate);
-        }
-        if (endDate) {
-            reportsQuery = reportsQuery.lte('submission_date', endDate);
-        }
+        const [projectsResult, reportsResult] = await Promise.all([
+            projectsQuery,
+            reportsQuery.order('submission_date', { ascending: false }),
+        ]);
 
-        const { data: reportsData, error: reportsError } = await reportsQuery.order('submission_date', { ascending: false });
-        if (reportsError) throw reportsError;
+        if (projectsResult.error) throw projectsResult.error;
+        if (reportsResult.error) throw reportsResult.error;
 
-        // 5. Get goals
-        let goalsData: any[] = [];
-        if (projectIds.length > 0) {
-            let goalsQuery = supabase
-                .from('goals')
-                .select('*, criteria(*)')
-                .in('project_id', projectIds);
-            
-            if (view === 'direct') {
-                // For direct view, user said: "only show goals created by the manager or show goals from the project the manager is assigned to"
-                // Since projectIds already only contains created/assigned projects, 
-                // we just need to optionally add goals created by manager that might not be in those projects (though usually they are).
-                goalsQuery = goalsQuery.or(`created_by.eq.${managerId},project_id.in.("${projectIds.join('","')}")`);
-            }
+        const projectsData = projectsResult.data || [];
+        const reportsData = reportsResult.data || [];
+        const projectIds = projectsData.map((p: any) => p.id);
 
-            const { data: gData, error: goalsError } = await goalsQuery;
-            if (!goalsError && gData) goalsData = gData;
-        }
+        // Batch 3: goals (needs projectIds) and reporting periods (needs employeeIds) — run in parallel
+        const targetEmpIds = view === 'direct' ? directReportIds : employeesData.map((e: any) => e.id);
 
-        // 6. Aggregations
+        const [goalsResult, periodsResult] = await Promise.all([
+            projectIds.length > 0
+                ? (() => {
+                    let q = supabase.from('goals').select('*, criteria(*)').in('project_id', projectIds);
+                    if (view === 'direct') {
+                        q = q.or(`created_by.eq.${managerId},project_id.in.("${projectIds.join('","')}")`);
+                    }
+                    return q;
+                  })()
+                : Promise.resolve({ data: [] as any[], error: null }),
+            targetEmpIds.length > 0
+                ? supabase.from('reporting_periods').select('*').in('employee_id', targetEmpIds).order('period_start', { ascending: false })
+                : Promise.resolve({ data: [] as any[], error: null }),
+        ]);
+
+        const goalsData: any[] = goalsResult.data || [];
+        const periodsData: any[] = periodsResult.data || [];
+
+        // Aggregations
         const totalReports = reportsData?.length || 0;
         const avgScore = totalReports > 0
             ? reportsData.reduce((acc: any, r: any) => acc + (r.manager_overall_score ?? r.evaluation_score ?? 0), 0) / totalReports
@@ -2025,13 +2003,7 @@ export const dashboardService = {
         const selectedMetricNames = new Set<string>(
             selectedMetricIds.map((id: string) => DEFAULT_METRIC_ID_TO_NAME[id]).filter(Boolean)
         );
-        // Also include active custom metric names
-        const { data: customMetricsData } = await supabase
-            .from('organization_custom_metrics')
-            .select('name')
-            .eq('organization_id', orgId)
-            .eq('is_active', true);
-        (customMetricsData || []).forEach((m: any) => selectedMetricNames.add(m.name));
+        (customMetricsResult.data || []).forEach((m: any) => selectedMetricNames.add(m.name));
 
         let orgTotalScore = 0;
         let orgScoreCount = 0;
@@ -2073,18 +2045,6 @@ export const dashboardService = {
                 emoji: '📄'
             };
         });
-
-        // 5.5 Fetch reporting periods for compliance
-        const targetEmpIds = view === 'direct' ? directReportIds : (employeesData || []).map((e: any) => e.id);
-        let periodsData: any[] = [];
-        if (targetEmpIds.length > 0) {
-            const { data: pData } = await supabase
-                .from('reporting_periods')
-                .select('*')
-                .in('employee_id', targetEmpIds)
-                .order('period_start', { ascending: false });
-            if (pData) periodsData = pData;
-        }
 
         // Team Performance (Employees)
         // In Org view, show everyone. In Direct view, show only direct reports.
@@ -2203,7 +2163,7 @@ export const dashboardService = {
             teamPerformance,
             goals: uiGoals,
             trendScores,
-            lateSubmissions: [],
+            lateSubmissions: periodsData.filter((p: any) => p.status === 'late'),
             recentReports: (reportsData || []).slice(0, 5).map((r: any) => ({
                 id: r.id,
                 employeeName: r.employees?.name || 'Unknown',

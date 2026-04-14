@@ -155,6 +155,7 @@ CREATE TABLE criteria (
     name TEXT NOT NULL,
     weight INTEGER NOT NULL CHECK (weight >= 0 AND weight <= 100),
     display_order INTEGER DEFAULT 0,
+    target_description TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -1337,3 +1338,4 @@ CREATE POLICY "Manager manage permissions" ON employee_permissions
         )
     );
 
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
