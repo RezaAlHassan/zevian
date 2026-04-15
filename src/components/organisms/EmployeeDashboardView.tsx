@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import { colors, radius, animation, getScoreColor } from '@/design-system'
 import { KPICard, Card, SkillSpider, SkillList, Sparkline, DateRangeSelector } from '@/components/molecules'
-import { Icon } from '@/components/atoms'
+import { Icon, Badge } from '@/components/atoms'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface Props {
