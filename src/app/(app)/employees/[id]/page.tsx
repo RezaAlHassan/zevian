@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { colors, animation, shadows } from '@/design-system'
+import { colors, animation, shadows, radius } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms'
 import { ScoreDisplay, ScoreBar } from '@/components/atoms/Score'
