@@ -22,7 +22,7 @@ export function AIContextView({ project, readOnly = false }: Props) {
     const [updateMeta, setUpdateMeta] = useState<{ date: string; reportCount: number } | null>(null)
 
     // Parse the most recent [Auto-added ...] or [Auto-updated ...] tag for display
-    const lastTagMatch = draft.match(/\[Auto-(?:added|updated) ([^\]]+)\][^\[]*$/s)
+    const lastTagMatch = draft.match(/\[Auto-(?:added|updated) ([^\]]+)\][^\[]*$/)
     const lastTagDate = lastTagMatch ? lastTagMatch[1] : null
 
     const handleSave = async () => {
