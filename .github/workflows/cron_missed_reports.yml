@@ -1,0 +1,17 @@
+name: Daily Missed Report Check
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Runs daily at 02:00 UTC
+  workflow_dispatch:        # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  check_missed_reports:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Missed Reports (Production)
+        run: |
+          curl -f -X GET "https://app.zevian.co/api/cron/missed-reports" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+

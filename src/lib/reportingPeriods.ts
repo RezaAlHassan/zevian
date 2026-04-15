@@ -601,10 +601,13 @@ export async function findPeriodForBackdatedSubmission(
 
   // ── Step 3: Check backdate_limit_days ──
   if (backdateDays === null) {
-    // NULL means backdating disabled entirely
-    return { ok: false, error: 'Backdated submissions are not enabled for this goal.' };
-  }
-  if (backdateDays > 0 && daysBack > backdateDays) {
+    // NULL + allowLate=false already handled above.
+    // NULL + allowLate=true: no explicit limit configured — apply default 7-day window
+    // (matches the client-side fallback in SubmitReportClient).
+    if (daysBack > 7) {
+      return { ok: false, error: 'You can only submit reports up to 7 days in the past.' };
+    }
+  } else if (backdateDays > 0 && daysBack > backdateDays) {
     return {
       ok: false,
       error: `You can only submit reports up to ${backdateDays} day${backdateDays === 1 ? '' : 's'} in the past.`,

@@ -255,7 +255,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
 
             const goalPeriods = (pendingPeriods || []).filter((p: any) => p.goal_id === goal.id)
 
-            let relevantPeriod = goalPeriods.find((p: any) => p.status === 'pending' || p.status === 'late')
+            let relevantPeriod = goalPeriods.find((p: any) => p.status === 'pending' || p.status === 'late' || p.status === 'missed')
 
             let isSubmitted = false
             let hasPeriod = false

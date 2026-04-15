@@ -236,12 +236,13 @@ export async function getSubmitReportDataAction() {
         const employeeGoalProjectIds = new Set(goals.map((g: any) => g.projectId))
         const filteredProjects = projects.filter((p: any) => employeeGoalProjectIds.has(p.id))
 
-        // Fetch active periods (pending or recently submitted) for accurate deadline display
+        // Fetch active periods for deadline display — include missed so goals don't vanish
+        // from the urgentGoals sidebar while waiting for the next period to be generated.
         const { data: pendingPeriods } = await (supabase as any)
             .from('reporting_periods')
             .select('*')
             .eq('employee_id', employee.id)
-            .in('status', ['pending', 'submitted', 'late'])
+            .in('status', ['pending', 'submitted', 'late', 'missed'])
             .order('period_end', { ascending: true })
 
         // Fetch manager backdate settings for the employee's manager
