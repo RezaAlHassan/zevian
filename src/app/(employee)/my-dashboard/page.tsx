@@ -5,12 +5,14 @@ import { layout, colors } from '@/design-system'
 import { EmployeeDashboardView } from '@/components/organisms/EmployeeDashboardView'
 import { getDashboardDataAction } from '../../actions/dashboardActions'
 
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function EmployeeDashboardPage() {
+    const router = useRouter()
     const searchParams = useSearchParams()
     const startDate = searchParams.get('start') || undefined
     const endDate = searchParams.get('end') || undefined
+    const selectedGoalId = searchParams.get('goal') || null
 
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
@@ -53,7 +55,18 @@ export default function EmployeeDashboardPage() {
 
     return (
         <div style={{ padding: layout.contentPadding }}>
-            <EmployeeDashboardView data={data} />
+            <EmployeeDashboardView
+                data={data}
+                allReports={data?.allReports || []}
+                selectedGoalId={selectedGoalId}
+                onGoalChange={(goalId) => {
+                    const params = new URLSearchParams(searchParams.toString())
+                    if (goalId) params.set('goal', goalId)
+                    else params.delete('goal')
+                    router.push(`?${params.toString()}`)
+                }}
+                orgMetricNames={(data?.organization?.customMetrics || []).map((m: any) => m.name)}
+            />
         </div>
     )
 }

@@ -155,7 +155,9 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: colors.text2 }}>
                         <Icon name="clock" size={14} color={colors.text3} />
-                        {report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                        {report.submittedForDate
+                            ? new Date(report.submittedForDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                     </div>
                 </div>
 
@@ -415,7 +417,14 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors.green, marginTop: '6px', zIndex: 1 }} />
                                 </div>
                                 <div style={{ paddingBottom: '20px', flex: 1 }}>
-                                    <div style={{ fontSize: '13px', color: colors.text2 }}><strong>{employeeName}</strong> submitted the report</div>
+                                    <div style={{ fontSize: '13px', color: colors.text2 }}>
+                                        <strong>{employeeName}</strong> submitted the report
+                                        {report.submittedForDate && report.submittedForDate !== report.submissionDate?.slice(0, 10) && (
+                                            <span style={{ color: colors.warn, fontWeight: 600, marginLeft: '6px', fontSize: '11px' }}>
+                                                (for {new Date(report.submittedForDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
+                                            </span>
+                                        )}
+                                    </div>
                                     <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>{report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>
                                 </div>
                             </div>
@@ -427,7 +436,10 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
             {/* Footer Meta */}
             <div style={{ padding: '14px 26px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: colors.text3, background: colors.surface }}>
                 <Icon name="clock" size={13} color={colors.text3} />
-                Submitted {report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                {report.submittedForDate && report.submittedForDate !== report.submissionDate?.slice(0, 10)
+                    ? <>Report for {new Date(report.submittedForDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · Submitted {report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</>
+                    : <>Submitted {report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</>
+                }
             </div>
         </div>
     )

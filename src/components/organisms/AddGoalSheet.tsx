@@ -90,7 +90,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
             setSelectedProjectId(goal.projectId || goal.project?.id || projects[0]?.id || '')
             setDeadline(goal.deadline ? new Date(goal.deadline).toISOString().slice(0, 16) : '')
             setInstructions(goal.instructions || '')
-            setCriteria(goal.criteria || [])
+            setCriteria((goal.criteria || []).map((c: any) => ({ ...c, importance: c.importance || 'medium' })))
             setStatus(goal.status || 'active')
             setShowAiBadge(false)
         } else {

@@ -1,4 +1,4 @@
-import { ReportingPeriod } from './reportingPeriods';
+import { ReportingPeriod, getEffectiveStatus } from './reportingPeriods';
 
 export type ComplianceState = 'GREEN' | 'AMBER' | 'RED' | 'GRAY';
 
@@ -17,27 +17,31 @@ export interface DisplayStatus {
  * GRAY   → excused, void, or pending
  */
 export function getPeriodDisplayStatus(
-  period: ReportingPeriod, 
-  getRampUpEndsAt: (period: ReportingPeriod) => Date | null
+  period: ReportingPeriod,
+  getRampUpEndsAt: (period: ReportingPeriod) => Date | null,
+  graceDays = 0,
 ): DisplayStatus {
-  if (period.status === 'excused' || period.status === 'void' || period.status === 'pending') {
-    return { state: 'GRAY', label: period.status === 'excused' ? 'Excused' : period.status === 'void' ? 'Void' : 'Pending' };
+  // Derive status on the fly — a pending period past its grace deadline = missed
+  const effectiveStatus = getEffectiveStatus(period, graceDays)
+
+  if (effectiveStatus === 'excused' || effectiveStatus === 'void' || effectiveStatus === 'pending') {
+    return { state: 'GRAY', label: effectiveStatus === 'excused' ? 'Excused' : effectiveStatus === 'void' ? 'Void' : 'Pending' };
   }
 
-  if (period.status === 'submitted') {
+  if (effectiveStatus === 'submitted') {
     if (period.lateSubmitted) {
       return { state: 'AMBER', label: 'Late Submission' };
     }
     return { state: 'GREEN', label: 'On Time' };
   }
 
-  if (period.status === 'missed' || (period.status as any) === 'amber_missed') {
+  if (effectiveStatus === 'missed' || (effectiveStatus as any) === 'amber_missed') {
     // Check if period fell within the ramp-up window for its specific project
     const periodEndDate = new Date(period.periodEnd);
     const rampUpEndsAt = getRampUpEndsAt(period);
     const isRampUp = rampUpEndsAt && periodEndDate <= rampUpEndsAt;
 
-    if (isRampUp || (period.status as any) === 'amber_missed') {
+    if (isRampUp || (effectiveStatus as any) === 'amber_missed') {
       return { state: 'AMBER', label: 'Missed (Ramp-up)' };
     }
 
@@ -53,9 +57,10 @@ export function getPeriodDisplayStatus(
  * Only processes the last `count` (default 10) valid periods.
  */
 export function calculateComplianceStreak(
-  allPeriods: ReportingPeriod[], 
+  allPeriods: ReportingPeriod[],
   getRampUpEndsAt: (period: ReportingPeriod) => Date | null,
-  count: number = 10
+  count: number = 10,
+  graceDays = 0,
 ) {
   // First limit to the last `count` periods chronologically
   const recentPeriods = allPeriods.slice(0, count);
@@ -64,7 +69,7 @@ export function calculateComplianceStreak(
   const displayHistory = recentPeriods.map((period) => {
     return {
       period,
-      display: getPeriodDisplayStatus(period, getRampUpEndsAt)
+      display: getPeriodDisplayStatus(period, getRampUpEndsAt, graceDays)
     };
   });
 

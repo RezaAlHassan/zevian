@@ -242,7 +242,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                                 </div>
                                                 <div style={{ flex: 1 }}>
                                                     <div style={{ fontSize: '13.5px', fontWeight: 600, color: colors.text }}>
-                                                        {new Date(report.submissionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                        {(() => { const d = report.submittedForDate || report.submissionDate; return new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })()}
                                                     </div>
                                                     <div style={{ fontSize: '11.5px', color: colors.text3 }}>Goal: {report.goals?.name || 'Goal Update'} • By {report.employees?.name || 'Unknown'}</div>
                                                 </div>

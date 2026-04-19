@@ -31,7 +31,7 @@ export async function upsertGoalAction(formData: any) {
             criteria: (formData.criteria || []).map((c: any) => ({
                 id: c.id.startsWith('ai-') || c.id.startsWith('tmpl-') || !isNaN(Number(c.id)) ? `crit-${Math.random().toString(36).substring(2, 7)}` : c.id,
                 name: c.name,
-                weight: c.weight,
+                weight: Number.isFinite(c.weight) ? c.weight : 0,
                 target_description: c.target_description ?? null
             })),
             assignees: [] // Default for now

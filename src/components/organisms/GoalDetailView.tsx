@@ -9,7 +9,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { MetaSection } from '@/components/molecules'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { updateGoalMembersAction } from '@/app/actions/goalActions'
+import { updateGoalMembersAction, updateGoalStatusAction } from '@/app/actions/goalActions'
 
 import { AddGoalSheet } from './AddGoalSheet'
 import { ManageGoalTeamSheet } from './ManageGoalTeamSheet'
@@ -36,8 +36,13 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
     const reports = currentGoal.reports || []
     const members = currentGoal.goal_members || []
 
-    const handleComplete = () => {
+    const handleComplete = async () => {
         if (confirm('Mark this goal as completed?')) {
+            const result = await updateGoalStatusAction(currentGoal.id, 'completed', currentGoal.projectId || currentGoal.project?.id)
+            if (result.error) {
+                alert('Failed to complete goal: ' + result.error)
+                return
+            }
             setCurrentGoal({ ...currentGoal, status: 'completed' })
         }
     }
@@ -229,7 +234,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                                 </div>
                                                 <div style={{ flex: 1 }}>
                                                     <div style={{ fontSize: '13.5px', fontWeight: 600, color: colors.text }}>
-                                                        {new Date(report.submissionDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                        {(() => { const d = report.submittedForDate || report.submissionDate; return new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })()}
                                                     </div>
                                                     <div style={{ fontSize: '11.5px', color: colors.text3 }}>by {report.employees?.name || 'Unknown'}</div>
                                                 </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { colors, radius, typography, animation, layout, shadows, getAvatarGradient, getInitials } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
@@ -49,6 +49,9 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
         empName: ''
     })
 
+    const PAGE_SIZE = 10
+    const [page, setPage] = useState(1)
+
     const filteredEmployees = useMemo(() => {
         const filtered = initialEmployees.filter(emp => {
             if (emp.role === 'manager') return false
@@ -66,6 +69,10 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
             sortDir === 'desc' ? b.avgScore - a.avgScore : a.avgScore - b.avgScore
         )
     }, [initialEmployees, searchQuery, perfFilter, sortDir])
+
+    useEffect(() => { setPage(1) }, [searchQuery, perfFilter, sortDir])
+
+    const pagedEmployees = filteredEmployees.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
     const stats = useMemo(() => {
         const nonManagers = initialEmployees.filter(e => e.role !== 'manager')
@@ -252,12 +259,12 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredEmployees.map((emp, i) => (
+                            {pagedEmployees.map((emp, i) => (
                                 <tr
                                     key={emp.id}
                                     onClick={() => router.push(`/employees/${emp.id}`)}
                                     style={{
-                                        borderBottom: i === filteredEmployees.length - 1 ? 'none' : `1px solid ${colors.border}`,
+                                        borderBottom: i === pagedEmployees.length - 1 ? 'none' : `1px solid ${colors.border}`,
                                         cursor: 'pointer',
                                         transition: `background ${animation.fast}`
                                     }}
@@ -344,6 +351,17 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                             ))}
                         </tbody>
                     </table>
+                    {filteredEmployees.length > PAGE_SIZE && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: `1px solid ${colors.border}` }}>
+                            <span style={{ fontSize: '12.5px', color: colors.text3 }}>
+                                Showing <span style={{ fontWeight: 700, color: colors.text2 }}>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredEmployees.length)}</span> of <span style={{ fontWeight: 700, color: colors.text2 }}>{filteredEmployees.length}</span>
+                            </span>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                                <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.lg, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
+                                <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredEmployees.length} style={{ padding: '6px 14px', borderRadius: radius.lg, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredEmployees.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredEmployees.length ? 0.4 : 1 }}>Next →</button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

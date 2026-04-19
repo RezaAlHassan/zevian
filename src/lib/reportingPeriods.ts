@@ -659,6 +659,22 @@ export async function findPeriodForBackdatedSubmission(
 }
 
 /**
+ * Derives the effective status of a period without trusting the stored `status` field.
+ *
+ * Use this everywhere instead of reading `period.status` directly for display/compliance.
+ * A `pending` period whose deadline (+ grace) has already passed is treated as `missed`
+ * on the fly — no cron write needed.
+ */
+export function getEffectiveStatus(
+  period: Pick<ReportingPeriod, 'status' | 'periodEnd'>,
+  graceDays = 0,
+): ReportingPeriod['status'] {
+  if (period.status !== 'pending') return period.status
+  const deadline = new Date(period.periodEnd).getTime() + graceDays * 86_400_000
+  return Date.now() > deadline ? 'missed' : 'pending'
+}
+
+/**
  * Fetches only the manager backdate settings relevant for UI rendering.
  * Returns null if no settings exist (treat as defaults).
  */

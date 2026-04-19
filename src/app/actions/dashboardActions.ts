@@ -41,10 +41,10 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
             return { ...data, organization }
         }
 
-        // For employees: run missed-report maintenance check in the background — must not block load
-        import('@/lib/reportingPeriodsMaintenance').then(({ runMissedCheckForEmployee }) =>
-            runMissedCheckForEmployee(employee.id)
-        ).catch(e => console.warn('[Dashboard] Missed report check failed:', e))
+        // Ensure period chain exists for this employee — does not mutate status, just generates missing future periods
+        import('@/lib/reportingPeriodsMaintenance').then(({ ensurePeriodsExistForEmployee }) =>
+            ensurePeriodsExistForEmployee(employee.id)
+        ).catch(e => console.warn('[Dashboard] Period chain check failed:', e))
 
         let soonestPeriod: any = null
         let upcomingPeriods: any[] = []
@@ -56,7 +56,7 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
                     .from('reporting_periods')
                     .select('*')
                     .eq('employee_id', employee.id)
-                    .in('status', ['pending', 'submitted', 'late'])
+                    .in('status', ['pending', 'submitted', 'missed'])
                     .order('period_end', { ascending: true })
             ])
             soonestPeriod = soonest
@@ -66,8 +66,21 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
             console.warn('[Dashboard] Period fetch failed (table may not exist yet):', periodError)
         }
 
-        const data = await dashboardService.getEmployeeDashboardData(employee.id, startDate, endDate)
-        
+        const [data, allReports] = await Promise.all([
+            dashboardService.getEmployeeDashboardData(employee.id, startDate, endDate),
+            reportService.getEmployeeReports(employee.id, startDate, endDate),
+        ])
+
+        const latestFeedbackReport = allReports.find((report: any) =>
+            typeof report.managerFeedback === 'string' && report.managerFeedback.trim().length > 0
+        )
+
+        const lastManagerFeedback = latestFeedbackReport ? {
+            text: latestFeedbackReport.managerFeedback,
+            date: latestFeedbackReport.submissionDate,
+            goalName: latestFeedbackReport.goals?.name || null,
+        } : null
+
         // Fetch manager settings for grace period/deadline adjustments
         let managerSettings: any = null
         if (employee.managerId) {
@@ -75,7 +88,7 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
             managerSettings = await getManagerBackdateSettings(employee.managerId)
         }
 
-        return { ...data, organization, soonestPeriod, upcomingPeriods, managerSettings }
+        return { ...data, organization, soonestPeriod, upcomingPeriods, managerSettings, lastManagerFeedback, allReports }
     } catch (error) {
         console.error('getDashboardDataAction Error:', error)
         return { error: 'Failed to fetch dashboard data' }
@@ -116,7 +129,7 @@ export async function getEmployeeDashboardDataByIdAction(employeeId: string, sta
             .from('reporting_periods')
             .select('*')
             .eq('employee_id', employeeId)
-            .in('status', ['pending', 'submitted', 'late'])
+            .in('status', ['pending', 'submitted', 'missed'])
             .order('period_end', { ascending: true })
         
         return { ...data, organization, upcomingPeriods: allPeriods || [] }
@@ -162,7 +175,7 @@ export async function getEmployeeDetailedDataAction(employeeId: string, startDat
             reportService.getEmployeeReports(employeeId, startDate, endDate),
             notificationService.getAll(employeeId),
             leaveService.getByEmployeeId(employeeId),
-            supabase.from('reporting_periods').select('*').eq('employee_id', employeeId).in('status', ['pending', 'submitted', 'late']).order('period_end', { ascending: true })
+            supabase.from('reporting_periods').select('*').eq('employee_id', employeeId).in('status', ['pending', 'submitted', 'missed']).order('period_end', { ascending: true })
         ])
 
         const organization = await organizationService.getById(caller.organizationId)

@@ -22,6 +22,7 @@ export default function EmployeeDetailPage() {
     const id = params.id as string
     const startDate = searchParams.get('start') || undefined
     const endDate = searchParams.get('end') || undefined
+    const selectedGoalId = searchParams.get('goal') || null
     
     const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'reports' | 'activity'>('overview')
     const [pageData, setPageData] = useState<any>(null)
@@ -92,6 +93,38 @@ export default function EmployeeDetailPage() {
                         Approve Leave
                     </Button>
                 )}
+                {pageData && pageData.dashboardData?.goals?.length > 0 && (
+                    <select
+                        value={selectedGoalId ?? ''}
+                        onChange={e => {
+                            const params = new URLSearchParams(searchParams.toString())
+                            const nextGoalId = e.target.value || null
+                            if (nextGoalId) params.set('goal', nextGoalId)
+                            else params.delete('goal')
+                            router.push(`?${params.toString()}`)
+                        }}
+                        style={{
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            borderRadius: '8px',
+                            color: selectedGoalId ? colors.accent : colors.text3,
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            padding: '5px 28px 5px 10px',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            appearance: 'none',
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 8px center',
+                        }}
+                    >
+                        <option value="">All Goals</option>
+                        {pageData.dashboardData.goals.filter((g: any) => g.status === 'active').map((g: any) => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                        ))}
+                    </select>
+                )}
                 <DateRangeSelector
                     startDate={startDate}
                     endDate={endDate}
@@ -156,7 +189,20 @@ export default function EmployeeDetailPage() {
                     {/* Tab Content */}
                     <div style={{ minHeight: '400px' }}>
                         {activeTab === 'overview' && (
-                            <EmployeeDashboardView data={dashboardData} showDateSelector={false} allReports={allReports} />
+                            <EmployeeDashboardView
+                                data={dashboardData}
+                                showDateSelector={false}
+                                allReports={allReports}
+                                selectedGoalId={selectedGoalId}
+                                onGoalChange={(goalId) => {
+                                    const params = new URLSearchParams(searchParams.toString())
+                                    if (goalId) params.set('goal', goalId)
+                                    else params.delete('goal')
+                                    router.push(`?${params.toString()}`)
+                                }}
+                                orgMetricNames={(pageData.organization?.customMetrics || []).map((m: any) => m.name)}
+                                viewMode="detail"
+                            />
                         )}
 
                         {activeTab === 'goals' && (

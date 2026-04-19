@@ -6,7 +6,7 @@ import { Icon } from '@/components/atoms/Icon'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { ScoreDisplay, MiniBar } from '@/components/atoms/Score'
 import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { Report } from '@/types'
 import { calculateReportStatus } from '@/lib/utils/reportStatus'
@@ -27,6 +27,8 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
   const router = useRouter()
   const searchParams = useSearchParams()
   const view = searchParams.get('view') || 'org'
+  const PAGE_SIZE = 10
+  const [page, setPage] = useState(1)
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
   const [searchQuery, setSearchQuery] = useState(initialSearch)
   const [statusFilter, setStatusFilter] = useState('all')
@@ -62,6 +64,10 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
 
     return result
   }, [searchQuery, statusFilter, sortBy, initialReports])
+
+  useEffect(() => { setPage(1) }, [searchQuery, statusFilter, sortBy])
+
+  const pagedReports = filteredAndSortedReports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const kpis = [
     { label: role === 'manager' ? 'Total Reports' : 'My Reports', value: kpiData.totalReports.toString(), icon: 'fileText' as const, sub: role === 'manager' ? 'Direct reports total' : 'All your submissions', color: colors.accent },
@@ -209,7 +215,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
               </tr>
             </thead>
             <tbody>
-              {filteredAndSortedReports.map(report => {
+              {pagedReports.map(report => {
                 const employeeName = report.employees?.name || 'Unknown'
                 const goalName = report.goals?.name || 'Unknown'
                 const projectName = report.goals?.projects?.name || 'Unknown'
@@ -248,10 +254,12 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                     </td>
                     <td style={{ padding: '14px 14px' }}>
                       <div style={{ fontSize: '12.5px', color: colors.text, fontWeight: 500 }}>
-                        {new Date(report.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {new Date(report.submittedForDate || report.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
                       <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>
-                        {new Date(report.submissionDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                        {report.submittedForDate && report.submittedForDate !== report.submissionDate?.slice(0, 10)
+                          ? 'Late submission'
+                          : new Date(report.submissionDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </td>
                     <td style={{ padding: '14px 14px' }}>
@@ -288,6 +296,17 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
               })}
             </tbody>
           </table>
+          {filteredAndSortedReports.length > PAGE_SIZE && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: `1px solid ${colors.border}` }}>
+              <span style={{ fontSize: '12.5px', color: colors.text3 }}>
+                Showing <span style={{ fontWeight: 700, color: colors.text2 }}>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredAndSortedReports.length)}</span> of <span style={{ fontWeight: 700, color: colors.text2 }}>{filteredAndSortedReports.length}</span>
+              </span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
+                <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredAndSortedReports.length} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredAndSortedReports.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredAndSortedReports.length ? 0.4 : 1 }}>Next →</button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '12px' }}>
@@ -350,8 +369,12 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                     <span style={{ fontSize: '13px', color: colors.text3 }}>Not scored</span>
                   )}
                   <div style={{ fontSize: '11px', color: colors.text3, textAlign: 'right' }}>
-                    <div>{new Date(report.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                    <div style={{ opacity: 0.8 }}>{new Date(report.submissionDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div>{new Date(report.submittedForDate || report.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                    <div style={{ opacity: 0.8 }}>
+                      {report.submittedForDate && report.submittedForDate !== report.submissionDate?.slice(0, 10)
+                        ? 'Late submission'
+                        : new Date(report.submissionDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
                 </div>
               </div>

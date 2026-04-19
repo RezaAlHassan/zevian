@@ -5,7 +5,7 @@ import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { ScoreDisplay } from '@/components/atoms/Score'
 import { StatusPill } from '@/components/atoms/StatusPill'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AddGoalSheet } from '@/components/organisms/AddGoalSheet'
 import { MetaSection } from '@/components/molecules'
@@ -39,6 +39,9 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
   const [newlyCreatedGoal, setNewlyCreatedGoal] = useState<any>(null)
   const [isManageGoalTeamOpen, setIsManageGoalTeamOpen] = useState(false)
   const [isSavingGoalMembers, setIsSavingGoalMembers] = useState(false)
+
+  const PAGE_SIZE = 10
+  const [page, setPage] = useState(1)
 
   // Filter and Sort goals
   const filteredAndSortedGoals = React.useMemo(() => {
@@ -106,6 +109,10 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
 
     return result
   }, [initialGoals, searchQuery, selectedProject, statusFilter, sortBy])
+
+  useEffect(() => { setPage(1) }, [searchQuery, selectedProject, statusFilter, sortBy])
+
+  const pagedGoals = filteredAndSortedGoals.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   // Legacy splits for the accordion section
   const completedGoalsCount = initialGoals.filter(g => g.status === 'completed' || g.status === 'done').length
@@ -334,13 +341,13 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedGoals.map((goal, i) => (
+                {pagedGoals.map((goal, i) => (
                   <tr
                     key={goal.id}
                     onClick={() => router.push(`${basePath}/${goal.id}?${searchParams.toString()}`)}
                     onMouseEnter={e => (e.currentTarget.style.background = colors.surface2)}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    style={{ borderBottom: i === filteredAndSortedGoals.length - 1 ? 'none' : `1px solid ${colors.border}`, cursor: 'pointer', transition: `background ${animation.fast}` }}
+                    style={{ borderBottom: i === pagedGoals.length - 1 ? 'none' : `1px solid ${colors.border}`, cursor: 'pointer', transition: `background ${animation.fast}` }}
                   >
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ fontWeight: typography.weight.semibold, fontSize: '13.5px', color: colors.text, letterSpacing: '-0.1px' }}>{goal.name}</div>
@@ -447,6 +454,17 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                 ))}
               </tbody>
             </table>
+            {filteredAndSortedGoals.length > PAGE_SIZE && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: `1px solid ${colors.border}` }}>
+                <span style={{ fontSize: '12.5px', color: colors.text3 }}>
+                  Showing <span style={{ fontWeight: 700, color: colors.text2 }}>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredAndSortedGoals.length)}</span> of <span style={{ fontWeight: 700, color: colors.text2 }}>{filteredAndSortedGoals.length}</span>
+                </span>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
+                  <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredAndSortedGoals.length} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredAndSortedGoals.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredAndSortedGoals.length ? 0.4 : 1 }}>Next →</button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>

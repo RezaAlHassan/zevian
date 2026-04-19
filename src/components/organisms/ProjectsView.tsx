@@ -8,7 +8,7 @@ import { ProjectRow } from '@/components/molecules/ProjectRow'
 import { AddProjectSheet } from '@/components/organisms/AddProjectSheet'
 import { ManageTeamSheet } from '@/components/organisms/ManageTeamSheet'
 import { upsertProjectAction, deleteProjectAction, updateProjectStatusAction, updateProjectMembersAction } from '@/app/actions/projectActions'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface ProjectsViewProps {
@@ -56,12 +56,19 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
     projectName: string;
   }>({ show: false, type: 'complete', projectId: null, projectName: '' })
 
+  const PAGE_SIZE = 10
+  const [page, setPage] = useState(1)
+
   const activeProjects = projects.filter(p => p.status !== 'completed' && p.status !== 'done')
   const completedProjects = projects.filter(p => p.status === 'completed' || p.status === 'done')
 
   const filteredProjects = activeProjects.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  useEffect(() => { setPage(1) }, [searchQuery])
+
+  const pagedProjects = filteredProjects.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const handleComplete = (id: string, name: string, e?: React.MouseEvent) => {
     e?.preventDefault()
@@ -333,7 +340,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
                 </tr>
               </thead>
               <tbody>
-                {filteredProjects.map(p => (
+                {pagedProjects.map(p => (
                   <ProjectRow
                     key={p.id}
                     id={p.id}
@@ -355,6 +362,17 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
                 ))}
               </tbody>
             </table>
+            {filteredProjects.length > PAGE_SIZE && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: `1px solid ${colors.border}` }}>
+                <span style={{ fontSize: '12.5px', color: colors.text3 }}>
+                  Showing <span style={{ fontWeight: 700, color: colors.text2 }}>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredProjects.length)}</span> of <span style={{ fontWeight: 700, color: colors.text2 }}>{filteredProjects.length}</span>
+                </span>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
+                  <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredProjects.length} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredProjects.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredProjects.length ? 0.4 : 1 }}>Next →</button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

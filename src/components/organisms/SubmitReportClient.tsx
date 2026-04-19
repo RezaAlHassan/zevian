@@ -255,7 +255,12 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
 
             const goalPeriods = (pendingPeriods || []).filter((p: any) => p.goal_id === goal.id)
 
-            let relevantPeriod = goalPeriods.find((p: any) => p.status === 'pending' || p.status === 'late' || p.status === 'missed')
+            // Treat overdue pending periods as missed on the fly (no cron needed)
+            const now = new Date()
+            let relevantPeriod = goalPeriods.find((p: any) =>
+                p.status === 'pending' || p.status === 'late' || p.status === 'missed' ||
+                (p.status === 'pending' && new Date(p.period_end) < now)
+            )
 
             let isSubmitted = false
             let hasPeriod = false

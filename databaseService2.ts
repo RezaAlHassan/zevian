@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient';
 import type { Project, Goal, Report, Employee, Organization, Notification, CustomMetric, Leave, ManagerSettings } from './src/types';
 import { isReportLate, getNextReportDueDate } from './src/utils/reportDueDate';
 import { calculateComplianceStreak } from './src/lib/complianceHelpers';
+import { getSkillCategory } from './src/lib/skillThresholds';
 
 // ============================================================================
 // ORGANIZATIONS SERVICE (Multi-Tenancy)
@@ -1751,9 +1752,12 @@ export const dashboardService = {
         const currentScore = reports.length > 0
             ? reports.reduce((acc: number, r: any) => acc + Number(r.managerOverallScore ?? r.evaluationScore ?? 0), 0) / reports.length
             : 0;
-        // delta = change between the two most recent individual reports (shown as "vs last report")
-        const latestScore = reports.length > 0 ? Number(reports[0].managerOverallScore ?? reports[0].evaluationScore ?? 0) : 0;
-        const prevScore = reports.length > 1 ? Number(reports[1].managerOverallScore ?? reports[1].evaluationScore ?? 0) : latestScore;
+        // delta = change between the two most recent scored reports (shown as "vs last report")
+        const scoredReportsForDelta = reports.filter((r: any) =>
+            r.managerOverallScore != null || r.evaluationScore != null
+        );
+        const latestScore = scoredReportsForDelta.length > 0 ? Number(scoredReportsForDelta[0].managerOverallScore ?? scoredReportsForDelta[0].evaluationScore ?? 0) : 0;
+        const prevScore = scoredReportsForDelta.length > 1 ? Number(scoredReportsForDelta[1].managerOverallScore ?? scoredReportsForDelta[1].evaluationScore ?? 0) : latestScore;
         const delta = Number((latestScore - prevScore).toFixed(1));
 
         const activeGoalsCount = goals.filter(g => g.status === 'active').length;
@@ -1782,15 +1786,11 @@ export const dashboardService = {
         // Skill Analysis (using criteria averages)
         const skills = Object.entries(criterionAverages).map(([name, data]) => {
             const score = data.total / data.count;
-            let category: 'strength' | 'neutral' | 'weakness' = 'neutral';
-            if (score >= 8.5) category = 'strength';
-            else if (score < 7.0) category = 'weakness';
-
             return {
                 name,
                 score: Number(score.toFixed(1)),
                 maxScore: 10,
-                category
+                category: getSkillCategory(score),
             };
         }).sort((a: any, b: any) => b.score - a.score);
 
@@ -1962,7 +1962,7 @@ export const dashboardService = {
         // Batch 3: goals (needs projectIds) and reporting periods (needs employeeIds) — run in parallel
         const targetEmpIds = view === 'direct' ? directReportIds : employeesData.map((e: any) => e.id);
 
-        const [goalsResult, periodsResult] = await Promise.all([
+        const [goalsResult, periodsResult, managerSettingsResult] = await Promise.all([
             projectIds.length > 0
                 ? (() => {
                     let q = supabase.from('goals').select('*, criteria(*)').in('project_id', projectIds);
@@ -1975,10 +1975,12 @@ export const dashboardService = {
             targetEmpIds.length > 0
                 ? supabase.from('reporting_periods').select('*').in('employee_id', targetEmpIds).order('period_start', { ascending: false })
                 : Promise.resolve({ data: [] as any[], error: null }),
+            supabase.from('manager_settings').select('grace_period_days').eq('manager_id', managerId).maybeSingle(),
         ]);
 
         const goalsData: any[] = goalsResult.data || [];
         const periodsData: any[] = periodsResult.data || [];
+        const graceDays: number = managerSettingsResult.data?.grace_period_days ?? 0;
 
         // Aggregations
         const totalReports = reportsData?.length || 0;
@@ -2082,7 +2084,7 @@ export const dashboardService = {
                 return null; // assignee?.ramp_up_ends_at removed
             };
 
-            const compliance = calculateComplianceStreak(empPeriods, getRampUpEndsAt, 10);
+            const compliance = calculateComplianceStreak(empPeriods, getRampUpEndsAt, 10, graceDays);
 
             return {
                 id: e.id,
