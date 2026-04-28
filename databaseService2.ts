@@ -21,6 +21,7 @@ export const organizationService = {
             planTier: data.plan_tier,
             selectedMetrics: data.selected_metrics,
             goalWeight: data.goal_weight,
+            workingDays: data.working_days ?? [1, 2, 3, 4, 5],
             aiConfig: data.ai_config,
             createdAt: data.created_at
         } as Organization;
@@ -35,6 +36,7 @@ export const organizationService = {
                 plan_tier: organization.planTier,
                 selected_metrics: organization.selectedMetrics,
                 goal_weight: organization.goalWeight,
+                working_days: organization.workingDays ?? [1, 2, 3, 4, 5],
                 ai_config: organization.aiConfig,
             });
         // Do NOT select() here because the user cannot "view" the organization 
@@ -51,6 +53,7 @@ export const organizationService = {
         if (updates.planTier !== undefined) dbUpdates.plan_tier = updates.planTier;
         if (updates.selectedMetrics !== undefined) dbUpdates.selected_metrics = updates.selectedMetrics;
         if (updates.goalWeight !== undefined) dbUpdates.goal_weight = updates.goalWeight;
+        if (updates.workingDays !== undefined) dbUpdates.working_days = updates.workingDays;
         if (updates.aiConfig !== undefined) dbUpdates.ai_config = updates.aiConfig;
 
         const { data, error } = await supabase
@@ -66,6 +69,7 @@ export const organizationService = {
             planTier: data.plan_tier,
             selectedMetrics: data.selected_metrics,
             goalWeight: data.goal_weight,
+            workingDays: data.working_days ?? [1, 2, 3, 4, 5],
             aiConfig: data.ai_config,
             createdAt: data.created_at
         } as Organization;
@@ -229,6 +233,7 @@ function dbProjectToProject(dbProject: any): Project {
         knowledgeBaseLink: dbProject.knowledge_base_link,
         aiContext: dbProject.ai_context,
         knowledgeBaseCache: dbProject.knowledge_base_cache,
+        validReportDays: dbProject.valid_report_days,
         createdBy: dbProject.created_by,
         createdAt: dbProject.created_at,
         status: dbProject.status,
@@ -346,6 +351,7 @@ export const projectService = {
                 description: project.description,
                 category: project.category,
                 report_frequency: project.reportFrequency,
+                valid_report_days: project.validReportDays,
                 knowledge_base_link: project.knowledgeBaseLink,
                 ai_context: project.aiContext,
                 created_by: project.createdBy,
@@ -400,6 +406,7 @@ export const projectService = {
         if (updates.description !== undefined) dbUpdates.description = updates.description;
         if (updates.category !== undefined) dbUpdates.category = updates.category;
         if (updates.reportFrequency !== undefined) dbUpdates.report_frequency = updates.reportFrequency;
+        if (updates.validReportDays !== undefined) dbUpdates.valid_report_days = updates.validReportDays;
         if (updates.knowledgeBaseLink !== undefined) dbUpdates.knowledge_base_link = updates.knowledgeBaseLink;
         if (updates.aiContext !== undefined) dbUpdates.ai_context = updates.aiContext;
         if (updates.knowledgeBaseCache !== undefined) dbUpdates.knowledge_base_cache = updates.knowledgeBaseCache;
@@ -662,6 +669,7 @@ function dbGoalToGoal(dbGoal: any): Goal {
             weight: c.weight
         })) : [],
         instructions: dbGoal.instructions,
+        startDate: dbGoal.start_date ?? dbGoal.created_at,
         deadline: dbGoal.deadline,
         managerId: dbGoal.manager_id,
         createdBy: dbGoal.created_by,
@@ -1041,8 +1049,12 @@ function dbReportToReport(dbReport: any): Report {
             criterionName: s.criterion_name,
             score: s.score,
             evidence: s.evidence,
-            reasoning: s.reasoning
+            reasoning: s.reasoning,
+            coachingNote: s.coaching_note || null
         })) : [],
+        managerCalibration: dbReport.manager_calibration ?? null,
+        consistencyFlag: dbReport.consistency_flag ?? null,
+        consistencyNote: dbReport.consistency_note ?? null,
         goals: dbReport.goals,
         employees: dbReport.employees
     };
@@ -1155,7 +1167,8 @@ export const reportService = {
                     criterion_name: score.criterionName,
                     score: score.score,
                     evidence: score.evidence,
-                    reasoning: score.reasoning
+                    reasoning: score.reasoning,
+                    coaching_note: score.coachingNote || null
                 }));
 
                 console.log('[Database] Inserting criterion scores...', scoresToInsert);
@@ -1192,6 +1205,9 @@ export const reportService = {
         if (updates.managerFeedback !== undefined) dbUpdates.manager_feedback = updates.managerFeedback;
         if (updates.reviewedBy !== undefined) dbUpdates.reviewed_by = updates.reviewedBy;
         if (updates.evaluationReasoning !== undefined) dbUpdates.evaluation_reasoning = updates.evaluationReasoning;
+        if (updates.managerCalibration !== undefined) dbUpdates.manager_calibration = updates.managerCalibration;
+        if (updates.consistencyFlag !== undefined) dbUpdates.consistency_flag = updates.consistencyFlag;
+        if (updates.consistencyNote !== undefined) dbUpdates.consistency_note = updates.consistencyNote;
 
         console.log('[Database] Updating report:', id, dbUpdates);
 
@@ -1720,10 +1736,10 @@ export const dashboardService = {
 
         const [pGoalsResult, dGoalsResult] = await Promise.all([
             empAssignedProjIds.length > 0
-                ? supabase.from('goals').select('*, projects(id, name, report_frequency), criteria(*)').in('project_id', empAssignedProjIds)
+                ? supabase.from('goals').select('*, projects(id, name, report_frequency, valid_report_days), criteria(*)').in('project_id', empAssignedProjIds)
                 : Promise.resolve({ data: [] as any[], error: null }),
             empAssignedGoalIds.length > 0
-                ? supabase.from('goals').select('*, projects(id, name, report_frequency), criteria(*)').in('id', empAssignedGoalIds)
+                ? supabase.from('goals').select('*, projects(id, name, report_frequency, valid_report_days), criteria(*)').in('id', empAssignedGoalIds)
                 : Promise.resolve({ data: [] as any[], error: null }),
         ]);
 
@@ -1743,7 +1759,8 @@ export const dashboardService = {
         const goals = (goalsData || []).map(g => ({
             ...dbGoalToGoal(g),
             projectName: g.projects?.name || 'Unknown Project',
-            projectFrequency: g.projects?.report_frequency || 'weekly'
+            projectFrequency: g.projects?.report_frequency || 'weekly',
+            validReportDays: g.projects?.valid_report_days ?? [1, 2, 3, 4, 5],
         }));
 
         // 4. Aggregations

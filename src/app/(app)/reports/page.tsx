@@ -33,6 +33,7 @@ export default async function ReportsPage({
       initialReports={data.reports}
       kpiData={data.kpis || { totalReports: 0, avgScore: 0, pendingReview: 0, overrides: 0 }}
       initialSearch={searchParams.search}
+      periods={data.periods || []}
     />
   )
 }

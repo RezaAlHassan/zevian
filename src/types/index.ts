@@ -4,6 +4,7 @@ export interface Organization {
     planTier?: string;
     selectedMetrics?: string[];
     goalWeight?: number;
+    workingDays?: number[];
     aiConfig?: {
         allowLate?: boolean;
         allowLateSubmissions?: boolean;
@@ -44,6 +45,7 @@ export interface Project {
     knowledgeBaseLink?: string;
     aiContext?: string;
     knowledgeBaseCache?: string;
+    validReportDays?: number[];
     assignees?: string[] | any[];
 }
 
@@ -51,6 +53,7 @@ export interface Goal {
     id: string;
     name: string;
     instructions?: string;
+    startDate?: string;
     deadline?: string;
     avgScore?: number;
     reportCount?: number;
@@ -108,10 +111,16 @@ export interface Report {
     submissionDate?: string;
     submittedForDate?: string;
     evaluationScore?: number;
+    managerCalibration?: 'agree' | 'adjusted_up' | 'adjusted_down' | null;
+    consistencyFlag?: 'ESCALATING_CLAIMS' | 'STAGNANT_LANGUAGE' | 'STABLE' | null;
+    consistencyNote?: string | null;
     criterionScores?: any[];
     goals?: any;
     employees?: any;
 }
+
+export type ReportingFrequency = 'daily' | 'weekly' | 'bi-weekly' | 'monthly';
+export type ReportStatus = 'upcoming' | 'due_today' | 'late' | 'missed' | 'on_leave' | 'submitted' | 'submitted_late';
 
 export interface Notification {
     id: string;

@@ -30,6 +30,9 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
     const [isManageTeamOpen, setIsManageTeamOpen] = useState(false)
     const [currentGoal, setCurrentGoal] = useState(goal)
     const [isSavingMembers, setIsSavingMembers] = useState(false)
+    const [showFullInstructions, setShowFullInstructions] = useState(false)
+
+    const INSTRUCTIONS_MAX = 180
 
     if (!currentGoal) return null
 
@@ -121,7 +124,23 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                             {goal.name}
                         </h1>
                         <p style={{ fontSize: '13px', color: colors.text2, lineHeight: 1.6, maxWidth: '520px', marginBottom: '12px' }}>
-                            {goal.instructions || 'Standard tracking goal for objective performance measurement across specific criteria dimensions.'}
+                            {(() => {
+                                const text = goal.instructions || 'Standard tracking goal for objective performance measurement across specific criteria dimensions.'
+                                const truncated = !showFullInstructions && text.length > INSTRUCTIONS_MAX
+                                return (
+                                    <>
+                                        {truncated ? text.slice(0, INSTRUCTIONS_MAX) + '…' : text}
+                                        {text.length > INSTRUCTIONS_MAX && (
+                                            <span
+                                                onClick={() => setShowFullInstructions(v => !v)}
+                                                style={{ cursor: 'pointer', color: colors.accent, fontWeight: 600, marginLeft: '4px', fontSize: '12px' }}
+                                            >
+                                                {showFullInstructions ? 'See less' : 'See more'}
+                                            </span>
+                                        )}
+                                    </>
+                                )
+                            })()}
                         </p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                             <StatusPill status={goal.status} />

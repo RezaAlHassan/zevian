@@ -5,7 +5,11 @@ import { redirect } from 'next/navigation'
 export const metadata = { title: 'Submit Report | Zevian' }
 export const dynamic = 'force-dynamic'
 
-export default async function SubmitReportPage() {
+export default async function SubmitReportPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ goalId?: string; projectId?: string; dates?: string; dueToday?: string }>
+}) {
     const result = await getSubmitReportDataAction()
 
     if ('error' in result || !result.data) {
@@ -13,6 +17,9 @@ export default async function SubmitReportPage() {
     }
 
     const { projects, goals, metrics, employeeId, aiConfig, goalWeight, backdateSettings, pendingPeriods } = result.data
+
+    const sp = await searchParams
+    const prefillDates = sp.dates ? sp.dates.split(',').filter(Boolean) : undefined
 
     return (
         <SubmitReportClient
@@ -24,6 +31,10 @@ export default async function SubmitReportPage() {
             goalWeight={goalWeight}
             backdateSettings={backdateSettings}
             pendingPeriods={pendingPeriods}
+            prefillGoalId={sp.goalId}
+            prefillProjectId={sp.projectId}
+            prefillDates={prefillDates}
+            prefillIsDueToday={sp.dueToday === '1'}
         />
     )
 }

@@ -10,6 +10,15 @@ import { ScoreDisplay } from '@/components/atoms/Score'
 import { InviteModal } from '@/components/molecules'
 import { ApproveLeaveModal } from '@/components/organisms/ApproveLeaveModal'
 
+interface TrustSignal {
+    label: string | null
+    color: 'green' | 'amber' | 'neutral' | null
+    agrees: number
+    downs: number
+    ups: number
+    total: number
+}
+
 interface Employee {
     id: string
     name: string
@@ -26,11 +35,24 @@ interface Employee {
     goalCount: number
     lastReport: string
     organizationId?: string
+    trustSignal?: TrustSignal | null
 }
 
 interface EmployeesViewProps {
     employees: Employee[]
     effectiveView?: 'org' | 'direct'
+}
+
+function TrustBadge({ signal }: { signal: TrustSignal }) {
+    const bgMap = { green: 'rgba(34,197,94,0.12)', amber: 'rgba(245,158,11,0.12)', neutral: 'rgba(255,255,255,0.06)' }
+    const textMap = { green: colors.green, amber: colors.warn, neutral: colors.text3 }
+    const bg = bgMap[signal.color ?? 'neutral']
+    const text = textMap[signal.color ?? 'neutral']
+    return (
+        <span style={{ padding: '2px 7px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, background: bg, color: text, letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
+            {signal.label}
+        </span>
+    )
 }
 
 export function EmployeesView({ employees: initialEmployees, effectiveView = 'org' }: EmployeesViewProps) {
@@ -314,7 +336,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                         </td>
                                     )}
                                     <td style={{ padding: '14px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                             <span className="font-numeric" style={{ fontWeight: 700, fontSize: '15.5px', color: emp.avgScore >= 7.5 ? colors.green : emp.avgScore >= 6 ? colors.warn : colors.danger }}>
                                                 {emp.avgScore.toFixed(1)}
                                             </span>
@@ -325,6 +347,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                                     background: emp.avgScore >= 7.5 ? colors.green : emp.avgScore >= 6 ? colors.warn : colors.danger
                                                 }} />
                                             </div>
+                                            {emp.trustSignal?.label && <TrustBadge signal={emp.trustSignal} />}
                                         </div>
                                     </td>
                                     <td style={{ padding: '14px', fontSize: '12.5px', color: colors.text2 }}>
@@ -407,6 +430,11 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                     <div className="font-numeric" style={{ fontSize: '24px', fontWeight: 800, lineHeight: 1, color: emp.avgScore >= 7.5 ? colors.green : emp.avgScore >= 6 ? colors.warn : colors.danger }}>
                                         {emp.avgScore.toFixed(1)}
                                     </div>
+                                    {emp.trustSignal?.label && (
+                                        <div style={{ marginTop: '4px' }}>
+                                            <TrustBadge signal={emp.trustSignal} />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div style={{ marginBottom: '16px' }}>

@@ -67,8 +67,17 @@ export function OnboardingView() {
     // Step 4: Employees
     const [emails, setEmails] = useState<string[]>([''])
 
-    // Step 5: Frequency
+    // Step 5: Frequency + Working Days
     const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'bi-weekly'>('weekly')
+    const [workingDays, setWorkingDays] = useState<number[]>([1, 2, 3, 4, 5])
+
+    const toggleWorkingDay = (day: number) => {
+        setWorkingDays(prev =>
+            prev.includes(day)
+                ? prev.length > 1 ? prev.filter(d => d !== day) : prev
+                : [...prev, day].sort((a, b) => a - b)
+        )
+    }
 
     const totalSteps = 6
 
@@ -121,6 +130,7 @@ export function OnboardingView() {
                 projName,
                 projDesc,
                 frequency,
+                workingDays: frequency === 'daily' ? workingDays : [1, 2, 3, 4, 5],
                 emails: emails.filter(e => e.includes('@')).join(','),
                 origin: window.location.origin,
                 // goal data
@@ -414,6 +424,43 @@ export function OnboardingView() {
                     </div>
                 ))}
             </div>
+
+            {frequency === 'daily' && (
+                <div style={{ marginTop: '24px', padding: '20px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '16px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, marginBottom: '4px' }}>
+                        Which days does your team work?
+                    </div>
+                    <div style={{ fontSize: '12px', color: colors.text3, marginBottom: '14px' }}>
+                        Reports will be expected on these days.
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        {([
+                            { label: 'Sun', value: 0 }, { label: 'Mon', value: 1 }, { label: 'Tue', value: 2 },
+                            { label: 'Wed', value: 3 }, { label: 'Thu', value: 4 }, { label: 'Fri', value: 5 },
+                            { label: 'Sat', value: 6 },
+                        ] as const).map(({ label, value }) => {
+                            const active = workingDays.includes(value)
+                            return (
+                                <div
+                                    key={value}
+                                    onClick={() => toggleWorkingDay(value)}
+                                    style={{
+                                        flex: 1, height: '44px', display: 'flex', alignItems: 'center',
+                                        justifyContent: 'center', borderRadius: '10px', cursor: 'pointer',
+                                        fontWeight: 700, fontSize: '12px',
+                                        background: active ? colors.accentGlow : colors.surface2,
+                                        border: `2px solid ${active ? colors.accent : colors.border}`,
+                                        color: active ? colors.accent : colors.text3,
+                                        transition: 'all 0.15s',
+                                    }}
+                                >
+                                    {label}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
 
             {error && (
                 <div style={{ padding: '12px 16px', background: colors.dangerGlow, border: `1px solid ${colors.danger}20`, borderRadius: '12px', color: colors.danger, fontSize: '13px', fontWeight: 600 }}>

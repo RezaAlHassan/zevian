@@ -46,8 +46,30 @@ export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', 
         const pendingReview = reports.filter((r: any) => !r.reviewedBy).length
         const overrides = reports.filter((r: any) => r.managerOverallScore !== null).length
 
+        // Fetch missed periods for the Missed filter in ReportsView
+        let periodsQuery = (supabase as any)
+            .from('reporting_periods')
+            .select('*, goals(id, name, projects(name, report_frequency)), employees!inner(id, name, manager_id, organization_id)')
+            .eq('status', 'missed')
+            .order('period_end', { ascending: false })
+
+        if (safeView === 'org') {
+            periodsQuery = periodsQuery.eq('employees.organization_id', employee.organizationId)
+        } else {
+            periodsQuery = periodsQuery.eq('employees.manager_id', employee.id)
+        }
+
+        const { data: rawPeriods } = await periodsQuery
+        const periods = (rawPeriods || []).map((p: any) => ({
+            ...p,
+            isMissed: true,
+            employeeName: p.employees?.name || 'Unknown',
+            employeeId: p.employees?.id || p.employee_id,
+        }))
+
         return {
             reports,
+            periods,
             kpis: {
                 totalReports,
                 avgScore: Number(avgScore.toFixed(1)),
@@ -82,8 +104,37 @@ export async function getMyReportsAction(startDate?: string, endDate?: string) {
             ? scoredReports.reduce((acc: number, r: any) => acc + (r.evaluationScore || 0), 0) / scoredReports.length
             : 0
 
+        let allowLateSubmissions = true
+        if (employee.managerId) {
+            const { data: ms } = await (supabase as any)
+                .from('manager_settings')
+                .select('allow_late_submissions')
+                .eq('manager_id', employee.managerId)
+                .maybeSingle()
+            if (ms) allowLateSubmissions = ms.allow_late_submissions ?? true
+        }
+
+        // Fetch missed periods for the filter
+        const now = new Date()
+        const { data: rawPeriods } = await (supabase as any)
+            .from('reporting_periods')
+            .select('*, goals(id, name, projects(name, report_frequency))')
+            .eq('employee_id', employee.id)
+            .in('status', ['missed', 'pending'])
+            .order('period_end', { ascending: false })
+
+        const periods = (rawPeriods || [])
+            .map((p: any) => ({
+                ...p,
+                isMissed: p.status === 'missed' ||
+                    (p.status === 'pending' && new Date(p.period_end) < now && !allowLateSubmissions),
+            }))
+            .filter((p: any) => p.isMissed)
+
         return {
             reports,
+            periods,
+            allowLateSubmissions,
             kpis: {
                 totalReports: reports.length,
                 avgScore: Number(avgScore.toFixed(1)),
@@ -547,7 +598,7 @@ Return ONLY a JSON object in this format:
       "score": 8.5,
       "reason": "Overall goal reasoning",
       "criteria": [
-        { "name": "criterion_name", "score": 8.0, "reason": "Criterion reasoning", "evidence": "Short snippet from report" }
+        { "name": "criterion_name", "score": 8.0, "reason": "Criterion reasoning", "evidence": "Short snippet from report", "coaching_note": null }
       ]
     }
   ],
@@ -560,7 +611,9 @@ Return ONLY a JSON object in this format:
     "kbWeight": 0
   },
   "summary": "A 2-3 sentence AI summary of the overall performance."
-}`
+}
+
+COACHING NOTE RULE: For any criterion scoring below 7.0, set coaching_note to one sentence of specific, actionable advice directed at the manager (not the employee). It must suggest a concrete action — something to ask, observe, role-play, or review in the next check-in. It must reference the specific gap in that criterion. Never write generic advice like "discuss with the employee". For criteria scoring 7.0 and above, set coaching_note to null. coaching_note applies only to goal criteria — never to orgMetrics.`
 
         const result = await withRetry(
             'analyzeReportAction',
@@ -587,7 +640,47 @@ Return ONLY a JSON object in this format:
     }
 }
 
-export async function overrideReportScoreAction(reportId: string, newScore: number, reason: string) {
+export async function setCalibrationAction(
+    reportId: string,
+    calibration: 'agree' | 'adjusted_up' | 'adjusted_down'
+) {
+    try {
+        const supabase = createServerClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) return { error: 'Not authenticated' }
+
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee || (employee.role !== 'manager' && employee.role !== 'admin')) {
+            return { error: 'Unauthorized: Only managers can calibrate scores' }
+        }
+
+        const report = await reportService.getById(reportId)
+        if (!report) return { error: 'Report not found' }
+
+        const reportOwner = await employeeService.getById(report.employeeId!)
+        const isDirectManager = reportOwner.managerId === employee.id
+        const hasOrgWideAccess = employee.isAccountOwner ||
+            employee.role === 'admin' ||
+            (employee.permissions?.canViewOrganizationWide ?? false)
+
+        if (!isDirectManager && !hasOrgWideAccess) {
+            return { error: 'Unauthorized: You are not the manager for this employee' }
+        }
+
+        await reportService.update(reportId, { managerCalibration: calibration })
+        return { success: true }
+    } catch (error) {
+        console.error('setCalibrationAction Error:', error)
+        return { error: 'Failed to save calibration' }
+    }
+}
+
+export async function overrideReportScoreAction(
+    reportId: string,
+    newScore: number,
+    reason: string,
+    calibration?: 'adjusted_up' | 'adjusted_down'
+) {
     try {
         const supabase = createServerClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -615,7 +708,8 @@ export async function overrideReportScoreAction(reportId: string, newScore: numb
         const updatedReport = await reportService.update(reportId, {
             managerOverallScore: newScore,
             managerOverrideReasoning: reason,
-            reviewedBy: employee.id
+            reviewedBy: employee.id,
+            ...(calibration ? { managerCalibration: calibration } : {})
         })
 
         // Create notification for employee using admin client to bypass RLS

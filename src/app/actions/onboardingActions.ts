@@ -11,6 +11,7 @@ export async function completeOnboardingAction(data: {
     projName: string;
     projDesc?: string;
     frequency: 'daily' | 'weekly' | 'bi-weekly';
+    workingDays?: number[];
     emails?: string;
     origin?: string;
     // Goal data from templates
@@ -38,7 +39,8 @@ export async function completeOnboardingAction(data: {
         .insert({
             id: orgId,
             name: data.orgName,
-            plan_tier: 'business'
+            plan_tier: 'business',
+            working_days: data.workingDays ?? [1, 2, 3, 4, 5],
         } as any)
     if (orgError) throw orgError
 

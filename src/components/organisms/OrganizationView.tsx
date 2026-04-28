@@ -143,6 +143,18 @@ export function OrganizationView({ organization, employees, customMetrics, curre
         )
     }
 
+    const [workingDays, setWorkingDays] = useState<number[]>(
+        organization?.workingDays ?? [1, 2, 3, 4, 5]
+    )
+
+    const toggleWorkingDay = (day: number) => {
+        setWorkingDays(prev =>
+            prev.includes(day)
+                ? prev.length > 1 ? prev.filter(d => d !== day) : prev
+                : [...prev, day].sort((a, b) => a - b)
+        )
+    }
+
     const [submissionPolicy, setSubmissionPolicy] = useState({
         allowLate: organization?.aiConfig?.allowLate ?? true,
         allowLateSubmissions: managerSettings?.allow_late_submissions ?? organization?.aiConfig?.allowLateSubmissions ?? true,
@@ -158,9 +170,10 @@ export function OrganizationView({ organization, employees, customMetrics, curre
         setIsSaving(true)
         try {
             // 1. Update Organization Settings
-            await updateOrganizationAction({ 
+            await updateOrganizationAction({
                 name: orgName,
                 goalWeight: goalWeight,
+                workingDays,
                 aiConfig: {
                     ...organization?.aiConfig,
                     ...submissionPolicy
@@ -380,6 +393,49 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                     <Icon name="alert" size={16} color={colors.text3} />
                                     <div style={{ fontSize: '12px', color: colors.text3 }}>
                                         Employees are restricted to <strong>one report per goal</strong> per reporting period (daily, weekly, etc).
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+
+                        <Card title="Team Schedule" icon="calendar">
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div>
+                                    <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, marginBottom: '4px' }}>Working Days</div>
+                                    <div style={{ fontSize: '12px', color: colors.text3, marginBottom: '14px' }}>
+                                        The days your team is expected to work. Reports are scheduled around these days.
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        {([
+                                            { label: 'Sun', value: 0 }, { label: 'Mon', value: 1 }, { label: 'Tue', value: 2 },
+                                            { label: 'Wed', value: 3 }, { label: 'Thu', value: 4 }, { label: 'Fri', value: 5 },
+                                            { label: 'Sat', value: 6 },
+                                        ] as const).map(({ label, value }) => {
+                                            const active = workingDays.includes(value)
+                                            return (
+                                                <div
+                                                    key={value}
+                                                    onClick={() => toggleWorkingDay(value)}
+                                                    style={{
+                                                        flex: 1, height: '40px', display: 'flex', alignItems: 'center',
+                                                        justifyContent: 'center', borderRadius: '10px', cursor: 'pointer',
+                                                        fontWeight: 700, fontSize: '12px',
+                                                        background: active ? colors.accentGlow : colors.surface2,
+                                                        border: `2px solid ${active ? colors.accent : colors.border}`,
+                                                        color: active ? colors.accent : colors.text3,
+                                                        transition: `all ${animation.fast}`,
+                                                    }}
+                                                >
+                                                    {label}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: colors.surface2, padding: '12px', borderRadius: '12px', border: `1px solid ${colors.border}` }}>
+                                    <Icon name="alert" size={16} color={colors.text3} />
+                                    <div style={{ fontSize: '12px', color: colors.text3 }}>
+                                        Changes apply to future due dates only.
                                     </div>
                                 </div>
                             </div>

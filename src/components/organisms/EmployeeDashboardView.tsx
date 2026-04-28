@@ -1,12 +1,17 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { format } from 'date-fns'
 import { colors, radius, animation, getScoreColor } from '@/design-system'
-import { KPICard, Card, SkillSpider, SkillList, Sparkline, DateRangeSelector, Modal } from '@/components/molecules'
+import { KPICard, Card, SkillSpider, SkillList, Sparkline, DateRangeSelector, Modal, Accordion } from '@/components/molecules'
 import { getSkillCategory } from '@/lib/skillThresholds'
 import { Icon, Badge } from '@/components/atoms'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { getNextDueDate, normalizeFrequency, resolveWorkingDays } from '@/utils/reportScheduling'
+import { computeGoalSubmissionStates } from '@/utils/goalSubmissionState'
+import { GoalSubmissionCards } from '@/components/organisms/GoalSubmissionCards'
+import { SkillAnalysisBar } from '@/components/organisms/SkillAnalysisBar'
+import { getTeamCriterionAvgsAction } from '@/app/actions/dashboardActions'
 
 interface Props {
     data: any
@@ -16,9 +21,12 @@ interface Props {
     onGoalChange?: (id: string | null) => void
     orgMetricNames?: string[]
     viewMode?: 'self' | 'detail'
+    /** Employee ID — required in detail mode for the Approve Leave button */
+    employeeId?: string
+    employeeName?: string
 }
 
-export function EmployeeDashboardView({ data, showDateSelector = true, allReports, selectedGoalId: externalGoalId, onGoalChange, orgMetricNames: propOrgMetricNames, viewMode = 'self' }: Props) {
+export function EmployeeDashboardView({ data, showDateSelector = true, allReports, selectedGoalId: externalGoalId, onGoalChange, orgMetricNames: propOrgMetricNames, viewMode = 'self', employeeId, employeeName }: Props) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const isControlled = externalGoalId !== undefined
@@ -26,6 +34,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
     const [internalGoalId, setInternalGoalId] = useState<string | null>(null)
     const [showAllTrend, setShowAllTrend] = useState(false)
     const [selectedReport, setSelectedReport] = useState<any>(null)
+    const [teamAvgsMap, setTeamAvgsMap] = useState<Record<string, number>>({})
 
     const effectiveGoalId = isControlled ? externalGoalId : internalGoalId
     const handleGoalChange = isControlled
@@ -162,8 +171,33 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
         return Number((latest - previous).toFixed(1))
     }, [effectiveGoalId, filteredScoredReports, me.delta])
 
+    useEffect(() => {
+        if (viewMode !== 'detail' || !employeeId) return
+        setTeamAvgsMap({})
+        getTeamCriterionAvgsAction(employeeId, effectiveGoalId).then(res => {
+            if (res.teamAvgs) {
+                const map: Record<string, number> = {}
+                res.teamAvgs.forEach(t => { map[t.criterionName] = t.teamAvg })
+                setTeamAvgsMap(map)
+            }
+        })
+    }, [viewMode, employeeId, effectiveGoalId])
+
+    const criteriaForBar = useMemo(() =>
+        filteredSkills
+            .map((s: any) => ({
+                name: s.name as string,
+                score: s.score as number,
+                teamAvg: viewMode === 'detail' ? teamAvgsMap[s.name] : undefined,
+            }))
+            .sort((a: { score: number }, b: { score: number }) => a.score - b.score),
+        [filteredSkills, teamAvgsMap, viewMode]
+    )
+
+    const formatFreq = (f: string) => ({ daily: 'Daily', weekly: 'Weekly', biweekly: 'Biweekly', 'bi-weekly': 'Biweekly', monthly: 'Monthly' } as Record<string, string>)[f?.toLowerCase()] ?? 'Weekly'
+
     const upcomingItems = useMemo(() => {
-        const items: { name: string; project: string; daysUntil: number | null; date: Date; isSubmitted: boolean; hasPeriod: boolean; status: string }[] = []
+        const items: { name: string; project: string; daysUntil: number | null; date: Date; isSubmitted: boolean; hasPeriod: boolean; status: string; frequency: string }[] = []
         const handledGoalIds = new Set<string>()
 
         const midnightToday = new Date()
@@ -222,52 +256,83 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                     date: dateToUse,
                     isSubmitted,
                     hasPeriod: true,
-                    status: goal.status
+                    status: goal.status,
+                    frequency: freq,
                 })
             })
         }
 
         filteredGoals.forEach((g: any) => {
-            if (handledGoalIds.has(g.id) || !g.deadline) return
+            if (handledGoalIds.has(g.id)) return
 
-            const deadline = new Date(typeof g.deadline === 'string' && !g.deadline.includes('T') ? g.deadline + 'T12:00:00' : g.deadline)
-            const midnightDeadline = new Date(deadline)
-            midnightDeadline.setHours(0,0,0,0)
+            const freq = normalizeFrequency(g.projectFrequency || 'weekly')
+            const workingDays = resolveWorkingDays(
+                { valid_report_days: g.validReportDays },
+                displayData.organization,
+            )
+            const lastReport = (allReports || [])
+                .filter((r: any) => r.goalId === g.id && !r.isOnLeave)
+                .sort((a: any, b: any) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime())[0]
+            const goalStart = g.startDate || g.start_date
+            const joinDate = me.joinDate || me.join_date
+            const nextDue = getNextDueDate(
+                lastReport?.submissionDate ?? null,
+                goalStart || new Date().toISOString(),
+                joinDate || new Date().toISOString(),
+                freq,
+                workingDays,
+            )
+
+            const midnightDeadline = new Date(nextDue)
+            midnightDeadline.setHours(0, 0, 0, 0)
             const days = Math.round((midnightDeadline.getTime() - midnightToday.getTime()) / (1000 * 60 * 60 * 24))
 
             items.push({
                 name: g.name,
                 project: g.project || g.projectName || '',
                 daysUntil: days,
-                date: deadline,
+                date: nextDue,
                 isSubmitted: false,
                 hasPeriod: false,
-                status: g.status
+                status: g.status,
+                frequency: g.projectFrequency || 'weekly',
             })
         })
 
         return items.filter(item => item.status === 'active' || item.daysUntil !== null)
             .sort((a, b) => a.date.getTime() - b.date.getTime())
-    }, [filteredUpcomingPeriods, filteredGoals, gracePeriodDays])
+    }, [filteredUpcomingPeriods, filteredGoals, gracePeriodDays, allReports, me])
+
+    // ── Goal-centric submission states ──────────────────────────────────────────
+    const goalStates = useMemo(
+        () => computeGoalSubmissionStates(
+            filteredGoals,
+            filteredUpcomingPeriods,
+            allReports || [],
+            displayData.organization?.working_days,
+        ),
+        [filteredGoals, filteredUpcomingPeriods, allReports, displayData.organization],
+    )
+
+    const allowLateSubmissions = displayData.managerSettings?.allowLateSubmissions ?? true
 
     const nextDueLabel = useMemo(() => {
-        if (upcomingItems.length > 0) {
-            const soonest = upcomingItems[0]
-            if (soonest.daysUntil !== null) {
-                if (soonest.daysUntil < 0 && !soonest.isSubmitted) return `Overdue by ${Math.abs(soonest.daysUntil)}d`
-                if (soonest.daysUntil === 0) return 'Due Today'
-                if (soonest.isSubmitted) return soonest.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                return `${soonest.daysUntil}d`
-            }
+        const attention = goalStates.filter(g => g.lateCount > 0)
+        if (attention.length > 0) return 'Late'
+        const dueToday = goalStates.filter(g => g.isDueToday)
+        if (dueToday.length > 0) return 'Due Today'
+        const upcoming = [...goalStates]
+            .filter(g => g.nextDueDate && !g.isDueToday && g.lateCount === 0)
+            .sort((a, b) => a.nextDueDate!.getTime() - b.nextDueDate!.getTime())[0]
+        if (!upcoming?.nextDueDate) {
+            const kpiValue = kpis?.find((k: any) => k.label?.toLowerCase() === 'next report due')?.value
+            if (kpiValue && kpiValue !== 'N/A') return kpiValue
+            return 'N/A'
         }
-
-        if (effectiveGoalId) return 'N/A'
-
-        const kpiValue = kpis?.find((k: any) => k.label?.toLowerCase() === 'next report due')?.value
-        if (kpiValue && kpiValue !== 'N/A') return kpiValue
-
-        return 'N/A'
-    }, [upcomingItems, kpis, effectiveGoalId])
+        const todayMs = new Date().setHours(0, 0, 0, 0)
+        const daysUntil = Math.round((upcoming.nextDueDate.getTime() - todayMs) / 86400000)
+        return daysUntil <= 0 ? 'Due Today' : `${daysUntil}d`
+    }, [goalStates, kpis])
 
     // ── Detail-view computed values ─────────────────────────────────────────
 
@@ -414,7 +479,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
         {
             label: 'Next report due',
             value: nextDueLabel,
-            meta: upcomingItems[0]?.name ? upcomingItems[0].name.substring(0, 28) : 'No active goals',
+            meta: goalStates[0]?.goalName ? goalStates[0].goalName.substring(0, 28) : 'No active goals',
             icon: 'clock',
             variant: (nextDueLabel.startsWith('Overdue') ? 'warn' : 'accent') as any,
         },
@@ -667,44 +732,31 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                     </Card>
 
                     {/* Skill Analysis */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-                        <Card
-                            title="Skill Analysis"
-                            icon="target"
-                            action={undefined}
-                        >
-                            {skillSummaryLabel && (
-                                <div style={{
-                                    fontSize: '11.5px',
-                                    color: colors.text3,
-                                    marginBottom: '16px',
-                                    padding: '6px 10px',
-                                    background: colors.surface2,
-                                    borderRadius: '8px',
-                                    border: `1px solid ${colors.border}`,
-                                    display: 'inline-block',
-                                }}>
-                                    {skillSummaryLabel}
-                                </div>
-                            )}
-                            {isBaselineRequired ? (
-                                <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
-                                    Skill breakdown requires at least 3 reports to establish a baseline.
-                                </div>
-                            ) : filteredSkills.length === 0 ? (
-                                <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
-                                    No reports with skill data found for this goal.
-                                </div>
-                            ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: '40% 60%', gap: '12px', alignItems: 'start' }}>
-                                    <SkillSpider skills={filteredSkills} size={240} />
-                                    <div style={{ borderLeft: `1px solid ${colors.border}`, paddingLeft: '20px' }}>
-                                        <SkillList skills={filteredSkills} />
-                                    </div>
-                                </div>
-                            )}
-                        </Card>
-                    </div>
+                    <Card
+                        title="Skill Analysis"
+                        icon="target"
+                        action={skillSummaryLabel ? (
+                            <span style={{
+                                fontSize: '11px',
+                                color: colors.text3,
+                                padding: '3px 8px',
+                                background: colors.surface2,
+                                borderRadius: '6px',
+                                border: `1px solid ${colors.border}`,
+                            }}>
+                                {skillSummaryLabel}
+                            </span>
+                        ) : undefined}
+                    >
+                        <div style={{ padding: '4px 0' }}>
+                            <SkillAnalysisBar
+                                criteriaData={criteriaForBar}
+                                allReports={allReports || []}
+                                viewMode={viewMode}
+                                selectedGoalId={effectiveGoalId}
+                            />
+                        </div>
+                    </Card>
 
                 </div>
 
@@ -712,126 +764,35 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: 56 }}>
 
                     {viewMode === 'detail' ? (
-                        /* Report History Timeline */
-                        <Card title="Report history" icon="clock">
-                            {reportTimeline.length === 0 ? (
-                                <div style={{ padding: '24px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
-                                    No report history yet
-                                </div>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    {reportTimeline.map((item: any, i: number) => {
-                                        const isLast = i === reportTimeline.length - 1
-                                        return (
-                                            <div key={i} style={{ display: 'flex', gap: '12px', paddingBottom: isLast ? 0 : '2px' }}>
-                                                {/* Timeline spine */}
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '28px', flexShrink: 0 }}>
-                                                    <div style={{
-                                                        width: '22px', height: '22px', borderRadius: '50%',
-                                                        background: item.type === 'submitted' ? colors.greenGlow : colors.dangerGlow,
-                                                        border: `2px solid ${item.type === 'submitted' ? colors.green : colors.danger}`,
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        flexShrink: 0,
-                                                    }}>
-                                                        <Icon
-                                                            name={item.type === 'submitted' ? 'check' : 'alert'}
-                                                            size={10}
-                                                            color={item.type === 'submitted' ? colors.green : colors.danger}
-                                                        />
-                                                    </div>
-                                                    {!isLast && (
-                                                        <div style={{ width: '1px', flex: 1, minHeight: '16px', background: colors.border, margin: '3px 0' }} />
-                                                    )}
-                                                </div>
-
-                                                {/* Content */}
-                                                <div
-                                                    style={{
-                                                        flex: 1, minWidth: 0, paddingBottom: isLast ? 0 : '12px', cursor: item.rawReport ? 'pointer' : 'default',
-                                                    }}
-                                                    onClick={() => item.rawReport && setSelectedReport(item.rawReport)}
-                                                >
-                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                            {item.goalName}
-                                                        </span>
-                                                        {item.type === 'submitted' && item.score != null ? (
-                                                            <span style={{ fontSize: '12px', fontWeight: 800, color: getScoreColor(item.score), flexShrink: 0 }}>
-                                                                {Number(item.score).toFixed(1)}
-                                                            </span>
-                                                        ) : item.type === 'missed' ? (
-                                                            <Badge variant="danger">Missed</Badge>
-                                                        ) : null}
-                                                    </div>
-                                                    <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>
-                                                        {(() => {
-                                                            try { return format(item.date, 'MMM d, yyyy') } catch { return '' }
-                                                        })()}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            )}
+                        /* Goal submission state — manager read-only view */
+                        <Card title="Report status" icon="clock">
+                            <GoalSubmissionCards
+                                goalStates={goalStates}
+                                allowLateSubmissions={allowLateSubmissions}
+                                viewMode="manager"
+                                employeeId={employeeId}
+                                employeeName={employeeName ?? me?.name ?? ''}
+                            />
                         </Card>
                     ) : (
                         /* Upcoming Reports (self view) */
-                        <Card title="Upcoming reports" icon="clock">
-                            {(() => {
-                                if (nextDueLabel === 'N/A') return null
-                                const isOverdue = nextDueLabel.startsWith('Overdue')
-                                return (
-                                    <div style={{
-                                        display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px',
-                                        background: isOverdue ? colors.dangerGlow : colors.warnGlow,
-                                        border: `1px solid ${isOverdue ? colors.danger : colors.warn}30`,
-                                        borderRadius: radius.xl,
-                                        marginBottom: '16px'
-                                    }}>
-                                        <Icon name={isOverdue ? "alert" : "calendar"} size={14} color={isOverdue ? colors.danger : colors.warn} />
-                                        <div>
-                                            <div style={{ fontSize: '13px', fontWeight: 800, color: isOverdue ? colors.danger : colors.warn }}>Next report due</div>
-                                            <div style={{ fontSize: '11px', color: isOverdue ? `${colors.danger}90` : `${colors.warn}90` }}>
-                                                {nextDueLabel}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )
-                            })()}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {upcomingItems.slice(0, 3).map((item: any, i: number) => {
-                                    const d = item.daysUntil
-                                    return (
-                                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: colors.surface2, borderRadius: radius.lg }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span style={{ fontSize: '13px', fontWeight: 600, textDecoration: item.isSubmitted ? 'line-through' : 'none', opacity: item.isSubmitted ? 0.7 : 1 }}>
-                                                    {item.name.length > 24 ? item.name.substring(0, 21) + '...' : item.name}
-                                                </span>
-                                                <span style={{ fontSize: '11px', color: colors.text3 }}>{item.project}</span>
-                                            </div>
-                                            {item.isSubmitted ? (
-                                                <div style={{ fontSize: '11px', fontWeight: 800, color: colors.green, background: colors.greenGlow, padding: '2px 8px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <Icon name="check" size={10} /> Submitted
-                                                </div>
-                                            ) : d !== null ? (
-                                                <div style={{
-                                                    fontSize: '11px',
-                                                    fontWeight: 800,
-                                                    color: d < 0 ? colors.danger : (d === 0 ? colors.warn : colors.text3),
-                                                    background: d < 0 ? colors.dangerGlow : (d === 0 ? colors.warnGlow : colors.surface3),
-                                                    padding: '2px 8px',
-                                                    borderRadius: '12px'
-                                                }}>
-                                                    {d < 0 ? 'Overdue' : d === 0 ? 'Today' : `${d}d`}
-                                                </div>
-                                            ) : (
-                                                <Badge variant="accent">Active</Badge>
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                            </div>
+                        <Card
+                            title="Reports"
+                            icon="clock"
+                            action={
+                                <button
+                                    onClick={() => router.push('/my-reports')}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11.5px', fontWeight: 700, color: colors.accent, padding: 0 }}
+                                >
+                                    See all →
+                                </button>
+                            }
+                        >
+                            <GoalSubmissionCards
+                                goalStates={goalStates}
+                                allowLateSubmissions={allowLateSubmissions}
+                                viewMode="employee"
+                            />
                         </Card>
                     )}
 

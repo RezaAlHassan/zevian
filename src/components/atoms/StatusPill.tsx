@@ -4,7 +4,7 @@ import { colors, radius, typography, getScoreStatus } from '@/design-system'
 import React from 'react'
 
 interface StatusPillProps {
-  status?: 'active' | 'at-risk' | 'review' | 'no-reports' | 'on-track' | 'no-data' | 'pending' | 'scored' | 'reviewed' | 'late' | 'on-leave'
+  status?: 'active' | 'at-risk' | 'review' | 'no-reports' | 'on-track' | 'no-data' | 'pending' | 'scored' | 'reviewed' | 'late' | 'on-leave' | 'on_leave' | 'missed' | 'due_today' | 'upcoming' | 'submitted_late'
   score?: number | null
   children?: React.ReactNode
   showDot?: boolean
@@ -23,8 +23,13 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'pending': { background: colors.surface3, color: colors.text2 },
     'scored': { background: colors.accentGlow, color: colors.accent },
     'reviewed': { background: colors.greenGlow, color: colors.green },
-    'late': { background: colors.dangerGlow, color: colors.danger },
+    'late': { background: 'rgba(245,158,11,0.16)', color: colors.warn },
     'on-leave': { background: colors.surface3, color: colors.text2 },
+    'on_leave': { background: colors.surface3, color: colors.text3 },
+    'missed': { background: 'rgba(120,30,30,0.4)', color: colors.danger },
+    'due_today': { background: 'rgba(255,255,255,0.16)', color: colors.text },
+    'upcoming': { background: colors.surface3, color: colors.text3 },
+    'submitted_late': { background: colors.greenGlow, color: colors.green },
   }
 
   const labels: Record<string, string> = {
@@ -39,6 +44,11 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'reviewed': 'Reviewed',
     'late': 'Late',
     'on-leave': 'On Leave',
+    'on_leave': 'On Leave',
+    'missed': 'Missed',
+    'due_today': 'Due Today',
+    'upcoming': 'Upcoming',
+    'submitted_late': 'Submitted',
   }
 
   const dotColors: Record<string, string> = {
@@ -53,6 +63,11 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'reviewed': colors.green,
     'late': colors.danger,
     'on-leave': colors.text3,
+    'on_leave': colors.text3,
+    'missed': colors.danger,
+    'due_today': colors.text,
+    'upcoming': colors.text3,
+    'submitted_late': colors.green,
   }
 
   return (

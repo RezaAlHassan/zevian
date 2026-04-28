@@ -265,7 +265,8 @@ The JSON must conform exactly to this structure:
       "score": <number, 1 decimal place, 1.0–10.0>,
       "confidence": <"high" | "medium" | "low">,
       "evidence": <string, direct quote or specific reference from the report that justifies the score. If no evidence exists, write "No specific evidence found." — do not fabricate.>,
-      "reasoning": <string, 2–3 sentences. Must answer: (1) what the employee demonstrated or failed to demonstrate, (2) how that compares to the target if one was set — explicitly state whether they hit, approached, or missed it, (3) whether this is an improvement, decline, or consistent with recent history if history exists. Do not be generic. Do not restate the evidence — explain the gap or alignment between what was shown and what was expected. If no target is set, assess based on whether the evidence suggests full effort, partial effort, or minimal effort for the reporting period. For scores 8 and above: note specifically what made this report strong and whether it is repeatable or a one-off result.>
+      "reasoning": <string, 2–3 sentences. Must answer: (1) what the employee demonstrated or failed to demonstrate, (2) how that compares to the target if one was set — explicitly state whether they hit, approached, or missed it, (3) whether this is an improvement, decline, or consistent with recent history if history exists. Do not be generic. Do not restate the evidence — explain the gap or alignment between what was shown and what was expected. If no target is set, assess based on whether the evidence suggests full effort, partial effort, or minimal effort for the reporting period. For scores 8 and above: note specifically what made this report strong and whether it is repeatable or a one-off result.>,
+      "coaching_note": <null if score >= 7.0. If score < 7.0: one sentence of specific, actionable advice directed at the manager (not the employee). Must suggest a concrete action — something to ask, observe, role-play, or review in the next check-in. Must reference the specific gap in this criterion. Never write generic advice like "discuss with the employee".>
     }
   ],
   "org_metrics": [
@@ -291,6 +292,7 @@ Round to 1 decimal place.
 4. Never let a report's positive tone, confident language, or enthusiastic writing inflate a score. Tone is irrelevant. Content is everything.
 5. Never deviate from the JSON format. Any non-JSON output will break the application.
 6. Always complete your evaluation even if the report is very short or clearly low quality. Assign the appropriate low scores and explain why.
+7. For any criterion scoring below 7.0, write a coaching_note — one sentence of specific, actionable advice directed at the manager (not the employee). It must suggest a concrete action: something to ask, observe, role-play, or review in the next check-in. It must reference the specific gap in that criterion. Never write generic advice like "discuss with the employee". For criteria scoring 7.0 and above, set coaching_note to null. coaching_note applies only to goal criteria — never to org_metrics.
 `
 
     // 3. Call Gemini with retry logic for 429 Too Many Requests
@@ -349,6 +351,9 @@ Round to 1 decimal place.
     }
 
     // Recalculate overall_score with org weights
+    const coachingDebug = parsed.criteria_scores?.map((cs: any) => ({ name: cs.name, score: cs.score, coaching_note: cs.coaching_note ?? '<<MISSING>>' }))
+    console.log('[score-report] RAW first 300 chars:', sanitized.slice(0, 300))
+    console.log('[score-report] coaching_note per criterion:', JSON.stringify(coachingDebug, null, 2))
     const { criteria_scores, org_metrics, overall_reasoning, integrity_flags, overall_confidence } = parsed
     let overall_score = 0;
     
@@ -392,6 +397,7 @@ Round to 1 decimal place.
         score: cs.score,
         evidence: cs.evidence || null,
         reasoning: cs.reasoning || null,
+        coaching_note: cs.coaching_note || null,
       }))
       if (fullScores.length > 0) {
         await supabase.from('report_criterion_scores').insert(fullScores)
@@ -420,6 +426,86 @@ Round to 1 decimal place.
     await (supabase.from('reports') as any)
       .update(updatePayload)
       .eq('id', reportId)
+
+    // ── Consistency Pressure Check ─────────────────────────────────────────
+    // Only run if employee has 4+ prior scored reports for this same goal.
+    try {
+      const { data: priorReports } = await supabase
+        .from('reports')
+        .select('id, content, evaluation_score')
+        .eq('employee_id', r.employee_id)
+        .eq('goal_id', goal?.id)
+        .neq('id', reportId)
+        .not('evaluation_score', 'is', null)
+        .order('submission_date', { ascending: false })
+        .limit(4)
+
+      if ((priorReports || []).length >= 4) {
+        const consistencyPrompt = `You are reviewing an employee's report history for signs of narrative drift or contribution inflation.
+
+CURRENT REPORT:
+${r.content}
+AI Score: ${overall_score}
+
+PREVIOUS 4 REPORTS (oldest first):
+${[...(priorReports || [])].reverse().map((pr: any, i: number) => `
+Report ${i + 1} — Score: ${pr.evaluation_score}
+${pr.content || ''}
+`).join('\n')}
+
+Analyse for these two patterns only:
+
+1. ESCALATING_CLAIMS: The language describing contributions, impact, or involvement is growing stronger week over week (e.g. "helped with" → "led" → "drove results" → "owned the outcome") WITHOUT corresponding improvement in AI scores.
+Signal: contribution language escalates while scores stay flat or decline.
+
+2. STAGNANT_LANGUAGE: The report text is structurally similar to previous reports — same sentence patterns, same claim types, same phrasing — suggesting the employee is templating rather than reflecting actual work.
+
+If neither pattern is clearly present: return STABLE.
+
+Return ONLY this JSON:
+{
+  "consistency_flag": "ESCALATING_CLAIMS" | "STAGNANT_LANGUAGE" | "STABLE",
+  "consistency_note": "One sentence for the manager explaining what was detected. If STABLE, return null."
+}`
+
+        const consistencyResult = await withRetry(
+          'consistency-check',
+          () => model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: consistencyPrompt }] }],
+            generationConfig: { maxOutputTokens: 300, temperature: 0.1, responseMimeType: 'application/json' }
+          })
+        )
+
+        const rawC = consistencyResult.response.text()
+        let cleanedC = rawC.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+        const startC = cleanedC.indexOf('{')
+        const endC = cleanedC.lastIndexOf('}')
+        if (startC !== -1 && endC !== -1) {
+          cleanedC = cleanedC.slice(startC, endC + 1)
+          try {
+            const parsedC = JSON.parse(cleanedC)
+            const flagValue = parsedC.consistency_flag
+            if (['ESCALATING_CLAIMS', 'STAGNANT_LANGUAGE', 'STABLE'].includes(flagValue)) {
+              await (supabase.from('reports') as any)
+                .update({
+                  consistency_flag: flagValue,
+                  consistency_note: parsedC.consistency_note ?? null
+                })
+                .eq('id', reportId)
+            }
+          } catch {
+            console.warn('[score-report] Consistency JSON parse failed — skipping')
+          }
+        }
+      } else {
+        await (supabase.from('reports') as any)
+          .update({ consistency_flag: 'STABLE', consistency_note: null })
+          .eq('id', reportId)
+      }
+    } catch (consistencyErr) {
+      console.warn('[score-report] Consistency check failed (non-fatal):', consistencyErr)
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     return NextResponse.json({ overall_score, criteria_scores, summary: finalSummary, integrity_flags, overall_confidence })
 

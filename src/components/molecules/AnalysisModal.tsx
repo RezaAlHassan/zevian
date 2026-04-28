@@ -23,13 +23,14 @@ interface AnalysisModalProps {
     isAnalyzing: boolean
     onClose: () => void
     onConfirm: () => void
+    confirmLabel?: string
     goals: GoalResult[]
     orgMetrics: { name: string; score: number; emo: string; reason: string }[]
     weights?: { goalWeight: number; orgWeight: number; kbWeight: number }
     summary?: string
 }
 
-export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, goals, orgMetrics, weights, summary }: AnalysisModalProps) {
+export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, confirmLabel, goals, orgMetrics, weights, summary }: AnalysisModalProps) {
     const [minTimeElapsed, setMinTimeElapsed] = useState(false)
     const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({})
 
@@ -253,7 +254,7 @@ export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, goals, 
                     <div style={{ padding: '16px 24px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '10px', background: colors.bg }}>
                         <Button variant="secondary" onClick={onClose} style={{ flex: 0.4 }}>Revise Report</Button>
                         <div style={{ flex: 1 }} />
-                        <Button variant="primary" onClick={onConfirm} style={{ flex: 0.6 }}>Approve & Finalize</Button>
+                        <Button variant="primary" onClick={onConfirm} style={{ flex: 0.6 }}>{confirmLabel ?? 'Approve & Finalize'}</Button>
                     </div>
                 )}
             </div>

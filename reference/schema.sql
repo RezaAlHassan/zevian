@@ -54,6 +54,9 @@ CREATE TABLE projects (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE projects
+  ADD COLUMN IF NOT EXISTS valid_report_days integer[] DEFAULT '{1,2,3,4,5}';
+
 CREATE INDEX idx_projects_created_by ON projects(created_by);
 CREATE INDEX idx_projects_category ON projects(category);
 
@@ -237,40 +240,9 @@ CREATE TABLE manager_settings (
     UNIQUE (manager_id)
 );
 
-CREATE TABLE manager_selected_days (
-    id SERIAL PRIMARY KEY,
-    manager_settings_id INTEGER NOT NULL REFERENCES manager_settings(id) ON DELETE CASCADE,
-    day_name TEXT NOT NULL CHECK (day_name IN ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')),
-    UNIQUE (manager_settings_id, day_name)
-);
-
-CREATE TABLE employee_frequency_settings (
-    id SERIAL PRIMARY KEY,
-    manager_settings_id INTEGER NOT NULL REFERENCES manager_settings(id) ON DELETE CASCADE,
-    employee_id TEXT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
-    UNIQUE (manager_settings_id, employee_id)
-);
-
-CREATE TABLE employee_frequency_days (
-    id SERIAL PRIMARY KEY,
-    employee_frequency_id INTEGER NOT NULL REFERENCES employee_frequency_settings(id) ON DELETE CASCADE,
-    day_name TEXT NOT NULL CHECK (day_name IN ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')),
-    UNIQUE (employee_frequency_id, day_name)
-);
-
-CREATE TABLE project_frequency_settings (
-    id SERIAL PRIMARY KEY,
-    manager_settings_id INTEGER NOT NULL REFERENCES manager_settings(id) ON DELETE CASCADE,
-    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    UNIQUE (manager_settings_id, project_id)
-);
-
-CREATE TABLE project_frequency_days (
-    id SERIAL PRIMARY KEY,
-    project_frequency_id INTEGER NOT NULL REFERENCES project_frequency_settings(id) ON DELETE CASCADE,
-    day_name TEXT NOT NULL CHECK (day_name IN ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')),
-    UNIQUE (project_frequency_id, day_name)
-);
+-- Legacy frequency-day tables removed (never used in application code).
+-- Working days are now stored as integer[] on organizations.working_days
+-- and projects.valid_report_days (per-project override).
 
 -- ============================================================================
 -- 12.5 LEAVES TABLE
@@ -418,11 +390,6 @@ ALTER TABLE leaves ENABLE ROW LEVEL SECURITY;
 ALTER TABLE report_criterion_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE manager_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE manager_selected_days ENABLE ROW LEVEL SECURITY;
-ALTER TABLE employee_frequency_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE employee_frequency_days ENABLE ROW LEVEL SECURITY;
-ALTER TABLE project_frequency_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE project_frequency_days ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_documents ENABLE ROW LEVEL SECURITY;
 
 -- Helpers
@@ -512,16 +479,6 @@ CREATE POLICY "Manager manage project assignees" ON project_assignees FOR ALL US
 -- MANAGER SETTINGS & RELATED TABLES
 CREATE POLICY "Manage own settings" ON manager_settings FOR ALL USING (manager_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid()));
 CREATE POLICY "View org manager settings" ON manager_settings FOR SELECT USING (manager_id IN (SELECT id FROM employees WHERE organization_id = get_my_org_id()));
-CREATE POLICY "Manage own selected days" ON manager_selected_days FOR ALL USING (manager_settings_id IN (SELECT id FROM manager_settings WHERE manager_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid())));
-CREATE POLICY "View org selected days" ON manager_selected_days FOR SELECT USING (manager_settings_id IN (SELECT id FROM manager_settings WHERE manager_id IN (SELECT id FROM employees WHERE organization_id = get_my_org_id())));
-CREATE POLICY "Manage emp freq settings" ON employee_frequency_settings FOR ALL USING (manager_settings_id IN (SELECT id FROM manager_settings WHERE manager_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid())));
-CREATE POLICY "View own freq settings" ON employee_frequency_settings FOR SELECT USING (employee_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid()));
-CREATE POLICY "Manage emp freq days" ON employee_frequency_days FOR ALL USING (employee_frequency_id IN (SELECT efs.id FROM employee_frequency_settings efs JOIN manager_settings ms ON efs.manager_settings_id = ms.id WHERE ms.manager_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid())));
-CREATE POLICY "View own freq days" ON employee_frequency_days FOR SELECT USING (employee_frequency_id IN (SELECT efs.id FROM employee_frequency_settings efs WHERE efs.employee_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid())));
-CREATE POLICY "Manage proj freq settings" ON project_frequency_settings FOR ALL USING (manager_settings_id IN (SELECT id FROM manager_settings WHERE manager_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid())));
-CREATE POLICY "View proj freq settings" ON project_frequency_settings FOR SELECT USING (project_id IN (SELECT id FROM projects WHERE organization_id = get_my_org_id()));
-CREATE POLICY "Manage proj freq days" ON project_frequency_days FOR ALL USING (project_frequency_id IN (SELECT pfs.id FROM project_frequency_settings pfs JOIN manager_settings ms ON pfs.manager_settings_id = ms.id WHERE ms.manager_id IN (SELECT id FROM employees WHERE auth_user_id = auth.uid())));
-CREATE POLICY "View proj freq days" ON project_frequency_days FOR SELECT USING (project_frequency_id IN (SELECT pfs.id FROM project_frequency_settings pfs JOIN projects p ON pfs.project_id = p.id WHERE p.organization_id = get_my_org_id()));
 
 -- ============================================================================
 -- 16. SEED DATA (Minimal Setup)
@@ -1159,6 +1116,7 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 -- Migration: Add AI Evaluation Config to Organizations
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS goal_weight INTEGER DEFAULT 70;
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS ai_config JSONB DEFAULT '{"allowLate": true, "requireReport": true, "notifyManager": false}'::jsonb;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS working_days integer[] DEFAULT '{1,2,3,4,5}';
 
 
 ALTER TABLE employee_permissions ADD COLUMN IF NOT EXISTS can_create_projects BOOLEAN DEFAULT FALSE;
@@ -1339,3 +1297,24 @@ CREATE POLICY "Manager manage permissions" ON employee_permissions
     );
 
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+ALTER TABLE criteria ADD COLUMN IF NOT EXISTS target_description TEXT;
+ALTER TABLE report_criterion_scores ADD COLUMN IF NOT EXISTS coaching_note TEXT;
+
+-- ============================================================================
+-- 23. MANAGER CALIBRATION & CONSISTENCY PRESSURE
+-- ============================================================================
+
+-- 23a. Manager calibration on reports
+ALTER TABLE reports
+ADD COLUMN IF NOT EXISTS manager_calibration TEXT
+CHECK (manager_calibration IN ('agree', 'adjusted_up', 'adjusted_down'));
+
+-- 23b. Consistency pressure flag
+ALTER TABLE reports
+ADD COLUMN IF NOT EXISTS consistency_flag TEXT
+CHECK (consistency_flag IN ('ESCALATING_CLAIMS', 'STAGNANT_LANGUAGE', 'STABLE'));
+
+ALTER TABLE reports
+ADD COLUMN IF NOT EXISTS consistency_note TEXT;

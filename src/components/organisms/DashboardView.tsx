@@ -317,7 +317,7 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
           <Card
             title="Late Submissions"
             icon="alert"
-            chip={<span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: colors.dangerGlow, color: colors.danger }}>{uiLateSubmissions.length} overdue</span>}
+            chip={<span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px', background: colors.dangerGlow, color: colors.danger }}>{uiLateSubmissions.length} late</span>}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '16px 20px' }}>
               {uiLateSubmissions.map((item: any, i: number) => (
@@ -646,7 +646,7 @@ export function DashboardView({ teamStats, recentReports, projects, lateSubmissi
                     </div>
                     <div style={{ fontFamily: typography.fonts.display, fontSize: '11px', color: colors.text3, marginTop: '4px' }}>
                       {goal.owner} · <span style={{ fontFamily: typography.fonts.numeric, fontWeight: typography.weight.heavy, fontVariantNumeric: 'tabular-nums lining-nums' }}>{goal.reports}</span> reports submitted
-                      {goal.overdue && <span style={{ color: colors.danger }}> · Report overdue</span>}
+                      {goal.overdue && <span style={{ color: colors.danger }}> · Report late</span>}
                     </div>
                   </div>
                 )

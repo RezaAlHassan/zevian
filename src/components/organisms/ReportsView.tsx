@@ -8,13 +8,16 @@ import { ScoreDisplay, MiniBar } from '@/components/atoms/Score'
 import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { ApproveLeaveModal } from '@/components/organisms/ApproveLeaveModal'
 import type { Report } from '@/types'
-import { calculateReportStatus } from '@/lib/utils/reportStatus'
+import { calculateReportStatus, isLateSubmission } from '@/lib/utils/reportStatus'
 
 interface ReportsViewProps {
   initialReports: any[]
   role?: 'manager' | 'employee'
   initialSearch?: string
+  periods?: any[]
+  allowLateSubmissions?: boolean
   kpiData: {
     totalReports: number
     avgScore: number
@@ -23,7 +26,7 @@ interface ReportsViewProps {
   }
 }
 
-export function ReportsView({ initialReports, kpiData, role = 'manager', initialSearch = '' }: ReportsViewProps) {
+export function ReportsView({ initialReports, kpiData, role = 'manager', initialSearch = '', periods = [], allowLateSubmissions = true }: ReportsViewProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const view = searchParams.get('view') || 'org'
@@ -33,8 +36,29 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
   const [searchQuery, setSearchQuery] = useState(initialSearch)
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState<'due' | 'score'>('due')
+  const [leaveModalData, setLeaveModalData] = useState<{ isOpen: boolean; empId: string; empName: string }>({
+    isOpen: false,
+    empId: '',
+    empName: '',
+  })
+
+  const isPeriodFilter = statusFilter === 'missed'
+
+  const filteredPeriods = useMemo(() => {
+    if (!isPeriodFilter) return []
+    return periods.filter((p: any) => p.isMissed).filter((p: any) => {
+      if (!searchQuery) return true
+      const employeeName = p.employeeName || p.employees?.name || ''
+      const goalName = p.goals?.name || ''
+      const projectName = p.goals?.projects?.name || ''
+      return employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        goalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        projectName.toLowerCase().includes(searchQuery.toLowerCase())
+    })
+  }, [isPeriodFilter, periods, statusFilter, searchQuery])
 
   const filteredAndSortedReports = useMemo(() => {
+    if (isPeriodFilter) return []
     let result = initialReports.filter(report => {
       const employeeName = report.employees?.name || 'Unknown'
       const goalName = report.goals?.name || 'Unknown'
@@ -44,8 +68,13 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
         goalName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         projectName.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const status = calculateReportStatus(report)
-      const matchesStatus = statusFilter === 'all' || status === statusFilter
+      let matchesStatus: boolean
+      if (statusFilter === 'late') {
+        matchesStatus = isLateSubmission(report)
+      } else {
+        const status = calculateReportStatus(report)
+        matchesStatus = statusFilter === 'all' || status === statusFilter
+      }
 
       return matchesSearch && matchesStatus
     })
@@ -66,6 +95,8 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
   }, [searchQuery, statusFilter, sortBy, initialReports])
 
   useEffect(() => { setPage(1) }, [searchQuery, statusFilter, sortBy])
+
+  const totalFilteredCount = isPeriodFilter ? filteredPeriods.length : filteredAndSortedReports.length
 
   const pagedReports = filteredAndSortedReports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
@@ -117,6 +148,8 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
             <option value="pending">Pending</option>
             <option value="scored">AI Scored</option>
             <option value="reviewed">Reviewed</option>
+            <option value="late">Late</option>
+            <option value="missed">Missed</option>
           </select>
 
           <div style={{ width: '1px', height: '24px', background: colors.border, margin: '0 4px' }} />
@@ -153,7 +186,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
           />
 
           <div className="font-numeric" style={{ fontSize: '12.5px', color: colors.text3, fontWeight: 500 }}>
-            {filteredAndSortedReports.length} reports
+            {totalFilteredCount} {isPeriodFilter ? 'periods' : 'reports'}
           </div>
 
           <div style={{ display: 'flex', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '2px', gap: '2px' }}>
@@ -200,7 +233,79 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
       </div>
 
       {/* Content Area */}
-      {viewMode === 'table' ? (
+      {isPeriodFilter ? (
+        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${colors.border}`, background: 'rgba(255,255,255,0.02)' }}>
+                {role === 'manager' && <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Employee</th>}
+                <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Goal</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Project</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Due Date</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Frequency</th>
+                <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
+                {role === 'manager' && (
+                  <th style={{ padding: '10px 20px', textAlign: 'right', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Actions</th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPeriods.length === 0 ? (
+                <tr>
+                  <td colSpan={role === 'manager' ? 6 : 5} style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
+                    No {statusFilter} periods found
+                  </td>
+                </tr>
+              ) : filteredPeriods.map((period: any) => {
+                const goalName = period.goals?.name || 'Unknown'
+                const projectName = period.goals?.projects?.name || 'Unknown'
+                const employeeName = period.employeeName || period.employees?.name || 'Unknown'
+                const freq = period.goals?.projects?.report_frequency || 'weekly'
+                const freqLabel = ({ daily: 'Daily', weekly: 'Weekly', biweekly: 'Biweekly', 'bi-weekly': 'Biweekly', monthly: 'Monthly' } as any)[freq] || 'Weekly'
+                const dueRaw = period.dueDate || period.period_end
+                const dueDate = new Date(typeof dueRaw === 'string' && !dueRaw.includes('T') ? `${dueRaw}T12:00:00` : dueRaw)
+                const daysAgo = Math.round((new Date().getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+                return (
+                  <tr key={period.id} style={{ borderBottom: `1px solid ${colors.border}`, background: 'rgba(120,30,30,0.06)', fontStyle: 'italic', opacity: 0.92 }}>
+                    {role === 'manager' && (
+                      <td style={{ padding: '14px 20px', fontSize: '13px', fontWeight: 500, color: colors.text2 }}>{employeeName}</td>
+                    )}
+                    <td style={{ padding: '14px 20px', fontSize: '13px', fontWeight: 500, color: colors.text2 }}>{goalName}</td>
+                    <td style={{ padding: '14px 14px' }}>
+                      <span style={{ padding: '3px 8px', background: colors.surface3, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: colors.text2 }}>{projectName}</span>
+                    </td>
+                    <td style={{ padding: '14px 14px' }}>
+                      <div style={{ fontSize: '12.5px', color: colors.danger, fontWeight: 600 }}>
+                        {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
+                      <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>
+                        {daysAgo === 0 ? 'Today' : `${daysAgo}d ago`}
+                      </div>
+                    </td>
+                    <td style={{ padding: '14px 14px' }}>
+                      <span style={{ fontSize: '11.5px', color: colors.text3, fontWeight: 600 }}>{freqLabel}</span>
+                    </td>
+                    <td style={{ padding: '14px 14px' }}>
+                      <StatusPill status="missed" />
+                    </td>
+                    {role === 'manager' && (
+                      <td style={{ padding: '14px 20px', textAlign: 'right' }}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setLeaveModalData({ isOpen: true, empId: period.employeeId, empName: employeeName })}
+                        >
+                          Approve Leave
+                        </Button>
+                      </td>
+                    )}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : viewMode === 'table' ? (
         <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
@@ -381,6 +486,14 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
             )
           })}
         </div>
+      )}
+      {role === 'manager' && (
+        <ApproveLeaveModal
+          isOpen={leaveModalData.isOpen}
+          onClose={() => setLeaveModalData({ ...leaveModalData, isOpen: false })}
+          employeeId={leaveModalData.empId}
+          employeeName={leaveModalData.empName}
+        />
       )}
     </div>
   )

@@ -3,6 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { dashboardService, employeeService, organizationService, customMetricService, goalService, reportService, notificationService, leaveService } from '@/../databaseService2'
 import { CustomMetric } from '@/types'
+import { computeTrustSignal } from '@/utils/trustSignal'
 
 export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?: string, endDate?: string) {
     try {
@@ -245,12 +246,20 @@ export async function getEmployeeDetailedDataAction(employeeId: string, startDat
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
-        return { 
-            dashboardData, 
-            allGoals, 
-            allReports, 
+        const calReports = allReportsData
+            .filter((r: any) => r.managerCalibration != null)
+            .sort((a: any, b: any) => new Date(b.submissionDate || '').getTime() - new Date(a.submissionDate || '').getTime())
+            .slice(0, 8)
+            .map((r: any) => r.managerCalibration as string)
+        const trustSignal = computeTrustSignal(calReports)
+
+        return {
+            dashboardData,
+            allGoals,
+            allReports,
             allActivity,
             organization,
+            trustSignal: trustSignal.label ? trustSignal : null,
             permissions: {
                 canApproveLeave
             }
@@ -258,5 +267,60 @@ export async function getEmployeeDetailedDataAction(employeeId: string, startDat
     } catch (error) {
         console.error('getEmployeeDetailedDataAction Error:', error)
         return { error: 'Failed to fetch detailed employee data' }
+    }
+}
+
+export async function getTeamCriterionAvgsAction(
+    employeeId: string,
+    goalId: string | null
+): Promise<{ teamAvgs?: { criterionName: string; teamAvg: number }[]; error?: string }> {
+    try {
+        const supabase = createServerClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) return { error: 'Not authenticated' }
+
+        const caller = await employeeService.getByAuthId(user.id)
+        if (!caller || (caller.role !== 'manager' && caller.role !== 'admin')) {
+            return { error: 'Not authorized' }
+        }
+
+        let goalIds: string[] = []
+
+        if (goalId) {
+            goalIds = [goalId]
+        } else {
+            const { data: members } = await (supabase as any)
+                .from('goal_members')
+                .select('goal_id')
+                .eq('employee_id', employeeId)
+            goalIds = (members || []).map((m: any) => m.goal_id)
+        }
+
+        if (goalIds.length === 0) return { teamAvgs: [] }
+
+        const { data, error } = await (supabase as any)
+            .from('report_criterion_scores')
+            .select('criterion_name, score, reports!inner(goal_id)')
+            .in('reports.goal_id', goalIds)
+
+        if (error) return { error: error.message }
+
+        const avgs: Record<string, { total: number; count: number }> = {}
+        ;(data || []).forEach((row: any) => {
+            const name = row.criterion_name
+            if (!avgs[name]) avgs[name] = { total: 0, count: 0 }
+            avgs[name].total += Number(row.score)
+            avgs[name].count += 1
+        })
+
+        const teamAvgs = Object.entries(avgs).map(([criterionName, { total, count }]) => ({
+            criterionName,
+            teamAvg: Number((total / count).toFixed(2)),
+        }))
+
+        return { teamAvgs }
+    } catch (error) {
+        console.error('getTeamCriterionAvgsAction Error:', error)
+        return { error: 'Failed to fetch team averages' }
     }
 }

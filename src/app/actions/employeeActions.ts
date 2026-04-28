@@ -3,6 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { employeeService, reportService, goalService } from '@/../databaseService2'
+import { computeTrustSignal } from '@/utils/trustSignal'
 
 export async function getEmployeesAction(view?: 'org' | 'direct') {
     try {
@@ -60,6 +61,14 @@ export async function getEmployeesAction(view?: 'org' | 'direct') {
                 ? [...empReports].sort((a: any, b: any) => new Date(b.submissionDate || '').getTime() - new Date(a.submissionDate || '').getTime())[0].submissionDate
                 : 'Pending'
 
+            const calibrations = empReports
+                .filter((r: any) => r.managerCalibration != null)
+                .sort((a: any, b: any) => new Date(b.submissionDate || '').getTime() - new Date(a.submissionDate || '').getTime())
+                .slice(0, 8)
+                .map((r: any) => r.managerCalibration as string)
+
+            const trustSignal = computeTrustSignal(calibrations)
+
             return {
                 ...emp,
                 avgScore: Number(avgScore.toFixed(1)),
@@ -69,7 +78,8 @@ export async function getEmployeesAction(view?: 'org' | 'direct') {
                     ? new Date(lastReportDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : 'Pending',
                 trend: 0, // Placeholder for now
-                managerName: emp.managerId ? (managerNameMap[emp.managerId] || null) : null
+                managerName: emp.managerId ? (managerNameMap[emp.managerId] || null) : null,
+                trustSignal: trustSignal.label ? trustSignal : null
             }
         })
 

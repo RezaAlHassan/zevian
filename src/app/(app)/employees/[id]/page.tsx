@@ -63,7 +63,7 @@ export default function EmployeeDetailPage() {
         </div>
     )
 
-    const { dashboardData, allGoals, allReports, allActivity } = pageData
+    const { dashboardData, allGoals, allReports, allActivity, trustSignal } = pageData
     const employee = dashboardData.me
 
     return (
@@ -86,6 +86,24 @@ export default function EmployeeDetailPage() {
                     <Link href="/employees" style={{ color: colors.text2, textDecoration: 'none' }}>Employees</Link>
                     <span style={{ color: colors.text3 }}>/</span>
                     <span style={{ color: colors.text, fontWeight: 500 }}>{employee.name}</span>
+                    {trustSignal?.label && (() => {
+                        const bgMap: Record<string, string> = { green: 'rgba(34,197,94,0.12)', amber: 'rgba(245,158,11,0.12)', neutral: 'rgba(255,255,255,0.06)' }
+                        const textMap: Record<string, string> = { green: colors.green, amber: colors.warn, neutral: colors.text3 }
+                        const tooltip = `Based on ${trustSignal.total} reviewed reports. Adjustments: ${trustSignal.downs} down · ${trustSignal.ups} up · ${trustSignal.agrees} agreed.`
+                        return (
+                            <span
+                                title={tooltip}
+                                style={{
+                                    padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700,
+                                    background: bgMap[trustSignal.color ?? 'neutral'],
+                                    color: textMap[trustSignal.color ?? 'neutral'],
+                                    letterSpacing: '0.03em', cursor: 'default',
+                                }}
+                            >
+                                {trustSignal.label}
+                            </span>
+                        )
+                    })()}
                 </div>
                 <div style={{ flex: 1 }} />
                 {pageData.permissions?.canApproveLeave && (
@@ -202,6 +220,8 @@ export default function EmployeeDetailPage() {
                                 }}
                                 orgMetricNames={(pageData.organization?.customMetrics || []).map((m: any) => m.name)}
                                 viewMode="detail"
+                                employeeId={id}
+                                employeeName={employee.name}
                             />
                         )}
 

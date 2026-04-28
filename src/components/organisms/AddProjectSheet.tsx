@@ -14,12 +14,14 @@ interface Props {
 }
 
 export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }: Props) {
+    const defaultReportDays = [1, 2, 3, 4, 5]
     const [selectedCategory, setSelectedCategory] = useState(project?.category || 'Sales')
     const [selectedFreq, setSelectedFreq] = useState(project?.frequency || 'Weekly')
     const [name, setName] = useState(project?.name || '')
     const [description, setDescription] = useState(project?.description || '')
     const [key, setKey] = useState(project?.key || (project?.id?.startsWith('mock-') ? project.id.toUpperCase() : ''))
     const [status, setStatus] = useState(project?.status || 'active')
+    const [validReportDays, setValidReportDays] = useState<number[]>(project?.validReportDays || defaultReportDays)
     const [isInitialized, setIsInitialized] = useState(false)
 
     useEffect(() => {
@@ -33,6 +35,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                 setDescription(project.description || '')
                 setKey(project.key || (project.id?.startsWith('mock-') ? project.id.toUpperCase() : ''))
                 setStatus(project.status || 'active')
+                setValidReportDays(project.validReportDays?.length ? project.validReportDays : defaultReportDays)
             } else {
                 setSelectedCategory('Sales')
                 setSelectedFreq('Weekly')
@@ -40,6 +43,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                 setDescription('')
                 setKey('')
                 setStatus('active')
+                setValidReportDays(defaultReportDays)
             }
         }
     }, [project, isOpen])
@@ -61,6 +65,16 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
         { label: 'Weekly', sub: 'Once a week' },
         { label: 'Bi-weekly', sub: 'Every 2 weeks' },
         { label: 'Monthly', sub: 'Once a month' },
+    ]
+
+    const weekDays = [
+        { label: 'Sun', value: 0 },
+        { label: 'Mon', value: 1 },
+        { label: 'Tue', value: 2 },
+        { label: 'Wed', value: 3 },
+        { label: 'Thu', value: 4 },
+        { label: 'Fri', value: 5 },
+        { label: 'Sat', value: 6 },
     ]
 
     return (
@@ -246,6 +260,47 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
 
                         <div style={{ height: '1px', background: colors.border, margin: '4px 0' }} />
 
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>
+                                Which days should employees submit reports?
+                            </label>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                                {weekDays.map(day => {
+                                    const selected = validReportDays.includes(day.value)
+                                    return (
+                                        <button
+                                            key={day.value}
+                                            type="button"
+                                            onClick={() => {
+                                                const next = selected
+                                                    ? validReportDays.filter(value => value !== day.value)
+                                                    : [...validReportDays, day.value].sort((a, b) => a - b)
+                                                if (next.length > 0) setValidReportDays(next)
+                                            }}
+                                            style={{
+                                                padding: '10px 12px',
+                                                background: selected ? colors.accentGlow : colors.surface2,
+                                                border: `1.5px solid ${selected ? colors.accentBorder : colors.border}`,
+                                                borderRadius: radius.md,
+                                                cursor: 'pointer',
+                                                transition: `all ${animation.fast}`,
+                                                fontSize: '12.5px',
+                                                fontWeight: 600,
+                                                color: selected ? colors.accent : colors.text2,
+                                            }}
+                                        >
+                                            {day.label}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                            <div style={{ fontSize: '11px', color: colors.text3 }}>
+                                Select at least one day. Default is Monday through Friday.
+                            </div>
+                        </div>
+
+                        <div style={{ height: '1px', background: colors.border, margin: '4px 0' }} />
+
                         {/* Project Status */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>Project Status</label>
@@ -287,7 +342,9 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                     <Button
                         variant="primary"
                         icon={project ? 'check' : 'plus'}
+                        disabled={validReportDays.length === 0}
                         onClick={() => {
+                            if (validReportDays.length === 0) return
                             if (onSave) {
                                 onSave({
                                     ...project,
@@ -295,6 +352,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                                     description,
                                     category: selectedCategory,
                                     frequency: selectedFreq,
+                                    validReportDays,
                                     status,
                                     key
                                 })

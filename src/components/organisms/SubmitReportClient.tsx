@@ -2,10 +2,12 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { colors, radius, typography, animation, layout, shadows } from '@/design-system'
-import { Icon, Button, Badge } from '@/components/atoms'
+import { colors, radius, typography, animation, layout } from '@/design-system'
+import { Icon, Button } from '@/components/atoms'
 import { StepTracker, AnalysisModal, Accordion, DatePicker } from '@/components/molecules'
 import { analyzeReportAction, submitReportAction, getEligibleGoalsAction } from '@/app/actions/reportActions'
+import { computeGoalSubmissionStates } from '@/utils/goalSubmissionState'
+import { GoalSubmissionCards } from '@/components/organisms/GoalSubmissionCards'
 
 const STEPS = [
     { id: 1, label: 'Context' },
@@ -31,11 +33,23 @@ interface Props {
         gracePeriodDays: number
     }
     pendingPeriods?: any[]
+    /** Sequential flow — pre-selected goal from a "Submit Now" click */
+    prefillGoalId?: string
+    prefillProjectId?: string
+    /** YYYY-MM-DD dates to submit for, oldest first */
+    prefillDates?: string[]
+    /** Whether the goal is also due today (after clearing late queue) */
+    prefillIsDueToday?: boolean
 }
 
-export function SubmitReportClient({ initialProjects, initialGoals, initialMetrics, employeeId, goalWeight = 70, aiConfig, backdateSettings, pendingPeriods }: Props) {
+export function SubmitReportClient({ initialProjects, initialGoals, initialMetrics, employeeId, goalWeight = 70, aiConfig, backdateSettings, pendingPeriods, prefillGoalId, prefillProjectId, prefillDates, prefillIsDueToday }: Props) {
     const router = useRouter()
-    const [currentStep, setCurrentStep] = useState(1)
+
+    const isSequentialMode = (prefillDates?.length ?? 0) > 0
+    const [currentQueueIndex, setCurrentQueueIndex] = useState(0)
+    const [showDueTodayPrompt, setShowDueTodayPrompt] = useState(false)
+
+    const [currentStep, setCurrentStep] = useState<1 | 2>(isSequentialMode ? 2 : 1)
 
     // Backdate settings
     const isLateAllowed = backdateSettings?.allowLateSubmissions ?? aiConfig?.allowLateSubmissions ?? aiConfig?.allowLate ?? true
@@ -112,6 +126,22 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
         return () => { cancelled = true }
     }, [selectedProjectId, selectedDate, employeeId])
 
+    // ── Sequential-mode initialisation ────────────────────────
+    useEffect(() => {
+        if (!isSequentialMode || !prefillGoalId) return
+        if (prefillProjectId) setSelectedProjectId(prefillProjectId)
+        setSelectedGoalId(prefillGoalId)
+        const goal = initialGoals.find((g: any) => g.id === prefillGoalId)
+        if (goal) {
+            setEligibleGoals([goal])
+            setGoalsLoaded(true)
+        }
+        if (prefillDates && prefillDates.length > 0) {
+            setSelectedDate(prefillDates[0])
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []) // run once on mount — prefill values are stable URL-derived props
+
     // ── Navigation ────────────────────────────────────────────
     const handleContinueToWrite = () => {
         if (!selectedProjectId || !selectedGoalId) return
@@ -120,7 +150,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
     }
 
     const goBack = () => {
-        if (currentStep > 1) setCurrentStep(currentStep - 1)
+        if (currentStep > 1) setCurrentStep(1)
     }
 
     // ── Actions ──────────────────────────────────────────────
@@ -179,7 +209,8 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                     criterionName: c.name,
                     score: c.score,
                     reasoning: c.reason,
-                    evidence: c.evidence
+                    evidence: c.evidence,
+                    coachingNote: c.coaching_note || null
                 }))
             ),
             ...(analysisResults.orgMetrics || []).map((m: any) => ({
@@ -191,11 +222,15 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
             }))
         ]
 
+        const effectiveDate = isSequentialMode && prefillDates
+            ? (prefillDates[currentQueueIndex] ?? todayStr)
+            : selectedDate
+
         const result = await submitReportAction({
             goalIds: [selectedGoalId],
             reportText,
             employeeId,
-            submissionDate: selectedDate,
+            submissionDate: effectiveDate,
             evaluationScore: finalScore,
             evaluationReasoning: totalReasoning,
             criterionScores: allCriterionScores
@@ -208,6 +243,27 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
         }
 
         setIsSubmitting(false)
+
+        // ── Sequential queue advancement ───────────────────────
+        if (isSequentialMode && prefillDates) {
+            const nextIndex = currentQueueIndex + 1
+            if (nextIndex < prefillDates.length) {
+                setCurrentQueueIndex(nextIndex)
+                setSelectedDate(prefillDates[nextIndex])
+                setReportText('')
+                setAnalysisResults(null)
+                setIsModalOpen(false)
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+                return
+            }
+            // Queue exhausted — check for due-today prompt
+            if (prefillIsDueToday) {
+                setIsModalOpen(false)
+                setShowDueTodayPrompt(true)
+                return
+            }
+        }
+
         setIsModalOpen(false)
         setIsSuccess(true)
         setTimeout(() => {
@@ -244,154 +300,15 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
 
     const canAnalyze = reportText.trim().length >= 50
 
-    // ── Urgent Goals Sidebar ────────────────────────────
-    const urgentGoals = useMemo(() => {
-        if (!initialGoals || initialGoals.length === 0) return []
-
-        const now = new Date()
-
-        const mapped = initialGoals.map((goal: any) => {
-            const project = initialProjects.find(p => p.id === goal.projectId)
-
-            const goalPeriods = (pendingPeriods || []).filter((p: any) => p.goal_id === goal.id)
-
-            // Treat overdue pending periods as missed on the fly (no cron needed)
-            const now = new Date()
-            let relevantPeriod = goalPeriods.find((p: any) =>
-                p.status === 'pending' || p.status === 'late' || p.status === 'missed' ||
-                (p.status === 'pending' && new Date(p.period_end) < now)
-            )
-
-            let isSubmitted = false
-            let hasPeriod = false
-            if (!relevantPeriod) {
-                const submittedPeriods = goalPeriods.filter((p: any) => p.status === 'submitted')
-                if (submittedPeriods.length > 0) {
-                    submittedPeriods.sort((a: any, b: any) => new Date(b.period_end).getTime() - new Date(a.period_end).getTime())
-                    relevantPeriod = submittedPeriods[0]
-                    isSubmitted = true
-                }
-            }
-            if (relevantPeriod) hasPeriod = true
-
-            let diffDays = 0
-            let endDate = new Date()
-            let nextDueDate = new Date()
-
-            if (relevantPeriod) {
-                endDate = new Date(relevantPeriod.period_end)
-                nextDueDate = new Date(endDate)
-
-                if (isSubmitted) {
-                    const freq = project?.frequency || 'weekly'
-                    if (freq === 'daily') nextDueDate.setDate(nextDueDate.getDate() + 1)
-                    else if (freq === 'biweekly') nextDueDate.setDate(nextDueDate.getDate() + 14)
-                    else if (freq === 'monthly') nextDueDate.setMonth(nextDueDate.getMonth() + 1)
-                    else nextDueDate.setDate(nextDueDate.getDate() + 7)
-                }
-
-                const diffTime = (isSubmitted ? nextDueDate : endDate).getTime() - now.getTime()
-                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-            }
-
-            return {
-                id: goal.id,
-                goalName: goal.name,
-                projectName: project?.name || 'Unknown Project',
-                daysDue: diffDays,
-                isLate: diffDays < 0 && !isSubmitted,
-                isSubmitted,
-                hasPeriod,
-                endDate,
-                nextDueDate
-            }
-        })
-
-        mapped.sort((a, b) => {
-            if (a.isSubmitted !== b.isSubmitted) return a.isSubmitted ? 1 : -1
-            return a.daysDue - b.daysDue
-        })
-
-        return mapped.slice(0, 3)
-    }, [pendingPeriods, initialGoals, initialProjects])
-
-    const renderUrgentGoals = () => {
-        if (urgentGoals.length === 0) {
-            return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', marginLeft: '4px' }}>
-                        Urgent Goals
-                    </div>
-                    <div style={{
-                        padding: '16px',
-                        background: colors.surface,
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: radius.lg,
-                        textAlign: 'center'
-                    }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: `${colors.green}15`, color: colors.green, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                            <Icon name="check" size={20} />
-                        </div>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, marginBottom: '4px' }}>All Caught Up</div>
-                        <div style={{ fontSize: '11.5px', color: colors.text3 }}>No upcoming deadlines</div>
-                    </div>
-                </div>
-            )
-        }
-
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', marginLeft: '4px' }}>
-                    Urgent Goals
-                </div>
-                {urgentGoals.map(ug => (
-                    <div key={ug.id} style={{
-                        padding: '14px',
-                        background: ug.isLate ? colors.dangerGlow : colors.surface,
-                        border: `1px solid ${ug.isLate ? 'rgba(240,68,56,0.15)' : colors.border}`,
-                        borderRadius: radius.lg,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                            <div style={{ fontSize: '13px', fontWeight: 700, color: ug.isSubmitted ? colors.text3 : colors.text, lineHeight: 1.3, textDecoration: ug.isSubmitted ? 'line-through' : 'none' }}>{ug.goalName}</div>
-
-                            {ug.isSubmitted ? (
-                                <div style={{
-                                    display: 'flex', alignItems: 'center', gap: '4px',
-                                    fontSize: '10px', fontWeight: 800, color: colors.green,
-                                    whiteSpace: 'nowrap', padding: '3px 6px',
-                                    background: `${colors.green}15`, borderRadius: '4px'
-                                }}>
-                                    <Icon name="check" size={10} />
-                                    Submitted
-                                </div>
-                            ) : ug.hasPeriod ? (
-                                <div style={{
-                                    fontSize: '10px', fontWeight: 800,
-                                    color: ug.isLate ? colors.danger : colors.warn,
-                                    whiteSpace: 'nowrap', padding: '3px 6px',
-                                    background: ug.isLate ? 'rgba(240,68,56,0.1)' : 'rgba(245,158,11,0.12)',
-                                    borderRadius: '4px'
-                                }}>
-                                    {ug.isLate ? `${Math.abs(ug.daysDue)}d late` : `Due in ${ug.daysDue}d`}
-                                </div>
-                            ) : null}
-                        </div>
-                        <div style={{ fontSize: '11px', color: colors.text3, fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>{ug.projectName}</span>
-                            {ug.hasPeriod && (
-                                <span style={{ opacity: 0.7 }}>
-                                    {ug.isSubmitted ? `Next: ${ug.nextDueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ug.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        )
-    }
+    // ── Sidebar goal states (uses pendingPeriods as the period source) ────────
+    const sidebarGoalStates = useMemo(
+        () => computeGoalSubmissionStates(
+            initialGoals,
+            pendingPeriods || [],
+            [],
+        ),
+        [initialGoals, pendingPeriods],
+    )
 
     if (isSuccess) {
         return (
@@ -593,15 +510,61 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                     </div>
                 )}
 
+                {/* ── Due-today prompt (after sequential queue exhausted) ── */}
+                {showDueTodayPrompt && (
+                    <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '16px', padding: '40px 32px', textAlign: 'center', animation: `fadeIn ${animation.fast}` }}>
+                        <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: `${colors.green}18`, color: colors.green, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                            <Icon name="check" size={26} />
+                        </div>
+                        <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: colors.text }}>Late reports cleared</h2>
+                        <p style={{ fontSize: '13.5px', color: colors.text2, marginBottom: '28px', lineHeight: 1.6, maxWidth: '360px', margin: '0 auto 28px' }}>
+                            This goal is also due today. Would you like to submit your report for today as well?
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                            <Button variant="secondary" onClick={() => { router.refresh(); router.push('/my-reports') }}>
+                                Later
+                            </Button>
+                            <Button
+                                variant="primary"
+                                icon="chevronRight"
+                                onClick={() => {
+                                    const today = new Date().toLocaleDateString('en-CA')
+                                    router.push(`/my-reports/submit?goalId=${prefillGoalId}&projectId=${prefillProjectId}&dates=${today}`)
+                                }}
+                            >
+                                Submit for Today
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
                 {/* ── STEP 2: Write Report ── */}
-                {currentStep === 2 && selectedGoalId && (
+                {currentStep === 2 && selectedGoalId && !showDueTodayPrompt && (
                     <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '16px', overflow: 'hidden', animation: `fadeIn ${animation.fast}`, display: 'flex', flexDirection: 'column' }}>
+                        {/* Sequential queue banner */}
+                        {isSequentialMode && prefillDates && prefillDates.length > 1 && (
+                            <div style={{ padding: '10px 20px', background: `${colors.warn}12`, borderBottom: `1px solid ${colors.warn}25`, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Icon name="alert" size={13} color={colors.warn} />
+                                <span style={{ fontSize: '12px', fontWeight: 700, color: colors.warn }}>
+                                    Report {currentQueueIndex + 1} of {prefillDates.length} — clearing late submissions
+                                </span>
+                            </div>
+                        )}
                         <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: `1px solid ${colors.border}` }}>
                             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: colors.teal }} />
-                            <div>
+                            <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: '14px', fontWeight: 800, color: colors.text }}>Write Report</div>
                                 <div style={{ fontSize: '12px', color: colors.text3, marginTop: '2px' }}>
-                                    {eligibleGoals.find(g => g.id === selectedGoalId)?.name} • {selectedDate}
+                                    {isSequentialMode && prefillDates ? (
+                                        <>
+                                            Submitting for:{' '}
+                                            <strong style={{ color: colors.text2 }}>
+                                                {new Date((prefillDates[currentQueueIndex] ?? todayStr) + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                                            </strong>
+                                        </>
+                                    ) : (
+                                        <>{eligibleGoals.find(g => g.id === selectedGoalId)?.name} • {selectedDate}</>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -620,7 +583,28 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                         </div>
 
                         <div style={{ padding: '16px 20px', background: colors.surface2, borderTop: `1px solid ${colors.border}` }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                {isSequentialMode && isLateAllowed ? (
+                                    <button
+                                        onClick={() => {
+                                            const nextIndex = currentQueueIndex + 1
+                                            if (prefillDates && nextIndex < prefillDates.length) {
+                                                setCurrentQueueIndex(nextIndex)
+                                                setSelectedDate(prefillDates[nextIndex])
+                                                setReportText('')
+                                                setAnalysisResults(null)
+                                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                                            } else if (prefillIsDueToday) {
+                                                setShowDueTodayPrompt(true)
+                                            } else {
+                                                router.push('/my-reports')
+                                            }
+                                        }}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: colors.text3, padding: 0 }}
+                                    >
+                                        Skip this date →
+                                    </button>
+                                ) : <span />}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                     <span style={{ fontSize: '13px', fontWeight: 700, color: reportText.length >= 50 ? colors.green : colors.text3 }} className="font-numeric">
                                         {reportText.length} / 3,000 chars
@@ -648,7 +632,13 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
 
             {/* ── Sidebar ─────────────────── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '80px' }}>
-                {currentStep === 1 && renderUrgentGoals()}
+                {currentStep === 1 && (
+                    <GoalSubmissionCards
+                        goalStates={sidebarGoalStates}
+                        allowLateSubmissions={isLateAllowed}
+                        viewMode="employee"
+                    />
+                )}
                 <Accordion
                     allowMultiple={true}
                     initialOpenIndices={currentStep === 2 ? [0, 1] : [0]}
@@ -793,6 +783,11 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                 orgMetrics={analysisResultsOrg}
                 weights={analysisResults?.weights}
                 summary={analysisResults?.summary}
+                confirmLabel={
+                    isSequentialMode && prefillDates && currentQueueIndex < prefillDates.length - 1
+                        ? 'Submit & Continue →'
+                        : undefined
+                }
             />
         </div>
     )

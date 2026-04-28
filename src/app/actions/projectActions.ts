@@ -28,6 +28,9 @@ export async function upsertProjectAction(formData: any) {
             description: formData.description,
             category: formData.category,
             reportFrequency: formData.frequency.toLowerCase(),
+            validReportDays: Array.isArray(formData.validReportDays) && formData.validReportDays.length > 0
+                ? formData.validReportDays
+                : [1, 2, 3, 4, 5],
             createdBy: employee.id,
             status: formData.status || 'active',
             assignees: [] // Default empty, can be updated later

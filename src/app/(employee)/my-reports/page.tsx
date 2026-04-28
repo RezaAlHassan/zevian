@@ -19,6 +19,8 @@ export default async function EmployeeReportsPage({ searchParams }: { searchPara
         <ReportsView
             role="employee"
             initialReports={data.reports}
+            periods={data.periods || []}
+            allowLateSubmissions={data.allowLateSubmissions ?? true}
             kpiData={data.kpis || { totalReports: 0, avgScore: 0, pendingReview: 0, overrides: 0 }}
         />
     )
