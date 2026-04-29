@@ -561,63 +561,6 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                 </div>
             )}
 
-            {/* ── Hero Banner ──────────────────────── */}
-            <div style={{
-                background: colors.surface,
-                border: `1px solid ${colors.border}`,
-                borderRadius: radius['3xl'],
-                padding: '24px 28px',
-                marginBottom: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '20px',
-                position: 'relative',
-                overflow: 'hidden',
-            }}>
-                <div style={{
-                    width: '56px', height: '56px', borderRadius: '14px',
-                    background: `linear-gradient(135deg, ${colors.accent}, ${colors.purple})`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '18px', fontWeight: 800, color: '#fff',
-                    boxShadow: '0 0 24px rgba(91,127,255,0.3)',
-                }}>
-                    {me.initials}
-                </div>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.15, marginBottom: '4px' }}>{me.name}</div>
-                    <div style={{ fontSize: '12.5px', color: colors.text2, marginBottom: '3px' }}>
-                        {filteredGoals.length} {filteredGoals.length === 1 ? 'Goal' : 'Goals'} · {new Set(filteredGoals.map((g: any) => g.project).filter(Boolean)).size} {new Set(filteredGoals.map((g: any) => g.project).filter(Boolean)).size === 1 ? 'Project' : 'Projects'}
-                    </div>
-                    {manager && (
-                        <div style={{ fontSize: '12px', color: colors.text3 }}>
-                            Reports to <span style={{ color: colors.text2, fontWeight: 600 }}>{manager.name}</span>
-                        </div>
-                    )}
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Average score</div>
-                    {isBaselineRequired ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', height: '100%' }}>
-                            <span style={{ fontSize: '15px', fontWeight: 700, color: colors.text2, background: colors.surface2, padding: '4px 12px', borderRadius: '20px', border: `1px solid ${colors.border}` }}>
-                                Building Baseline
-                            </span>
-                            <span style={{ fontSize: '10.5px', color: colors.text3, marginTop: '8px' }}>Requires 3+ reports</span>
-                        </div>
-                    ) : (
-                        <>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px', justifyContent: 'flex-end' }}>
-                                <span style={{ fontSize: '44px', fontWeight: 800, letterSpacing: '-2px', lineHeight: 1, color: getScoreColor(scopedAverageScore) }}>{scopedAverageScore}</span>
-                                <span style={{ fontSize: '16px', fontWeight: 600, color: colors.text3 }}>/10</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '12px', fontWeight: 700, color: scopedDelta >= 0 ? colors.green : colors.warn, justifyContent: 'flex-end' }}>
-                                <Icon name={scopedDelta >= 0 ? "chevronUp" : "chevronDown"} size={11} />
-                                {Math.abs(scopedDelta)} vs last report
-                            </div>
-                        </>
-                    )}
-                </div>
-            </div>
-
             {/* ── KPI Grid ─────────────────────────── */}
             <div style={{ display: 'grid', gridTemplateColumns: viewMode === 'detail' ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
                 {activeKpis.map((kpi, i) => (
