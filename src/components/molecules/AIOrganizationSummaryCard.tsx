@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { colors, radius } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms'
@@ -23,39 +23,58 @@ interface AISummaryMeta {
   generatedAt: string
 }
 
+interface Persisted {
+  summary: AISummary
+  meta: AISummaryMeta
+}
+
 interface Props {
   organizationId: string
   organizationName?: string
   startDate?: string
   endDate?: string
+  autoGenerate?: boolean
 }
 
-const RATING_CONFIG = {
-  strong:            { label: 'Strong',            color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
-  good:              { label: 'Good',              color: '#14b8a6', bg: 'rgba(20,184,166,0.1)' },
-  average:           { label: 'Average',           color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-  needs_improvement: { label: 'Needs Improvement', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
+function fmtDate(iso: string) {
+  try {
+    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch {
+    return iso
+  }
 }
 
-const TREND_CONFIG = {
-  improving:         { label: 'Improving',       icon: 'trendingUp'   as const, color: '#22c55e' },
-  stable:            { label: 'Stable',          icon: 'minus'        as const, color: '#f59e0b' },
-  declining:         { label: 'Declining',       icon: 'trendingDown' as const, color: '#ef4444' },
-  insufficient_data: { label: 'Not enough data', icon: 'help'         as const, color: colors.text3 },
-}
-
-export function AIOrganizationSummaryCard({ organizationId, organizationName, startDate, endDate }: Props) {
+export function AIOrganizationSummaryCard({ organizationId, organizationName, startDate, endDate, autoGenerate }: Props) {
   const [summary, setSummary] = useState<AISummary | null>(null)
   const [meta, setMeta] = useState<AISummaryMeta | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState(false)
+  const [sectionExpanded, setSectionExpanded] = useState(true)
+  const [textExpanded, setTextExpanded] = useState(false)
+
+  const storageKey = `ai-org-summary-${organizationId}`
+
+  useEffect(() => {
+    let hasCached = false
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw) {
+        const parsed: Persisted = JSON.parse(raw)
+        setSummary(parsed.summary)
+        setMeta(parsed.meta)
+        hasCached = true
+      }
+    } catch {}
+    if (autoGenerate && !hasCached) {
+      generate()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey])
 
   async function generate() {
     setLoading(true)
     setError(null)
-    setSummary(null)
-    setExpanded(true)
+    setSectionExpanded(true)
     try {
       const res = await fetch('/api/ai/summarize-org', {
         method: 'POST',
@@ -71,6 +90,10 @@ export function AIOrganizationSummaryCard({ organizationId, organizationName, st
       if (!res.ok || data.error) throw new Error(data.error ?? 'Failed to generate summary')
       setSummary(data.summary)
       setMeta(data.meta)
+      setTextExpanded(false)
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({ summary: data.summary, meta: data.meta }))
+      } catch {}
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -78,8 +101,7 @@ export function AIOrganizationSummaryCard({ organizationId, organizationName, st
     }
   }
 
-  const rating = summary ? RATING_CONFIG[summary.overall_rating] : null
-  const trend  = summary ? TREND_CONFIG[summary.trend]           : null
+  const isGenerated = summary !== null
 
   return (
     <div style={{
@@ -87,16 +109,14 @@ export function AIOrganizationSummaryCard({ organizationId, organizationName, st
       border: `1px solid ${colors.border}`,
       borderRadius: radius.xl,
       overflow: 'hidden',
-      marginBottom: '4px',
     }}>
-      {/* Header row */}
+      {/* Header row — always visible */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
         padding: '16px 20px',
-        cursor: 'pointer',
-      }} onClick={() => !loading && setExpanded(v => !v)}>
+      }}>
         <div style={{
           width: '36px',
           height: '36px',
@@ -110,82 +130,65 @@ export function AIOrganizationSummaryCard({ organizationId, organizationName, st
           <Icon name="sparkles" size={16} color={colors.accent} />
         </div>
 
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>AI Organization Summary</div>
-          <div style={{ fontSize: '11px', color: colors.text3, marginTop: '1px' }}>
-            {meta
-              ? `${meta.reportCount} report${meta.reportCount !== 1 ? 's' : ''} · ${meta.employeeCount} employee${meta.employeeCount !== 1 ? 's' : ''} · avg ${meta.orgAvgScore}/10 · ${meta.periodLabel}`
-              : 'Generate an AI-powered summary for the entire organization'}
-          </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>AI Organisation Summary</div>
+          {isGenerated && meta ? (
+            <div style={{ fontSize: '11px', color: colors.text3, marginTop: '1px' }}>
+              Last generated: {fmtDate(meta.generatedAt)}
+            </div>
+          ) : (
+            <div style={{ fontSize: '11px', color: colors.text3, marginTop: '1px' }}>
+              Generate an AI-powered summary for the entire organisation.
+            </div>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {rating && (
-            <span style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              color: rating.color,
-              background: rating.bg,
-              borderRadius: '6px',
-              padding: '3px 8px',
-            }}>
-              {rating.label}
-            </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          {isGenerated ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={generate}
+                disabled={loading}
+              >
+                {loading ? 'Generating…' : 'Regenerate'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSectionExpanded(v => !v)}
+              >
+                {sectionExpanded ? 'Collapse ▴' : 'Expand ▾'}
+              </Button>
+            </>
+          ) : (
+            <Button variant="primary" size="sm" onClick={generate} disabled={loading}>
+              {loading ? 'Generating…' : 'Generate'}
+            </Button>
           )}
-          {trend && (
-            <span style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              color: trend.color,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}>
-              <Icon name={trend.icon} size={12} color={trend.color} />
-              {trend.label}
-            </span>
-          )}
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={e => { e.stopPropagation(); generate() }}
-            disabled={loading}
-          >
-            {loading ? 'Generating…' : summary ? 'Regenerate' : 'Generate'}
-          </Button>
-          <Icon
-            name={expanded ? 'chevronUp' : 'chevronDown'}
-            size={14}
-            color={colors.text3}
-          />
         </div>
       </div>
 
-      {/* Expanded content */}
-      {expanded && (
+      {/* Expandable content */}
+      {(isGenerated && sectionExpanded) && (
         <div style={{ borderTop: `1px solid ${colors.border}`, padding: '20px' }}>
           {loading && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              color: colors.text3,
-              fontSize: '13px',
-              padding: '8px 0',
-            }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: colors.text3, fontSize: '13px' }}>
               <div style={{
                 width: '16px',
                 height: '16px',
                 border: `2px solid ${colors.border}`,
                 borderTopColor: colors.accent,
                 borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
+                animation: 'zv-spin 0.8s linear infinite',
+                flexShrink: 0,
               }} />
               Analyzing organization performance data…
             </div>
           )}
 
-          {error && (
+          {error && !loading && (
             <div style={{
               padding: '12px 16px',
               background: 'rgba(239,68,68,0.08)',
@@ -200,7 +203,7 @@ export function AIOrganizationSummaryCard({ organizationId, organizationName, st
 
           {summary && !loading && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Headline */}
+              {/* Headline — collapsible after 3 lines */}
               <p style={{
                 fontSize: '14px',
                 fontWeight: 500,
@@ -208,94 +211,110 @@ export function AIOrganizationSummaryCard({ organizationId, organizationName, st
                 lineHeight: '1.6',
                 margin: 0,
                 padding: '12px 16px',
-                background: colors.surface2 ?? colors.bg,
+                background: colors.surface2,
                 borderRadius: radius.lg,
                 borderLeft: `3px solid ${colors.accent}`,
-              }}>
+                display: '-webkit-box',
+                WebkitLineClamp: textExpanded ? 'unset' : 3,
+                WebkitBoxOrient: 'vertical',
+                overflow: textExpanded ? 'visible' : 'hidden',
+              } as React.CSSProperties}>
                 {summary.headline}
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                {/* Highlights */}
-                {summary.highlights.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Icon name="checkCircle" size={12} color="#22c55e" />
-                      Highlights
-                    </div>
-                    <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {summary.highlights.map((h, i) => (
-                        <li key={i} style={{
-                          fontSize: '12.5px',
-                          color: colors.text2,
-                          padding: '8px 10px',
-                          background: 'rgba(34,197,94,0.06)',
-                          borderRadius: '8px',
-                          lineHeight: '1.5',
-                        }}>
-                          {h}
-                        </li>
-                      ))}
-                    </ul>
+              {!textExpanded && (
+                <button
+                  onClick={() => setTextExpanded(true)}
+                  style={{ background: 'none', border: 'none', color: colors.accent, fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: '0', textAlign: 'left', marginTop: '-10px' }}
+                >
+                  Show more ▾
+                </button>
+              )}
+
+              {textExpanded && (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    {summary.highlights.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Icon name="checkCircle" size={12} color="#22c55e" />
+                          Highlights
+                        </div>
+                        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {summary.highlights.map((h, i) => (
+                            <li key={i} style={{ fontSize: '12.5px', color: colors.text2, padding: '8px 10px', background: 'rgba(34,197,94,0.06)', borderRadius: '8px', lineHeight: '1.5' }}>
+                              {h}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {summary.concerns.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Icon name="alertTriangle" size={12} color="#f59e0b" />
+                          Areas to Watch
+                        </div>
+                        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {summary.concerns.map((c, i) => (
+                            <li key={i} style={{ fontSize: '12.5px', color: colors.text2, padding: '8px 10px', background: 'rgba(245,158,11,0.06)', borderRadius: '8px', lineHeight: '1.5' }}>
+                              {c}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                )}
 
-                {/* Concerns */}
-                {summary.concerns.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Icon name="alertTriangle" size={12} color="#f59e0b" />
-                      Areas to Watch
+                  <div style={{ padding: '12px 16px', background: 'rgba(99,102,241,0.06)', border: `1px solid rgba(99,102,241,0.15)`, borderRadius: radius.lg }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: colors.accent, textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Icon name="lightbulb" size={12} color={colors.accent} />
+                      Leadership Recommendation
                     </div>
-                    <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {summary.concerns.map((c, i) => (
-                        <li key={i} style={{
-                          fontSize: '12.5px',
-                          color: colors.text2,
-                          padding: '8px 10px',
-                          background: 'rgba(245,158,11,0.06)',
-                          borderRadius: '8px',
-                          lineHeight: '1.5',
-                        }}>
-                          {c}
-                        </li>
-                      ))}
-                    </ul>
+                    <p style={{ fontSize: '13px', color: colors.text2, margin: 0, lineHeight: '1.6' }}>
+                      {summary.recommendation}
+                    </p>
                   </div>
-                )}
-              </div>
 
-              {/* Recommendation */}
-              <div style={{
-                padding: '12px 16px',
-                background: 'rgba(99,102,241,0.06)',
-                border: `1px solid rgba(99,102,241,0.15)`,
-                borderRadius: radius.lg,
-              }}>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: colors.accent, textTransform: 'uppercase', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Icon name="lightbulb" size={12} color={colors.accent} />
-                  Leadership Recommendation
-                </div>
-                <p style={{ fontSize: '13px', color: colors.text2, margin: 0, lineHeight: '1.6' }}>
-                  {summary.recommendation}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {!loading && !summary && !error && (
-            <div style={{ padding: '20px 0', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
-              Click <strong style={{ color: colors.text2 }}>Generate</strong> to create an AI-powered summary for the organization.
+                  <button
+                    onClick={() => setTextExpanded(false)}
+                    style={{ background: 'none', border: 'none', color: colors.text3, fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: '0', textAlign: 'left' }}
+                  >
+                    Show less ▴
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
       )}
 
-      <style jsx>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      {/* Show loading spinner even if section is being generated for first time */}
+      {!isGenerated && loading && (
+        <div style={{ borderTop: `1px solid ${colors.border}`, padding: '20px', display: 'flex', alignItems: 'center', gap: '10px', color: colors.text3, fontSize: '13px' }}>
+          <div style={{
+            width: '16px',
+            height: '16px',
+            border: `2px solid ${colors.border}`,
+            borderTopColor: colors.accent,
+            borderRadius: '50%',
+            animation: 'zv-spin 0.8s linear infinite',
+            flexShrink: 0,
+          }} />
+          Analyzing organization performance data…
+        </div>
+      )}
+
+      {!isGenerated && error && !loading && (
+        <div style={{ borderTop: `1px solid ${colors.border}`, padding: '20px' }}>
+          <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: radius.lg, color: '#ef4444', fontSize: '13px' }}>
+            {error}
+          </div>
+        </div>
+      )}
+
+      <style>{`@keyframes zv-spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

@@ -48,7 +48,7 @@ export async function getEmployeesAction(view?: 'org' | 'direct') {
 
         const employeesWithMetrics = staffMembers.map((emp: any) => {
             const empReports = allReports.filter((r: any) => r.employeeId === emp.id)
-            const empGoals = allGoals.filter((g: any) => g.managerId === emp.id || (g as any).assignees?.includes(emp.id))
+            const empGoals = allGoals.filter((g: any) => g.goal_members?.some((m: any) => m.employee?.id === emp.id))
 
             // Calculate avg score
             const scoredReports = empReports.filter((r: any) => (r.managerOverallScore ?? r.evaluationScore) !== null)

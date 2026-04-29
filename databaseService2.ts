@@ -1954,7 +1954,7 @@ export const dashboardService = {
 
         let reportsQuery = supabase
             .from('reports')
-            .select('*, employees!reports_employee_id_fkey!inner(organization_id, name, manager_id), goals(project_id, name), report_criterion_scores(*)')
+            .select('*, employees!reports_employee_id_fkey!inner(organization_id, name, manager_id, title), goals(project_id, name, projects(name)), report_criterion_scores(*)')
             .eq('employees.organization_id', orgId);
         if (view === 'direct') {
             reportsQuery = directReportIds.length > 0
@@ -2174,21 +2174,145 @@ export const dashboardService = {
             return sampled;
         })();
 
+        // Helper: parse integrity tags from ai_summary prefix + consistency_flag
+        const lateReportIds = new Set<string>(
+            periodsData.filter((p: any) => p.late_submitted && p.report_id).map((p: any) => p.report_id as string)
+        );
+        function parseDashboardTags(r: any): string[] {
+            const tags: string[] = [];
+            const summary: string = r.ai_summary || '';
+            const flagMatch = summary.match(/^\[FLAGS:\s*([^\]]+)\]/);
+            if (flagMatch) {
+                const flags = flagMatch[1].split(',').map((f: string) => f.trim());
+                if (flags.includes('PROMPT_INJECTION_DETECTED')) tags.push('PROMPT_INJECTION');
+                if (flags.includes('KEYWORD_STUFFING')) tags.push('KEYWORD_STUFFING');
+                if (flags.some((f: string) => ['INSUFFICIENT_EVIDENCE', 'LOW_SPECIFICITY', 'VAGUE_AFFIRMATIONS_DOMINANT'].includes(f))) tags.push('PADDING');
+            }
+            if (r.consistency_flag === 'ESCALATING_CLAIMS') tags.push('ESCALATING_CLAIMS');
+            if (r.consistency_flag === 'STAGNANT_LANGUAGE') tags.push('STAGNANT_LANGUAGE');
+            if (lateReportIds.has(r.id)) tags.push('LATE');
+            return tags;
+        }
+
+        // Enrich teamPerformance with report/period counts
+        const enrichedTeamPerformance = teamPerformance.map((emp: any) => {
+            const empPeriods = periodsData.filter((p: any) => p.employee_id === emp.id);
+            const empReports = (reportsData || []).filter((r: any) => r.employee_id === emp.id);
+            return {
+                ...emp,
+                reportCount: empReports.length,
+                submittedPeriods: empPeriods.filter((p: any) => p.report_id != null).length,
+                periodCount: empPeriods.length,
+            };
+        });
+
+        // needsAttention: at-risk or review employees
+        const needsAttention = enrichedTeamPerformance
+            .filter((emp: any) => emp.status === 'at-risk' || emp.status === 'review')
+            .slice(0, 6)
+            .map((emp: any) => {
+                const empReports = (reportsData || []).filter((r: any) => r.employee_id === emp.id);
+                const missedCount = periodsData.filter((p: any) => p.employee_id === emp.id && p.status === 'missed').length;
+                const tags: Array<{ type: string; days?: number; count?: number }> = [];
+                if (emp.status === 'at-risk') tags.push({ type: 'DECLINING' });
+                if (missedCount > 0) tags.push({ type: 'MISSED', count: missedCount });
+                const recentFlags = empReports.slice(0, 3).flatMap((r: any) => parseDashboardTags(r));
+                if (recentFlags.includes('ESCALATING_CLAIMS') && !tags.find(t => t.type === 'ESCALATING_CLAIMS')) tags.push({ type: 'ESCALATING_CLAIMS' });
+                if (recentFlags.includes('STAGNANT_LANGUAGE') && !tags.find(t => t.type === 'STAGNANT_LANGUAGE')) tags.push({ type: 'STAGNANT_LANGUAGE' });
+                return {
+                    id: emp.id,
+                    name: emp.name,
+                    title: emp.role,
+                    tags,
+                    reviewHref: `/employees/${emp.id}`,
+                    latestDrop: emp.score,
+                };
+            });
+
+        // Enrich recentReports with tags, reviewed status, goalName, projectName
+        const recentReports = (reportsData || []).slice(0, 10).map((r: any) => ({
+            id: r.id,
+            employeeName: r.employees?.name || 'Unknown',
+            employeeTitle: r.employees?.title || '',
+            goalName: r.goals?.name || null,
+            projectName: r.goals?.projects?.name || null,
+            date: r.submission_date,
+            score: r.manager_overall_score ?? r.evaluation_score ?? null,
+            tags: parseDashboardTags(r),
+            reviewed: r.reviewed_by != null || r.manager_overall_score != null,
+            overridden: r.manager_overall_score != null,
+        }));
+
+        // Enriched reporting periods (for "missed" filter in Recent Reports)
+        const enrichedPeriods = periodsData.map((p: any) => {
+            const emp = employeesData.find((e: any) => e.id === p.employee_id);
+            const goal = goalsData.find((g: any) => g.id === p.goal_id);
+            const project = goal ? (projectsData || []).find((proj: any) => proj.id === goal.project_id) : null;
+            return {
+                id: p.id,
+                employeeName: emp?.name || 'Unknown',
+                employeeTitle: emp?.title || '',
+                goalName: goal?.name || null,
+                projectName: project?.name || null,
+                status: p.status,
+                dueDate: p.period_end,
+            };
+        });
+
+        // metricStats for Org Metrics section
+        const metricStatsMap: Record<string, { total: number; count: number; recent: number; recentCount: number }> = {};
+        const halfIdx = Math.max(1, Math.floor(reportsData.length / 2));
+        reportsData.forEach((r: any, idx: number) => {
+            (r.report_criterion_scores || []).forEach((s: any) => {
+                if (!selectedMetricNames.has(s.criterion_name)) return;
+                if (!metricStatsMap[s.criterion_name]) metricStatsMap[s.criterion_name] = { total: 0, count: 0, recent: 0, recentCount: 0 };
+                metricStatsMap[s.criterion_name].total += Number(s.score);
+                metricStatsMap[s.criterion_name].count++;
+                if (idx < halfIdx) {
+                    metricStatsMap[s.criterion_name].recent += Number(s.score);
+                    metricStatsMap[s.criterion_name].recentCount++;
+                }
+            });
+        });
+        const metricStats = Array.from(selectedMetricNames)
+            .map((name: string) => {
+                const stat = metricStatsMap[name];
+                if (!stat || stat.count === 0) return null;
+                const avg = Number((stat.total / stat.count).toFixed(1));
+                const recentAvg = stat.recentCount > 0 ? stat.recent / stat.recentCount : avg;
+                const olderAvg = (stat.count - stat.recentCount) > 0 ? (stat.total - stat.recent) / (stat.count - stat.recentCount) : avg;
+                const trend = recentAvg > olderAvg + 0.2 ? 'up' : recentAvg < olderAvg - 0.2 ? 'down' : 'stable';
+                return { id: name, name, avg, trend };
+            })
+            .filter(Boolean);
+
+        // KPIs
+        const needsReviewCount = recentReports.filter((r: any) => !r.reviewed).length;
+        const totalPeriods = periodsData.length;
+        const submittedPeriodCount = periodsData.filter((p: any) => p.report_id != null).length;
+
         return {
             totalReports,
             avgScore: Number(avgScore.toFixed(1)),
             orgAvgScore: orgAvgScore !== null ? Number(orgAvgScore.toFixed(1)) : null,
             projects: uiProjects,
-            teamPerformance,
+            teamPerformance: enrichedTeamPerformance,
             goals: uiGoals,
             trendScores,
+            orgTrendScores: [],
             lateSubmissions: periodsData.filter((p: any) => p.status === 'late'),
-            recentReports: (reportsData || []).slice(0, 5).map((r: any) => ({
-                id: r.id,
-                employeeName: r.employees?.name || 'Unknown',
-                date: new Date(r.submission_date).toLocaleDateString(),
-                score: r.manager_overall_score ?? r.evaluation_score
-            }))
+            recentReports,
+            reportingPeriods: enrichedPeriods,
+            needsAttention,
+            metricStats,
+            kpis: {
+                reportsThisPeriod: totalReports,
+                reportsDelta: null,
+                teamAvgScore: totalReports > 0 ? Number(avgScore.toFixed(1)) : null,
+                teamAvgDelta: null,
+                submissionRate: { submitted: submittedPeriodCount, expected: totalPeriods },
+                needsReviewCount,
+            },
         };
     }
 };
