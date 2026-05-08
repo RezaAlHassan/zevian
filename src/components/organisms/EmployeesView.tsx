@@ -7,7 +7,7 @@ import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { ScoreDisplay } from '@/components/atoms/Score'
-import { InviteModal } from '@/components/molecules'
+import { InviteModal } from '@/components/molecules/InviteModal'
 import { ApproveLeaveModal } from '@/components/organisms/ApproveLeaveModal'
 
 interface TrustSignal {

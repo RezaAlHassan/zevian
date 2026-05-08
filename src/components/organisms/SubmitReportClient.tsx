@@ -4,7 +4,10 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { colors, radius, typography, animation, layout } from '@/design-system'
 import { Icon, Button } from '@/components/atoms'
-import { StepTracker, AnalysisModal, Accordion, DatePicker } from '@/components/molecules'
+import { StepTracker } from '@/components/molecules/StepTracker'
+import { AnalysisModal } from '@/components/molecules/AnalysisModal'
+import { Accordion } from '@/components/molecules/Accordion'
+import { DatePicker } from '@/components/molecules/DatePicker'
 import { analyzeReportAction, submitReportAction, getEligibleGoalsAction } from '@/app/actions/reportActions'
 import { computeGoalSubmissionStates } from '@/utils/goalSubmissionState'
 import { GoalSubmissionCards } from '@/components/organisms/GoalSubmissionCards'
@@ -569,6 +572,20 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                             </div>
                         </div>
 
+                        {/* Org metrics visibility band — rep must know these before writing */}
+                        {initialMetrics.length > 0 && (
+                            <div style={{ padding: '10px 20px', background: `${colors.purple}08`, borderBottom: `1px solid ${colors.purple}18`, display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>Also scored on</span>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                    {initialMetrics.map((m: any) => (
+                                        <span key={m.id || m.name} style={{ fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '20px', background: `${colors.purple}14`, color: colors.purple, border: `1px solid ${colors.purple}28` }}>
+                                            {m.name}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div style={{ flex: 1 }}>
                             <textarea
                                 autoFocus
@@ -641,7 +658,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                 )}
                 <Accordion
                     allowMultiple={true}
-                    initialOpenIndices={currentStep === 2 ? [0, 1] : [0]}
+                    initialOpenIndices={currentStep === 2 ? (initialMetrics.length > 0 ? [0, 1, 2] : [0, 1]) : [0]}
                     items={[
                         ...(currentStep === 2 ? [{
                             title: "How are reports scored",
@@ -652,15 +669,17 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: '20px', fontWeight: 900, color: colors.accent, lineHeight: 1 }}>{goalWeight}%</div>
+                                            <div style={{ fontSize: '20px', fontWeight: 900, color: colors.accent, lineHeight: 1 }}>{initialMetrics.length > 0 ? `${goalWeight}%` : '100%'}</div>
                                             <div style={{ fontSize: '10px', fontWeight: 700, color: colors.accent, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Goal Alignment</div>
                                             <div style={{ fontSize: '10.5px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>Criteria &amp; instructions</div>
                                         </div>
-                                        <div style={{ flex: 1, background: `${colors.purple}12`, border: `1px solid ${colors.purple}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: '20px', fontWeight: 900, color: colors.purple, lineHeight: 1 }}>{100 - goalWeight}%</div>
-                                            <div style={{ fontSize: '10px', fontWeight: 700, color: colors.purple, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Org Metrics</div>
-                                            <div style={{ fontSize: '10.5px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>{initialMetrics.length} metric{initialMetrics.length !== 1 ? 's' : ''} active</div>
-                                        </div>
+                                        {initialMetrics.length > 0 && (
+                                            <div style={{ flex: 1, background: `${colors.purple}12`, border: `1px solid ${colors.purple}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '20px', fontWeight: 900, color: colors.purple, lineHeight: 1 }}>{100 - goalWeight}%</div>
+                                                <div style={{ fontSize: '10px', fontWeight: 700, color: colors.purple, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Org Metrics</div>
+                                                <div style={{ fontSize: '10.5px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>{initialMetrics.length} metric{initialMetrics.length !== 1 ? 's' : ''} active</div>
+                                            </div>
+                                        )}
                                     </div>
                                     <div style={{ borderTop: `1px solid ${colors.border}` }} />
                                     <div>
@@ -676,8 +695,12 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                                 Don't just list tasks — say what changed or improved as a result.
                                             </div>
                                             <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.5 }}>
-                                                <div style={{ fontWeight: 800, color: colors.accent, marginBottom: '3px' }}>③ Cover your goal and org metrics</div>
-                                                Touch on both — the AI only scores what it sees in your report.
+                                                <div style={{ fontWeight: 800, color: colors.accent, marginBottom: '3px' }}>
+                                                    {initialMetrics.length > 0 ? '③ Cover your goal and org metrics' : '③ Cover your goal criteria'}
+                                                </div>
+                                                {initialMetrics.length > 0
+                                                    ? 'Touch on both — the AI only scores what it sees in your report.'
+                                                    : 'Address each criterion — the AI only scores what it sees in your report.'}
                                             </div>
                                         </div>
                                     </div>
@@ -738,22 +761,18 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                 )
                             })()
                         },
-                        ...(currentStep === 2 ? [{
+                        ...(currentStep === 2 && initialMetrics.length > 0 ? [{
                             title: "Organisation Metrics",
                             content: (
                                 <div style={{ paddingTop: '8px' }}>
-                                    {initialMetrics.length === 0 ? (
-                                        <div style={{ fontSize: '12px', color: colors.text3 }}>No metrics configured.</div>
-                                    ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            {initialMetrics.map((m: any, i: number) => (
-                                                <div key={m.id || i} style={{ paddingTop: i === 0 ? '0' : '10px', paddingBottom: '10px', borderBottom: i < initialMetrics.length - 1 ? `1px solid ${colors.border}` : 'none' }}>
-                                                    <div style={{ fontSize: '12.5px', fontWeight: 800, color: colors.text2, marginBottom: '2px' }}>{m.name}</div>
-                                                    <div style={{ fontSize: '12px', color: colors.text3, lineHeight: 1.5 }}>{m.description || 'No description.'}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        {initialMetrics.map((m: any, i: number) => (
+                                            <div key={m.id || i} style={{ paddingTop: i === 0 ? '0' : '10px', paddingBottom: '10px', borderBottom: i < initialMetrics.length - 1 ? `1px solid ${colors.border}` : 'none' }}>
+                                                <div style={{ fontSize: '12.5px', fontWeight: 800, color: colors.text2, marginBottom: '2px' }}>{m.name}</div>
+                                                <div style={{ fontSize: '12px', color: colors.text3, lineHeight: 1.5 }}>{m.description || 'No description.'}</div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )
                         }] : []),

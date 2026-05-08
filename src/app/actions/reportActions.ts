@@ -535,6 +535,11 @@ export async function analyzeReportAction(data: {
             }
         }
 
+        // If no org metrics are configured, goal criteria carry 100% of the score
+        if (!data.metrics.length) {
+            goalWeight = 100
+        }
+
         // 2. Fetch Knowledgebase Context
         let kbContext = "";
         if (data.projectId) {

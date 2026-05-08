@@ -6,8 +6,13 @@ import { colors, layout, componentTokens, typography, animation, radius } from '
 import { Header } from '@/components/atoms/Header'
 import { Icon } from '@/components/atoms/Icon'
 import { useState } from 'react'
-import { InviteModal } from '@/components/molecules/InviteModal'
+import dynamic from 'next/dynamic'
 import Image from 'next/image'
+
+const InviteModal = dynamic(
+  () => import('@/components/molecules/InviteModal').then(m => ({ default: m.InviteModal })),
+  { ssr: false }
+)
 
 interface Props {
   userName: string

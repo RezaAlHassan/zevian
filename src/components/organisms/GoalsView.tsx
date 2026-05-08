@@ -8,7 +8,7 @@ import { StatusPill } from '@/components/atoms/StatusPill'
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AddGoalSheet } from '@/components/organisms/AddGoalSheet'
-import { MetaSection } from '@/components/molecules'
+import { MetaSection } from '@/components/molecules/MetaSection'
 
 import { deleteGoalAction, updateGoalStatusAction, updateGoalMembersAction } from '@/app/actions/goalActions'
 import { ManageGoalTeamSheet } from '@/components/organisms/ManageGoalTeamSheet'

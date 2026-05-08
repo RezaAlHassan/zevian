@@ -5,13 +5,11 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { colors, layout, radius, typography, getScoreColor } from '@/design-system'
 import { Avatar } from '@/components/atoms'
-import {
-  Card,
-  DateRangeSelector,
-  AIOrganizationSummaryCard,
-  SlimProjectCard,
-  RecentReportItem,
-} from '@/components/molecules'
+import { Card } from '@/components/molecules/Card'
+import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
+import { AIOrganizationSummaryCard } from '@/components/molecules/AIOrganizationSummaryCard'
+import { SlimProjectCard } from '@/components/molecules/SlimProjectCard'
+import { RecentReportItem } from '@/components/molecules/RecentReportItem'
 import { Organization } from '@/types'
 
 interface Props {

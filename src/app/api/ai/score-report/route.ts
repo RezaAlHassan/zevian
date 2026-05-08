@@ -356,21 +356,24 @@ Round to 1 decimal place.
     console.log('[score-report] coaching_note per criterion:', JSON.stringify(coachingDebug, null, 2))
     const { criteria_scores, org_metrics, overall_reasoning, integrity_flags, overall_confidence } = parsed
     let overall_score = 0;
-    
+
     // 1. Goal Average
-    const goalAvg = (criteria_scores?.length) 
+    const goalAvg = (criteria_scores?.length)
         ? criteria_scores.reduce((acc: number, cs: any) => acc + cs.score, 0) / criteria_scores.length
         : 0;
 
-    // 2. Org Metrics Average
-    const orgAvg = (org_metrics?.length)
-        ? org_metrics.reduce((acc: number, m: any) => acc + m.score, 0) / org_metrics.length
-        : 0;
+    // 2. If no org metrics are configured, goal criteria carry 100% of the score
+    let finalScore: number;
+    if (!allOrgMetrics.length) {
+        finalScore = goalAvg;
+    } else {
+        const orgAvg = org_metrics?.length
+            ? org_metrics.reduce((acc: number, m: any) => acc + m.score, 0) / org_metrics.length
+            : 0;
+        const orgWeight = 100 - goalWeight;
+        finalScore = (goalAvg * (goalWeight / 100)) + (orgAvg * (orgWeight / 100));
+    }
 
-    // 3. Apply Weights: Goal(G%) + Org(100-G%)
-    const orgWeight = 100 - goalWeight;
-    const finalScore = (goalAvg * (goalWeight / 100)) + (orgAvg * (orgWeight / 100));
-    
     overall_score = Number(finalScore.toFixed(2));
 
     // Insert per-criterion scores

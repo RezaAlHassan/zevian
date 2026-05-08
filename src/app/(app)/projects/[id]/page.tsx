@@ -63,21 +63,17 @@ export default async function ProjectPage({ params }: { params: { id: string } }
         notFound()
     }
 
-    // Fetch employees for selectors (like Manage Team)
-    const { data: employees } = await supabase
-        .from('employees')
-        .select('id, name, role')
-        .eq('role', 'manager')
-        .eq('is_active', true)
-        .order('name');
+    // Fetch employees and current user in parallel
+    const [{ data: employees }, { data: { user } }] = await Promise.all([
+        supabase.from('employees').select('id, name, role').eq('role', 'manager').eq('is_active', true).order('name'),
+        supabase.auth.getUser(),
+    ])
 
     const mappedEmployees = (employees || []).map((e: any) => ({
         ...e,
         full_name: e.name
     }))
 
-    // Fetch current user permissions
-    const { data: { user } } = await supabase.auth.getUser()
     let readOnly = false
     if (user) {
         const currentEmployee = await employeeService.getByAuthId(user.id)

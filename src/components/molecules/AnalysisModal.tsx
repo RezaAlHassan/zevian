@@ -136,9 +136,13 @@ export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, confirm
                                             <span style={{ fontSize: '22px', fontWeight: 500, color: colors.text3, marginLeft: '6px' }}>/10</span>
                                         </div>
                                         <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
-                                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '4px 9px', borderRadius: '20px', background: `${colors.accent}15`, color: colors.accent, border: `1px solid ${colors.accent}25` }}>Goals {weights?.goalWeight}%</span>
-                                            <span style={{ color: colors.text3, fontSize: '13px', fontWeight: 600, alignSelf: 'center' }}>+</span>
-                                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '4px 9px', borderRadius: '20px', background: `${colors.teal}15`, color: colors.teal, border: `1px solid ${colors.teal}25` }}>Org {weights?.orgWeight}%</span>
+                                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '4px 9px', borderRadius: '20px', background: `${colors.accent}15`, color: colors.accent, border: `1px solid ${colors.accent}25` }}>Goals {orgMetrics.length > 0 ? `${weights?.goalWeight}%` : '100%'}</span>
+                                            {orgMetrics.length > 0 && (
+                                                <>
+                                                    <span style={{ color: colors.text3, fontSize: '13px', fontWeight: 600, alignSelf: 'center' }}>+</span>
+                                                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '4px 9px', borderRadius: '20px', background: `${colors.teal}15`, color: colors.teal, border: `1px solid ${colors.teal}25` }}>Org {weights?.orgWeight}%</span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
 
@@ -156,10 +160,12 @@ export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, confirm
                                                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: colors.accent }} />
                                                 <span style={{ fontSize: '12px', color: colors.text2, fontWeight: 500 }}>Goal criteria avg: {goalAvg}</span>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: colors.teal }} />
-                                                <span style={{ fontSize: '12px', color: colors.text2, fontWeight: 500 }}>Org metrics avg: {orgAvg}</span>
-                                            </div>
+                                            {orgMetrics.length > 0 && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: colors.teal }} />
+                                                    <span style={{ fontSize: '12px', color: colors.text2, fontWeight: 500 }}>Org metrics avg: {orgAvg}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -223,28 +229,32 @@ export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, confirm
                                 }))}
                             </div>
 
-                            {/* Org Metrics Breakdown */}
-                            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: colors.text3, padding: '0 4px', marginBottom: '10px', marginTop: '28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                Org metrics · {weights?.orgWeight}% of score
-                                <div style={{ flex: 1, height: '1px', background: colors.border }} />
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
-                                {orgMetrics.map((m, mi) => (
-                                    <div key={mi} style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '14px', padding: '16px', transition: 'border-color 0.15s' }}>
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                            <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>{m.name}</div>
-                                            <div style={{ fontSize: '18px', fontWeight: 800, color: getScoreColor(m.score) }}>
-                                                {m.score.toFixed(1).split('.')[0]}<span style={{ fontSize: '0.8em', opacity: 0.9 }}>.{m.score.toFixed(1).split('.')[1]}</span>
-                                            </div>
-                                        </div>
-                                        <div style={{ width: '100%', height: '3px', background: colors.surface3, borderRadius: '2px', overflow: 'hidden', marginBottom: '10px' }}>
-                                            <div style={{ height: '100%', width: `${m.score * 10}%`, background: getScoreColor(m.score), borderRadius: '2px' }} />
-                                        </div>
-                                        <div style={{ fontSize: '12px', lineHeight: 1.6, color: colors.text2 }}>{m.reason}</div>
+                            {/* Org Metrics Breakdown — only shown when metrics are configured */}
+                            {orgMetrics.length > 0 && (
+                                <>
+                                    <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: colors.text3, padding: '0 4px', marginBottom: '10px', marginTop: '28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        Org metrics · {weights?.orgWeight}% of score
+                                        <div style={{ flex: 1, height: '1px', background: colors.border }} />
                                     </div>
-                                ))}
-                            </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
+                                        {orgMetrics.map((m, mi) => (
+                                            <div key={mi} style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '14px', padding: '16px', transition: 'border-color 0.15s' }}>
+                                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                                    <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>{m.name}</div>
+                                                    <div style={{ fontSize: '18px', fontWeight: 800, color: getScoreColor(m.score) }}>
+                                                        {m.score.toFixed(1).split('.')[0]}<span style={{ fontSize: '0.8em', opacity: 0.9 }}>.{m.score.toFixed(1).split('.')[1]}</span>
+                                                    </div>
+                                                </div>
+                                                <div style={{ width: '100%', height: '3px', background: colors.surface3, borderRadius: '2px', overflow: 'hidden', marginBottom: '10px' }}>
+                                                    <div style={{ height: '100%', width: `${m.score * 10}%`, background: getScoreColor(m.score), borderRadius: '2px' }} />
+                                                </div>
+                                                <div style={{ fontSize: '12px', lineHeight: 1.6, color: colors.text2 }}>{m.reason}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
 
                         </div>
                     )}

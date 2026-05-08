@@ -17,14 +17,12 @@ export default async function ProjectsPage({ searchParams }: { searchParams: { v
   const canViewOrg = employee.isAccountOwner || employee.permissions?.canViewOrganizationWide || employee.role === 'admin'
   const effectiveView = searchParams.view ?? (canViewOrg ? 'org' : 'direct')
 
-  let projects
-  if (canViewOrg && effectiveView === 'org') {
-      projects = await projectService.getAll()
-  } else {
-      projects = await projectService.getByEmployeeId(employee.id)
-  }
-
-  const employees = await employeeService.getAll()
+  const [projects, employees] = await Promise.all([
+    canViewOrg && effectiveView === 'org'
+      ? projectService.getAll()
+      : projectService.getByEmployeeId(employee.id),
+    employeeService.getAll(),
+  ])
   const canCreate = employee.isAccountOwner || employee.permissions?.canCreateProjects || employee.role === 'admin'
 
   return (
