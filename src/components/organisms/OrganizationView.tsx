@@ -273,7 +273,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                             </div>
                         </Card>
 
-                        <Card title="AI Evaluation Configuration" icon="sparkles">
+                        <Card title="Evaluation Configuration" icon="sparkles">
                             <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text2, textTransform: 'uppercase', marginBottom: '12px' }}>Score Weighting</div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                                 <div>
@@ -515,7 +515,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                 action={<Button variant="secondary" size="sm" onClick={() => setShowNewMetric(true)}>Add Custom Metric</Button>}
                             >
                                 <p style={{ fontSize: '13px', color: colors.text3, marginBottom: '24px', lineHeight: 1.6 }}>
-                                    Define your own organization-specific metrics that the AI will evaluate in every report.
+                                    Define your own organization-specific metrics that will be evaluated in every report.
                                 </p>
                                 
                                 {showNewMetric && (
@@ -814,7 +814,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                 <div style={{ padding: '16px', background: colors.dangerGlow, border: `1px solid ${colors.danger}20`, borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div>
                                         <div style={{ fontSize: '14px', fontWeight: 700, color: colors.danger }}>Reset All Scores</div>
-                                        <div style={{ fontSize: '12px', color: colors.text3 }}>Permanently delete all AI-generated scores. This cannot be undone.</div>
+                                        <div style={{ fontSize: '12px', color: colors.text3 }}>Permanently delete all scores. This cannot be undone.</div>
                                     </div>
                                     <Button variant="secondary" size="sm" style={{ color: colors.danger, borderColor: colors.danger }}>Reset Scores</Button>
                                 </div>

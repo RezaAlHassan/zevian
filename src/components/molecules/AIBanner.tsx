@@ -52,7 +52,7 @@ export function AIBanner({ message, highlightedText, onActionClick }: AIBannerPr
         }}
       >
         <Icon name="star" size={11} color={colors.accent} />
-        Zevian AI
+        Zevian
       </div>
 
       <div style={{ fontSize: '13px', color: colors.text2, flex: 1 }}>

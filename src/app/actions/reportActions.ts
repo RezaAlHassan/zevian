@@ -723,7 +723,7 @@ export async function overrideReportScoreAction(
             user_id: report.employeeId!,
             type: 'alert',
             title: 'Report Score Adjusted',
-            message: `Your manager has reviewed and overridden the AI score for your report on "${report.goals?.name || 'a goal'}".`,
+            message: `Your manager has reviewed and overridden the score for your report on "${report.goals?.name || 'a goal'}".`,
             link_url: `/my-reports/${reportId}`
         })
 

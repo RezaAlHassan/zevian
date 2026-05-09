@@ -295,7 +295,7 @@ export function DashboardView({ teamStats, organization }: Props) {
             }}
           >
             <span style={{ fontSize: '14px' }}>✦</span>
-            AI Summary
+            Summary
             <span style={{ fontSize: '11px', opacity: 0.7 }}>{showAiSummary ? '▴' : '▾'}</span>
           </button>
         )}

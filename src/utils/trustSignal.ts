@@ -26,7 +26,7 @@ export function computeTrustSignal(
         label = 'Likely Inflated'
         color = 'amber'
     } else if (agrees / total >= 0.75) {
-        label = 'AI Aligned'
+        label = 'Aligned'
         color = 'green'
     } else if (ups / total >= 0.5) {
         label = 'Underscoring'

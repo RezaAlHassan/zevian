@@ -131,14 +131,14 @@ export function AIOrganizationSummaryCard({ organizationId, organizationName, st
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>AI Organisation Summary</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>Organisation Summary</div>
           {isGenerated && meta ? (
             <div style={{ fontSize: '11px', color: colors.text3, marginTop: '1px' }}>
               Last generated: {fmtDate(meta.generatedAt)}
             </div>
           ) : (
             <div style={{ fontSize: '11px', color: colors.text3, marginTop: '1px' }}>
-              Generate an AI-powered summary for the entire organisation.
+              Generate a summary for the entire organisation.
             </div>
           )}
         </div>

@@ -286,7 +286,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                             {goal ? 'Edit Global Goal' : 'Create New Goal'}
                         </div>
                         <div style={{ fontSize: '12px', color: colors.text3, marginTop: '2px' }}>
-                            Define what success looks like — Zevian AI will use this to score every report
+                            Define what success looks like — Zevian will use this to score every report
                         </div>
                     </div>
                     <button
@@ -346,12 +346,12 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                         </div>
                     </div>
 
-                    {/* 2. AI Goal Builder */}
+                    {/* 2. Smart Goal Builder */}
                     <div style={{ padding: '20px 26px', borderBottom: `1px solid ${colors.border}` }}>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                             <Icon name="sparkles" size={15} color={colors.accent} />
-                            AI Goal Builder
-                            <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 7px', borderRadius: '4px', background: colors.accentGlow, color: colors.accent }}>✦ AI</span>
+                            Smart Goal Builder
+                            <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 7px', borderRadius: '4px', background: colors.accentGlow, color: colors.accent }}>✦ Smart</span>
                         </div>
                         <div style={{ background: colors.surface2, border: `1.5px solid ${colors.border}`, borderRadius: '12px', overflow: 'hidden' }}>
                             <textarea
@@ -396,7 +396,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                 Goal <span style={{ color: colors.accent }}>*</span>
                                 {showAiBadge && (
                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 9px', borderRadius: '5px', fontSize: '11px', fontWeight: 600, background: 'rgba(0,212,170,.12)', color: '#00d4aa' }}>
-                                        <Icon name="check" size={10} /> AI filled
+                                        <Icon name="check" size={10} /> Auto-filled
                                     </span>
                                 )}
                             </div>

@@ -119,7 +119,7 @@ describe('OrganizationView', () => {
 
     // Verify content is visible
     expect(screen.getByText('General Information')).toBeTruthy();
-    expect(screen.getByText('AI Evaluation Configuration')).toBeTruthy();
+    expect(screen.getByText('Evaluation Configuration')).toBeTruthy();
     expect(screen.getByText('Reporting')).toBeTruthy();
 
     // Org Name should be rendered

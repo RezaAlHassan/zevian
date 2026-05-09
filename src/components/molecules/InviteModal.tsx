@@ -357,7 +357,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                                 </div>
                                             </div>
                                             <div style={{ fontSize: '13.5px', fontWeight: 800, marginBottom: '5px', letterSpacing: '-0.2px', color: isManager ? '#f97316' : colors.text }}>Manager</div>
-                                            <div style={{ fontSize: '12px', color: isManager ? colors.text2 : colors.text3, lineHeight: 1.55 }}>Reviews team reports. Can score, override AI, and invite members.</div>
+                                            <div style={{ fontSize: '12px', color: isManager ? colors.text2 : colors.text3, lineHeight: 1.55 }}>Reviews team reports. Can score, override, and invite members.</div>
                                         </div>
                                     </div>
                                 </div>
@@ -605,7 +605,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                                         <span style={{ textTransform: 'capitalize' }}>{permissionTemplate.replace('-', ' ')} Template</span>
                                                     </div>
                                                     <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px', fontWeight: 400 }}>
-                                                        {permissionTemplate === 'standard' && 'Can invite users, create projects/goals, and override AI scores.'}
+                                                        {permissionTemplate === 'standard' && 'Can invite users, create projects/goals, and override scores.'}
                                                         {permissionTemplate === 'senior' && 'Full administrative access to all settings and data.'}
                                                         {permissionTemplate === 'read-only' && 'Can view organization-wide data but cannot make changes.'}
                                                     </div>

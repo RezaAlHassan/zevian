@@ -144,7 +144,7 @@ export function RecentReportItem(props: Props) {
             {reviewed ? (
               <span style={pillarStyle('green')}>✓ Reviewed</span>
             ) : (
-              <span style={pillarStyle('neutral')}>○ AI Scored</span>
+              <span style={pillarStyle('neutral')}>○ Scored</span>
             )}
           </div>
         </div>

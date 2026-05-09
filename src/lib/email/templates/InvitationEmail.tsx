@@ -21,7 +21,7 @@ export const InvitationEmail = ({ inviterName, orgName, projectName, inviteLink 
                             within the <strong>{orgName}</strong> organization on Zevian.
                         </p>
                         <p style={text}>
-                            Zevian helps teams track goals and projects with AI-assisted reporting.
+                            Zevian helps teams track goals and projects with structured reporting.
                         </p>
                         <div style={btnContainer}>
                             <a style={button} href={inviteLink}>

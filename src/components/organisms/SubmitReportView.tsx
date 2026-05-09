@@ -176,7 +176,7 @@ export function SubmitReportView() {
                 <Icon name="fileText" size={14} /> Tracking: {selectedGoal?.name}
             </div>
             <h2 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px' }}>What did you achieve?</h2>
-            <p style={{ color: colors.text3, fontSize: '14px', marginBottom: '32px' }}>Be descriptive. Our AI will use this text to evaluate your progress against goal criteria.</p>
+            <p style={{ color: colors.text3, fontSize: '14px', marginBottom: '32px' }}>Be descriptive. Your report text is used to evaluate your progress against goal criteria.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: '40px', alignItems: 'start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -285,7 +285,7 @@ export function SubmitReportView() {
                             content: (
                                 <div style={{ paddingTop: '8px' }}>
                                     <div style={{ fontSize: '12px', fontWeight: 700, color: colors.text, marginBottom: '10px', lineHeight: 1.4 }}>
-                                        The AI scores what you did, not what you say you did. Be specific.
+                                        Scores are based on what you did, not what you say you did. Be specific.
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         <div style={{ fontSize: '11px', color: colors.text2, lineHeight: 1.6 }}>
@@ -314,7 +314,7 @@ export function SubmitReportView() {
                             content: (
                                 <div style={{ paddingTop: '8px' }}>
                                     <div style={{ fontSize: '10.5px', color: colors.text3, marginBottom: '10px', lineHeight: 1.4 }}>
-                                        AI evaluates these across all your reports.
+                                        These are evaluated across all your reports.
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                         {['Team Collaboration', 'Documentation', 'Code Quality'].map((m, idx) => (
@@ -339,7 +339,7 @@ export function SubmitReportView() {
         <div style={{ maxWidth: '720px', margin: '0 auto', animation: 'fadeUp 0.4s ease' }}>
             <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: colors.accentGlow, borderRadius: '20px', border: `1px solid ${colors.accent}30`, color: colors.accent, fontSize: '13px', fontWeight: 700, marginBottom: '16px' }}>
-                    <Icon name="sparkles" size={14} /> AI Analysis Complete
+                    <Icon name="sparkles" size={14} /> Analysis Complete
                 </div>
                 <h2 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.8px' }}>Suggested Evaluation</h2>
                 <p style={{ color: colors.text3, fontSize: '15px' }}>Based on your accomplishments, here is how you track against your criteria.</p>
@@ -348,7 +348,7 @@ export function SubmitReportView() {
             <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '20px', padding: '32px', marginBottom: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', paddingBottom: '24px', borderBottom: `1px solid ${colors.border}` }}>
                     <div>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '4px' }}>Overall AI Score</div>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '4px' }}>Overall Score</div>
                         <div style={{ fontSize: '14px', color: colors.text2 }}>Calculated based on weighted criteria</div>
                     </div>
                     <ScoreDisplay score={calculateOverallScore()} size="lg" />
@@ -379,7 +379,7 @@ export function SubmitReportView() {
 
             <div style={{ padding: '16px 20px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                 <Icon name="alert" size={18} color={colors.text3} />
-                <p style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.5 }}>AI scores are suggestions based on your reported text. You can refine your report text and re-analyze, or submit if you agree with this evaluation.</p>
+                <p style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.5 }}>Scores are suggestions based on your reported text. You can refine your report text and re-analyze, or submit if you agree with this evaluation.</p>
             </div>
         </div>
     )
@@ -395,7 +395,7 @@ export function SubmitReportView() {
             <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '16px', padding: '24px', textAlign: 'left', marginBottom: '32px' }}>
                 <div style={{ fontSize: '12px', color: colors.text3, textTransform: 'uppercase', fontWeight: 700, marginBottom: '16px' }}>Summary</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '14px', color: colors.text3 }}>AI Score</span>
+                    <span style={{ fontSize: '14px', color: colors.text3 }}>Score</span>
                     <span style={{ fontSize: '14px', fontWeight: 700, color: colors.green }}>{calculateOverallScore().toFixed(1)} / 10</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -417,7 +417,7 @@ export function SubmitReportView() {
                     <div style={{ marginBottom: '24px', color: colors.accent }}>
                         <Icon name="sparkles" size={64} />
                     </div>
-                    <h2 style={{ fontSize: '24px', fontWeight: 800 }}>AI is evaluating your progress...</h2>
+                    <h2 style={{ fontSize: '24px', fontWeight: 800 }}>Evaluating your progress...</h2>
                     <p style={{ color: colors.text3 }}>Correlating accomplishments with goal criteria</p>
                 </div>
             )
@@ -474,7 +474,7 @@ export function SubmitReportView() {
                         disabled={isNextDisabled()}
                         onClick={nextStep}
                     >
-                        {step === 2 ? 'Analyze with AI' : (step === 3 ? 'Submit Report' : 'Continue')}
+                        {step === 2 ? 'Analyze' : (step === 3 ? 'Submit Report' : 'Continue')}
                         <Icon name={step === 2 ? 'sparkles' : 'chevronRight'} size={14} style={{ marginLeft: '8px' }} />
                     </Button>
                 </footer>

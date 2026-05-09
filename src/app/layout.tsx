@@ -19,11 +19,11 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: { default: 'Zevian', template: '%s · Zevian' },
-  description: 'AI-powered performance management for remote teams.',
+  description: 'Performance management for remote teams.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://localhost:3000'),
   openGraph: {
     title: 'Zevian',
-    description: 'AI-powered performance management for remote teams.',
+    description: 'Performance management for remote teams.',
     type: 'website',
   },
   icons: {

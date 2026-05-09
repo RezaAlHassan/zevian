@@ -6,7 +6,7 @@ import { employeeService } from '@/../databaseService2'
 
 export const metadata = {
     title: 'Report Detail | Zevian',
-    description: 'Detailed performance breakdown and AI scoring.',
+    description: 'Detailed performance breakdown and scoring.',
 }
 
 export default async function ReportDetailPage({ params }: { params: { id: string } }) {

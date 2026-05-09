@@ -633,7 +633,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                         onClick={handleAnalyze}
                                         style={{ boxShadow: canAnalyze ? `0 4px 12px ${colors.accent}40` : 'none' }}
                                     >
-                                        {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
+                                        {isAnalyzing ? 'Analyzing...' : 'Analyze'}
                                     </Button>
                                 </div>
                             </div>
@@ -665,7 +665,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                             content: (
                                 <div style={{ paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                     <div style={{ fontSize: '12px', color: colors.text3, lineHeight: 1.6 }}>
-                                        AI reads your report against your goal's criteria &amp; instructions, your org's metrics, and past submission history to produce a score.
+                                        Reports are scored against your goal's criteria &amp; instructions, your org's metrics, and past submission history.
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
@@ -699,8 +699,8 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                                     {initialMetrics.length > 0 ? '③ Cover your goal and org metrics' : '③ Cover your goal criteria'}
                                                 </div>
                                                 {initialMetrics.length > 0
-                                                    ? 'Touch on both — the AI only scores what it sees in your report.'
-                                                    : 'Address each criterion — the AI only scores what it sees in your report.'}
+                                                    ? 'Touch on both — only what you include in your report is scored.'
+                                                    : 'Address each criterion — only what you include in your report is scored.'}
                                             </div>
                                         </div>
                                     </div>

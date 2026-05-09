@@ -3,7 +3,7 @@ import { getReportsByManagerAction } from '@/app/actions/reportActions'
 
 export const metadata = {
   title: 'Reports | Zevian',
-  description: 'Track employee performance and AI-scored reports.',
+  description: 'Track employee performance and scored reports.',
 }
 
 export default async function ReportsPage({

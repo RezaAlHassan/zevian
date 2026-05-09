@@ -100,7 +100,7 @@ export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, confirm
                         Reports
                     </button>
                     <div style={{ width: '1px', height: '18px', background: colors.borderHover }} />
-                    <h1 style={{ fontSize: '15px', fontWeight: 700, color: colors.text, fontFamily: typography.fonts.display }}>AI Evaluation</h1>
+                    <h1 style={{ fontSize: '15px', fontWeight: 700, color: colors.text, fontFamily: typography.fonts.display }}>Evaluation</h1>
                     {!analyzing && (
                         <span style={{ fontSize: '13px', color: colors.text3, marginLeft: 'auto' }}>
                             {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -210,7 +210,7 @@ export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, confirm
                                             {isExpanded && (
                                                 <div style={{ padding: '0 16px 16px', borderTop: `1px solid ${colors.border}`, animation: `fadeIn ${animation.fast}` }}>
                                                     <div style={{ marginTop: '14px' }}>
-                                                        <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: colors.text3, marginBottom: '8px' }}>AI Reasoning</div>
+                                                        <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: colors.text3, marginBottom: '8px' }}>Reasoning</div>
                                                         <p style={{ fontSize: '13px', lineHeight: 1.7, color: colors.text2 }}>{crit.reason}</p>
                                                     </div>
                                                     {crit.evidence && (

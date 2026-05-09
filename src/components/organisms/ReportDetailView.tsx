@@ -275,7 +275,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                                     <span style={{ fontSize: '15px', color: colors.text3 }}>/10</span>
                                 </div>
                                 <Button variant="primary" size="sm" icon="star" onClick={handleScore} disabled={isScoring}>
-                                    {isScoring ? 'Scoring...' : 'Score with AI'}
+                                    {isScoring ? 'Scoring...' : 'Score'}
                                 </Button>
                             </div>
                         )}
@@ -288,7 +288,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                 <div style={{ margin: '0 28px', padding: '12px 20px', background: `${colors.warn}10`, border: `1px solid ${colors.warn}20`, borderRadius: radius.lg, marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: colors.warn, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Icon name="alert" size={14} color={colors.warn} />
-                        AI Evaluation Warnings
+                        Evaluation Warnings
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                         {flags.map((flag: string, idx: number) => (
@@ -375,7 +375,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                                     <Icon name="star" size={26} color={colors.accent} />
                                 </div>
                                 <div style={{ fontSize: '16px', fontWeight: 800, color: colors.text, marginBottom: '8px' }}>Not yet scored</div>
-                                <div style={{ fontSize: '13px', color: colors.text3, maxWidth: '260px', margin: '0 auto' }}>Click "Score with AI" to generate an objective breakdown against each criterion.</div>
+                                <div style={{ fontSize: '13px', color: colors.text3, maxWidth: '260px', margin: '0 auto' }}>Click "Score" to generate an objective breakdown against each criterion.</div>
                             </div>
                         ) : (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
@@ -455,7 +455,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                                                 "{report.managerOverrideReasoning}"
                                             </div>
                                         )}
-                                        <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px' }}>Overrides supersede AI evaluation</div>
+                                        <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px' }}>Overrides supersede the system evaluation</div>
                                     </div>
                                 </div>
                             )}
@@ -466,7 +466,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                                 </div>
                                 <div style={{ paddingBottom: '20px', flex: 1 }}>
                                     <div style={{ fontSize: '13px', color: colors.text2 }}>
-                                        <strong>Zevian AI</strong> scored this report — overall {report.evaluationScore?.toFixed(1) || '—'}
+                                        <strong>Zevian</strong> scored this report — overall {report.evaluationScore?.toFixed(1) || '—'}
                                         {report.managerOverallScore && <span style={{ color: colors.text3, fontStyle: 'italic', marginLeft: '6px' }}>(Overridden)</span>}
                                     </div>
                                     <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>{report.submissionDate ? new Date(report.submissionDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</div>

@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 
 export const metadata = {
     title: 'Report Detail | Zevian',
-    description: 'Detailed performance breakdown and AI scoring.',
+    description: 'Detailed performance breakdown and scoring.',
 }
 
 export default async function EmployeeReportDetailPage({ params }: { params: { id: string } }) {

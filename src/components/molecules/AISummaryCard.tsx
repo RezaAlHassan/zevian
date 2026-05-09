@@ -108,11 +108,11 @@ export function AISummaryCard({ employeeId, employeeName, startDate, endDate }: 
         </div>
 
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>AI Performance Summary</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>Performance Summary</div>
           <div style={{ fontSize: '11px', color: colors.text3, marginTop: '1px' }}>
             {meta
               ? `${meta.reportCount} report${meta.reportCount !== 1 ? 's' : ''} · ${meta.periodLabel}`
-              : 'Generate an AI-powered summary for the selected period'}
+              : 'Generate a summary for the selected period'}
           </div>
         </div>
 
@@ -282,7 +282,7 @@ export function AISummaryCard({ employeeId, employeeName, startDate, endDate }: 
 
           {!loading && !summary && !error && (
             <div style={{ padding: '20px 0', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
-              Click <strong style={{ color: colors.text2 }}>Generate</strong> to create an AI-powered summary for the selected period.
+              Click <strong style={{ color: colors.text2 }}>Generate</strong> to create a summary for the selected period.
             </div>
           )}
         </div>

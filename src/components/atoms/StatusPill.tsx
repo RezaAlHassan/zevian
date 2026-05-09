@@ -40,7 +40,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'no-reports': 'No Reports',
     'no-data': 'No Data',
     'pending': 'Pending',
-    'scored': 'AI Scored',
+    'scored': 'Scored',
     'reviewed': 'Reviewed',
     'late': 'Late',
     'on-leave': 'On Leave',

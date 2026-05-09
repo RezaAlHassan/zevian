@@ -18,7 +18,7 @@ export const WelcomeEmail = ({ userName, orgName }: WelcomeEmailProps) => {
                             Welcome to Zevian! Your organization, <strong>{orgName}</strong>, is now ready for action.
                         </p>
                         <p style={text}>
-                            You can now start tracking goals, managing projects, and using AI to streamline your team's reporting.
+                            You can now start tracking goals, managing projects, and streamlining your team's reporting.
                         </p>
                         <div style={btnContainer}>
                             <a style={button} href={`${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard`}>
@@ -30,7 +30,7 @@ export const WelcomeEmail = ({ userName, orgName }: WelcomeEmailProps) => {
                         </p>
                     </div>
                     <p style={footer}>
-                        © 2026 Zevian AI. All rights reserved.
+                        © 2026 Zevian. All rights reserved.
                     </p>
                 </div>
             </body>

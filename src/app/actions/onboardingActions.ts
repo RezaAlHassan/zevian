@@ -191,7 +191,7 @@ export async function completeOnboardingAction(data: {
         employee_id: currentEmpId,
         type: 'system',
         title: 'Setup Org Metrics',
-        message: 'Define your scoring vectors in Organization Settings to get the most out of Zevian AI.',
+        message: 'Define your scoring vectors in Organization Settings to get the most out of Zevian.',
         read: false,
         link: '/organization?tab=metrics',
         created_at: new Date().toISOString(),

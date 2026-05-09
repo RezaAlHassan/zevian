@@ -77,7 +77,7 @@ export function KnowledgeBaseView({ projectName, projectId, pins }: Props) {
                         Project Knowledge Base
                     </h1>
                     <p style={{ fontSize: '14px', color: colors.text2, maxWidth: '600px', lineHeight: 1.6 }}>
-                        Factual reference — terminology, norms, and benchmarks the AI uses to understand your project. For instructions on <em>how</em> the AI should score, use <strong>Scoring Instructions</strong> in the project header.
+                        Factual reference — terminology, norms, and benchmarks used to understand your project. For instructions on <em>how</em> reports should be scored, use <strong>Scoring Instructions</strong> in the project header.
                     </p>
                 </div>
 
@@ -155,7 +155,7 @@ export function KnowledgeBaseView({ projectName, projectId, pins }: Props) {
                                 <Icon name="fileText" size={32} color={colors.text3} />
                                 <div>
                                     <div style={{ fontSize: '16px', fontWeight: 600, color: colors.text }}>No pins found in this section</div>
-                                    <div style={{ fontSize: '14px', color: colors.text3, marginTop: '4px' }}>Add essential knowledge to help Zevian AI understand your project.</div>
+                                    <div style={{ fontSize: '14px', color: colors.text3, marginTop: '4px' }}>Add essential knowledge to help Zevian understand your project.</div>
                                 </div>
                                 <Button variant="primary">Add First Pin</Button>
                             </div>

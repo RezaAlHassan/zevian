@@ -102,7 +102,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
 
   const kpis = [
     { label: role === 'manager' ? 'Total Reports' : 'My Reports', value: kpiData.totalReports.toString(), icon: 'fileText' as const, sub: role === 'manager' ? 'Direct reports total' : 'All your submissions', color: colors.accent },
-    { label: 'Avg AI Score', value: kpiData.avgScore.toString(), icon: 'star' as const, sub: role === 'manager' ? 'Team performance' : 'Your performance trend', color: colors.green },
+    { label: 'Avg Score', value: kpiData.avgScore.toString(), icon: 'star' as const, sub: role === 'manager' ? 'Team performance' : 'Your performance trend', color: colors.green },
     { label: 'Pending Review', value: kpiData.pendingReview.toString(), icon: 'clock' as const, sub: role === 'manager' ? 'Awaiting your review' : 'Awaiting manager feedback', color: colors.warn },
     { label: 'Overrides', value: kpiData.overrides.toString(), icon: 'edit' as const, sub: role === 'manager' ? 'Manual adjustments' : 'Managed adjustments', color: colors.text3 },
   ]
@@ -146,7 +146,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
           >
             <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
-            <option value="scored">AI Scored</option>
+            <option value="scored">Scored</option>
             <option value="reviewed">Reviewed</option>
             <option value="late">Late</option>
             <option value="missed">Missed</option>

@@ -48,7 +48,7 @@ export function useScoreReport() {
       return data
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        setError('AI evaluation took too long. Please try again.');
+        setError('Evaluation took too long. Please try again.');
       } else {
         setError(err.message ?? 'Scoring failed');
       }

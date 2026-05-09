@@ -82,7 +82,7 @@ export function AIContextView({ project, readOnly = false }: Props) {
                         Project Memory
                     </h1>
                     <p style={{ fontSize: '13.5px', color: colors.text3, lineHeight: 1.6 }}>
-                        The AI reads this before scoring every report. Edit it manually or use Update Memory to pull patterns from recent reports.
+                        This context is used when scoring every report. Edit it manually or use Update Memory to pull patterns from recent reports.
                     </p>
                 </div>
 

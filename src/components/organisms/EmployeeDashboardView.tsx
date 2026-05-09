@@ -781,7 +781,7 @@ function ReportDetailContent({ report }: { report: any }) {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '4px' }}>
-                        {report.managerOverallScore != null ? 'Manager Score' : 'AI Score'}
+                        {report.managerOverallScore != null ? 'Manager Score' : 'Score'}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
                         <span style={{ fontSize: '40px', fontWeight: 800, letterSpacing: '-2px', lineHeight: 1, color: scoreColor }}>
@@ -791,7 +791,7 @@ function ReportDetailContent({ report }: { report: any }) {
                     </div>
                     {report.managerOverallScore != null && report.evaluationScore != null && (
                         <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>
-                            AI: {Number(report.evaluationScore).toFixed(1)}
+                            System: {Number(report.evaluationScore).toFixed(1)}
                         </div>
                     )}
                 </div>
@@ -816,7 +816,7 @@ function ReportDetailContent({ report }: { report: any }) {
             {report.evaluationReasoning && (
                 <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                        AI Evaluation
+                        Evaluation
                     </div>
                     <div style={{ fontSize: '13.5px', color: colors.text2, lineHeight: 1.7 }}>
                         {report.evaluationReasoning}

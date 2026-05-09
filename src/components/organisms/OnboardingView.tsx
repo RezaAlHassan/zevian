@@ -290,7 +290,7 @@ export function OnboardingView() {
                     }}
                 >
                     <Icon name="sparkles" size={14} color={colors.accent} />
-                    {aiGenerating ? 'Generating...' : 'Generate with AI'}
+                    {aiGenerating ? 'Generating...' : 'Generate'}
                 </button>
 
                 {goalGenerated && (

@@ -61,7 +61,7 @@ const PERMISSION_CONFIG = [
     { key: 'canCreateProjects', label: 'Create Projects', desc: 'Create and manage organizational projects' },
     { key: 'canCreateGoals', label: 'Create Goals', desc: 'Create and assign goals to team members' },
     { key: 'canInviteUsers', label: 'Invite Users', desc: 'Invite new employees to the organization' },
-    { key: 'canOverrideAIScores', label: 'Override AI Scores', desc: 'Can manually override AI evaluation scores (Logged for audit trail)', danger: true },
+    { key: 'canOverrideAIScores', label: 'Override Scores', desc: 'Can manually override evaluation scores (Logged for audit trail)', danger: true },
 ]
 
 export function ManagePermissionsModal({ 
