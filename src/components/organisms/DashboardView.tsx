@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { colors, layout, radius, typography, getScoreColor } from '@/design-system'
+import { colors, layout, radius, typography, getScoreColor, shadows, animation } from '@/design-system'
 import { Avatar } from '@/components/atoms'
 import { Card } from '@/components/molecules/Card'
 import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
@@ -330,7 +330,7 @@ export function DashboardView({ teamStats, organization }: Props) {
         <Card title="Needs Attention" icon="alert" chip={<InlineTag label={`${needsAttention.length} employees`} tone="amber" />}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {needsAttention.map((employee: any) => (
-              <div key={employee.id} style={{ border: `1px solid ${colors.border}`, borderRadius: radius.xl, padding: '16px', background: colors.surface2, display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'center' }}>
+              <Link key={employee.id} href={appendParams(employee.reviewHref)} className="attention-card" style={{ border: `1px solid ${colors.border}`, borderRadius: radius.xl, padding: '16px', background: colors.surface2, display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'center', textDecoration: 'none', transition: `all ${animation.base}`, cursor: 'pointer' }}>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                   <Avatar name={employee.name} size="xl" />
                   <div style={{ minWidth: 0 }}>
@@ -341,15 +341,17 @@ export function DashboardView({ teamStats, organization }: Props) {
                         return <InlineTag key={`${employee.id}-${index}`} label={formatted.label} tone={formatted.tone} />
                       })}
                     </div>
-                    {typeof employee.latestDrop === 'number' && (
-                      <div style={{ marginTop: '8px', fontSize: '12px', color: colors.text3 }}>
-                        Avg {employee.latestDrop.toFixed(1)} ↓
-                      </div>
-                    )}
                   </div>
                 </div>
-                <ActionLink href={appendParams(employee.reviewHref)} label="Review" />
-              </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                  {typeof employee.latestDrop === 'number' && (
+                    <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, color: getScoreColor(employee.latestDrop), fontSize: '22px', lineHeight: 1 }}>
+                      {employee.latestDrop.toFixed(1)}
+                    </span>
+                  )}
+                  <InlineTag label="REVIEW" tone="amber" />
+                </div>
+              </Link>
             ))}
           </div>
         </Card>
@@ -442,7 +444,7 @@ export function DashboardView({ teamStats, organization }: Props) {
               const statusTone = employee.status === 'at-risk' ? 'red' : employee.status === 'review' ? 'amber' : employee.status === 'on-track' ? 'green' : 'neutral'
               const badgeHref = appendParams(`/employees/${employee.id}`)
               return (
-                <div key={employee.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', padding: '14px 0', borderBottom: index === teamPerformance.length - 1 ? 'none' : `1px solid ${colors.border}` }}>
+                <Link key={employee.id} href={badgeHref} className="perf-row" style={{ textDecoration: 'none', display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', padding: '14px 0', borderBottom: index === teamPerformance.length - 1 ? 'none' : `1px solid ${colors.border}`, transition: `all ${animation.base}`, cursor: 'pointer' }}>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                     <Avatar name={employee.name} size="lg" />
                     <div>
@@ -459,16 +461,10 @@ export function DashboardView({ teamStats, organization }: Props) {
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                    {(employee.status === 'at-risk' || employee.status === 'review') ? (
-                      <Link href={badgeHref} style={{ textDecoration: 'none' }}>
-                        <InlineTag label={statusLabel} tone={statusTone as any} />
-                      </Link>
-                    ) : (
-                      <InlineTag label={statusLabel} tone={statusTone as any} />
-                    )}
+                    <InlineTag label={statusLabel} tone={statusTone as any} />
                     {employee.trustSignal?.label && <InlineTag label={employee.trustSignal.label} tone={employee.trustSignal.color === 'green' ? 'green' : employee.trustSignal.color === 'amber' ? 'amber' : 'neutral'} />}
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>
@@ -541,7 +537,7 @@ export function DashboardView({ teamStats, organization }: Props) {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '16px', alignItems: 'start' }}>
-        <Card title="Goal Alignment" icon="target">
+        <Card title="Scorecard Alignment" icon="target">
           {goals.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {goals.map((goal: any) => {
@@ -561,7 +557,7 @@ export function DashboardView({ teamStats, organization }: Props) {
               })}
             </div>
           ) : (
-            <div style={{ color: colors.text3, fontSize: '13px' }}>No goal alignment data in this range.</div>
+            <div style={{ color: colors.text3, fontSize: '13px' }}>No scorecard alignment data in this range.</div>
           )}
         </Card>
 
@@ -576,6 +572,17 @@ export function DashboardView({ teamStats, organization }: Props) {
         </Card>
       </div>
 
+      <style jsx>{`
+        .attention-card:hover {
+          border-color: ${colors.borderHover} !important;
+          transform: translateY(-1px);
+          box-shadow: ${shadows.cardHover};
+        }
+        .perf-row:hover {
+          background: rgba(255, 255, 255, 0.03);
+          transform: translateX(2px);
+        }
+      `}</style>
     </div>
   )
 }

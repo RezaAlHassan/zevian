@@ -26,7 +26,7 @@ const NAV_ITEMS = [
         icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="1" y="3" width="14" height="10" rx="2" /><path d="M5 3V1h6v2" /></svg>,
     },
     {
-        id: 'goals', label: 'Goals', href: '/my-goals',
+        id: 'goals', label: 'Scorecards', href: '/my-goals',
         icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5" /></svg>,
     },
     {
@@ -49,7 +49,7 @@ export function EmployeeShellClient({ userName, employeeId, orgName, children }:
     const getPageTitle = () => {
         if (pathname.startsWith('/my-dashboard')) return 'My Dashboard'
         if (pathname.startsWith('/my-projects')) return 'Projects'
-        if (pathname.startsWith('/my-goals')) return 'Goals'
+        if (pathname.startsWith('/my-goals')) return 'Scorecards'
         if (pathname.startsWith('/my-reports/submit')) return 'Submit Report'
         if (pathname.startsWith('/my-reports')) return 'My Reports'
         if (pathname.startsWith('/my-account')) return 'Account'

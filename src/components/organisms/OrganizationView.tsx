@@ -277,7 +277,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                             <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text2, textTransform: 'uppercase', marginBottom: '12px' }}>Score Weighting</div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                                 <div>
-                                    <div style={{ fontSize: '12px', color: colors.text2, marginBottom: '8px' }}>Goal Criteria Weight</div>
+                                    <div style={{ fontSize: '12px', color: colors.text2, marginBottom: '8px' }}>Scorecard KPI Weight</div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <input
                                             type="range"

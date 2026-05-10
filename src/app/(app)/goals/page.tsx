@@ -4,7 +4,7 @@ import { goalService, projectService, employeeService } from '@/../databaseServi
 
 import { createServerClient } from '@/lib/supabase/server'
 
-export const metadata: Metadata = { title: 'Goals' }
+export const metadata: Metadata = { title: 'Scorecards' }
 
 export default async function GoalsPage({ searchParams }: { searchParams: { view?: string } }) {
   const supabase = createServerClient()

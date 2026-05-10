@@ -367,7 +367,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
                             <Icon name="target" size={13} color={colors.accent} />
-                            Criteria Analysis
+                            KPI Analysis
                         </div>
                         {!hasScored || !evaluationData?.criterion_scores?.length ? (
                             <div style={{ padding: '60px 0', textAlign: 'center' }}>
