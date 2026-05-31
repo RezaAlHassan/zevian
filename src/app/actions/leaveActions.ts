@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import { leaveService, employeeService } from '@/../databaseService2'
+import { revalidatePath } from 'next/cache'
 
 export async function grantLeaveAction(data: {
     employeeId: string,
@@ -56,7 +57,29 @@ export async function grantLeaveAction(data: {
             approvedBy: caller.id
         })
 
+        // Retroactively excuse any already-missed periods that fall within the leave window.
+        // A period overlaps the leave if: period_start <= endDate AND period_end >= startDate
+        await (supabase as any)
+            .from('reporting_periods')
+            .update({ status: 'excused' })
+            .eq('employee_id', data.employeeId)
+            .eq('status', 'missed')
+            .lte('period_start', data.endDate)
+            .gte('period_end', data.startDate)
+
+        // Run the missed-report check now that the leave record exists.
+        // This converts any overdue pending periods that fall within the leave window
+        // to 'excused' (instead of 'missed') and generates the next period in the chain.
+        const { runMissedReportCheck } = await import('@/lib/reportingPeriodsMaintenance')
+        await runMissedReportCheck(data.employeeId).catch(e =>
+            console.warn('[grantLeaveAction] runMissedReportCheck failed:', e)
+        )
+
         // Notifications are handled by the database trigger `notify_leave_granted`
+
+        revalidatePath('/(app)/reports', 'layout')
+        revalidatePath('/(app)/employees', 'layout')
+        revalidatePath('/(employee)/my-dashboard', 'layout')
 
         return { success: true, leave }
     } catch (error: any) {

@@ -1,15 +1,16 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { colors, animation, shadows, radius } from '@/design-system'
+import { colors, animation, shadows, radius, typography } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
-import { ScoreDisplay, ScoreBar } from '@/components/atoms/Score'
+import { ScoreDisplay, ScoreBar, MiniBar } from '@/components/atoms/Score'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import { EmployeeDashboardView } from '@/components/organisms/EmployeeDashboardView'
 import { AISummaryCard } from '@/components/molecules/AISummaryCard'
+import { calculateReportStatus, isLateSubmission } from '@/lib/utils/reportStatus'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -34,6 +35,23 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
 
   const { dashboardData, allGoals, allReports, allActivity, trustSignal } = pageData
   const employee = dashboardData.me
+  const [reportSearch, setReportSearch] = useState('')
+  const [reportStatusFilter, setReportStatusFilter] = useState('all')
+
+  const filteredReports = useMemo(() => {
+    return allReports.filter((r: any) => {
+      const goalName = r.goals?.name || ''
+      const projectName = r.goals?.projects?.name || ''
+      const matchesSearch = !reportSearch ||
+        goalName.toLowerCase().includes(reportSearch.toLowerCase()) ||
+        projectName.toLowerCase().includes(reportSearch.toLowerCase())
+      if (!matchesSearch) return false
+      if (reportStatusFilter === 'all') return true
+      if (reportStatusFilter === 'late') return isLateSubmission(r)
+      if (r.isOnLeave) return reportStatusFilter === 'on-leave'
+      return calculateReportStatus(r) === reportStatusFilter
+    })
+  }, [allReports, reportSearch, reportStatusFilter])
 
   return (
     <div className="fade-in" style={{ background: colors.bg, minHeight: '100vh', animation: animation.keyframes.fadeUp }}>
@@ -87,7 +105,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
               backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
             }}
           >
-            <option value="">All Goals</option>
+            <option value="">All Scorecards</option>
             {pageData.dashboardData.goals.filter((g: any) => g.status === 'active').map((g: any) => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
@@ -114,7 +132,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
           <div style={{ display: 'flex', gap: '32px', borderBottom: `1px solid ${colors.border}` }}>
             {([
               { id: 'overview', label: 'Overview', icon: 'chart' },
-              { id: 'goals', label: 'Goals', icon: 'target' },
+              { id: 'goals', label: 'Scorecards', icon: 'target' },
               { id: 'reports', label: 'Reports', icon: 'fileText' },
               { id: 'activity', label: 'Activity', icon: 'clock' },
             ] as const).map(tab => (
@@ -182,36 +200,121 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
             )}
 
             {activeTab === 'reports' && (
-              <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: `1px solid ${colors.border}`, background: colors.surface2 }}>
-                      <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Date</th>
-                      <th style={{ textAlign: 'left', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Goal</th>
-                      <th style={{ textAlign: 'center', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Score</th>
-                      <th style={{ textAlign: 'right', padding: '16px 24px', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allReports.map((report: any, i: number) => (
-                      <tr key={i} style={{ borderBottom: i === allReports.length - 1 ? 'none' : `1px solid ${colors.border}`, transition: 'background 0.2s', cursor: 'pointer' }}>
-                        <td style={{ padding: '16px 24px', fontSize: '13.5px', color: colors.text2 }}>{new Date(report.submissionDate).toLocaleDateString()}</td>
-                        <td style={{ padding: '16px 24px' }}>
-                          <div style={{ fontSize: '13.5px', fontWeight: 600, color: colors.text }}>{report.goals?.name || 'Report'}</div>
-                        </td>
-                        <td style={{ padding: '16px 24px', textAlign: 'center' }}>
-                          <ScoreDisplay score={report.managerOverallScore ?? report.evaluationScore} size="sm" />
-                        </td>
-                        <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                          <Link href={`/reports/${report.id}`}><Button variant="ghost" size="sm">View</Button></Link>
-                        </td>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Control bar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, width: '240px' }}>
+                    <Icon name="search" size={14} color={colors.text3} />
+                    <input
+                      placeholder="Search by goal or project..."
+                      value={reportSearch}
+                      onChange={e => setReportSearch(e.target.value)}
+                      style={{ background: 'none', border: 'none', outline: 'none', color: colors.text, fontSize: '13px', width: '100%', fontFamily: typography.fonts.body }}
+                    />
+                  </div>
+                  <select
+                    value={reportStatusFilter}
+                    onChange={e => setReportStatusFilter(e.target.value)}
+                    style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12.5px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="scored">Scored</option>
+                    <option value="reviewed">Reviewed</option>
+                    <option value="late">Late</option>
+                    <option value="on-leave">On Leave</option>
+                  </select>
+                  <div className="font-numeric" style={{ marginLeft: 'auto', fontSize: '12.5px', color: colors.text3, fontWeight: 500 }}>
+                    {filteredReports.length} report{filteredReports.length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${colors.border}`, background: 'rgba(255,255,255,0.02)' }}>
+                        <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Goal</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Project</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Date</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Status</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Score</th>
+                        <th style={{ padding: '10px 20px', textAlign: 'right', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Actions</th>
                       </tr>
-                    ))}
-                    {allReports.length === 0 && (
-                      <tr><td colSpan={4} style={{ padding: '40px', textAlign: 'center', color: colors.text3 }}>No reports found</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredReports.map((report: any, i: number) => {
+                        const goalName = report.goals?.name || 'Report'
+                        const projectName = report.goals?.projects?.name || '—'
+                        const score = report.managerOverallScore ?? report.evaluationScore
+                        const status = report.isOnLeave ? 'on-leave' : calculateReportStatus(report)
+                        const isLate = isLateSubmission(report)
+                        const dateStr = report.submittedForDate || report.submissionDate
+                        const dateDisplay = new Date(typeof dateStr === 'string' && !dateStr.includes('T') ? `${dateStr}T12:00:00` : dateStr)
+                          .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+                        return (
+                          <tr
+                            key={report.id || i}
+                            onClick={() => !report.isOnLeave && router.push(`/reports/${report.id}`)}
+                            style={{
+                              borderBottom: i === filteredReports.length - 1 ? 'none' : `1px solid ${colors.border}`,
+                              cursor: report.isOnLeave ? 'default' : 'pointer',
+                              transition: `background ${animation.fast}`,
+                              background: (score || 10) < 6 && !report.isOnLeave ? 'rgba(240,68,56,0.02)' : 'transparent',
+                              opacity: report.isOnLeave ? 0.7 : 1,
+                            }}
+                            onMouseEnter={e => { if (!report.isOnLeave) e.currentTarget.style.background = (score || 10) < 6 ? 'rgba(240,68,56,0.04)' : colors.surface2 }}
+                            onMouseLeave={e => { if (!report.isOnLeave) e.currentTarget.style.background = (score || 10) < 6 ? 'rgba(240,68,56,0.02)' : 'transparent' }}
+                          >
+                            <td style={{ padding: '14px 20px', fontSize: '13px', fontWeight: 500, color: colors.text2 }}>{goalName}</td>
+                            <td style={{ padding: '14px 14px' }}>
+                              <span style={{ padding: '3px 8px', background: colors.surface3, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: colors.text2 }}>{projectName}</span>
+                            </td>
+                            <td style={{ padding: '14px 14px' }}>
+                              <div style={{ fontSize: '12.5px', color: colors.text, fontWeight: 500 }}>{dateDisplay}</div>
+                              {isLate && (
+                                <div style={{ fontSize: '11px', color: colors.warn, marginTop: '2px' }}>Late submission</div>
+                              )}
+                            </td>
+                            <td style={{ padding: '14px 14px' }}>
+                              <StatusPill status={status as any} score={score} />
+                            </td>
+                            <td style={{ padding: '14px 14px' }}>
+                              {score !== null && score !== undefined ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <ScoreDisplay score={score} size="sm" showBar={false} />
+                                  <div style={{ width: '60px' }}>
+                                    <MiniBar score={score ?? 0} />
+                                  </div>
+                                  {report.managerOverallScore !== null && report.managerOverallScore !== undefined && (
+                                    <Icon name="edit" size={10} color={colors.accent} />
+                                  )}
+                                </div>
+                              ) : (
+                                <span style={{ color: colors.text3, fontSize: '13px' }}>—</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '14px 20px', textAlign: 'right' }}>
+                              {!report.isOnLeave && (
+                                <Button variant="secondary" size="sm" onClick={e => { e.stopPropagation(); router.push(`/reports/${report.id}`) }}>
+                                  Review <Icon name="chevronRight" size={10} style={{ marginLeft: '4px' }} />
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                      {filteredReports.length === 0 && (
+                        <tr>
+                          <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
+                            No reports found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
