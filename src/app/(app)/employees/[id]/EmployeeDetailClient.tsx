@@ -105,7 +105,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
               backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
             }}
           >
-            <option value="">All Goals</option>
+            <option value="">All Scorecards</option>
             {pageData.dashboardData.goals.filter((g: any) => g.status === 'active').map((g: any) => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
@@ -132,7 +132,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
           <div style={{ display: 'flex', gap: '32px', borderBottom: `1px solid ${colors.border}` }}>
             {([
               { id: 'overview', label: 'Overview', icon: 'chart' },
-              { id: 'goals', label: 'Goals', icon: 'target' },
+              { id: 'goals', label: 'Scorecards', icon: 'target' },
               { id: 'reports', label: 'Reports', icon: 'fileText' },
               { id: 'activity', label: 'Activity', icon: 'clock' },
             ] as const).map(tab => (

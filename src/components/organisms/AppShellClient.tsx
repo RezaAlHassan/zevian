@@ -33,7 +33,7 @@ const NAV_ITEMS = [
     icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="1" y="3" width="14" height="10" rx="2" /><path d="M5 3V1h6v2" /></svg>,
   },
   {
-    id: 'goals', label: 'Goals', href: '/goals',
+    id: 'goals', label: 'Scorecards', href: '/goals',
     icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5" /></svg>,
   },
   {
@@ -68,7 +68,7 @@ export function AppShellClient({ userName, orgName, userRole, canManageSettings,
   const getPageTitle = () => {
     if (pathname.startsWith('/dashboard')) return 'Dashboard'
     if (pathname.startsWith('/projects')) return 'Projects'
-    if (pathname.startsWith('/goals')) return 'Goals'
+    if (pathname.startsWith('/goals')) return 'Scorecards'
     if (pathname.startsWith('/reports')) return 'Reports'
     if (pathname.startsWith('/employees')) return 'Employees'
     if (pathname.startsWith('/knowledge-base')) return 'Knowledge Base'

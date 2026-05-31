@@ -2206,7 +2206,7 @@ export const dashboardService = {
             };
         });
 
-        // needsAttention: at-risk or review employees
+        // needsAttention: at-risk or review employees with at least one visible flag
         const needsAttention = enrichedTeamPerformance
             .filter((emp: any) => emp.status === 'at-risk' || emp.status === 'review')
             .slice(0, 6)
@@ -2227,7 +2227,8 @@ export const dashboardService = {
                     reviewHref: `/employees/${emp.id}`,
                     latestDrop: emp.score,
                 };
-            });
+            })
+            .filter((emp: any) => emp.tags.length > 0);
 
         // Enrich recentReports with tags, reviewed status, goalName, projectName
         const recentReports = (reportsData || []).slice(0, 10).map((r: any) => ({

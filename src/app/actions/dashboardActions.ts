@@ -212,15 +212,15 @@ export async function getEmployeeDetailedDataAction(employeeId: string, startDat
             id: r.id,
             type: 'report',
             title: 'Report Submitted',
-            message: `Submitted report for "${r.goals?.name || 'Goal'}"`,
+            message: `Submitted report for "${r.goals?.name || 'Scorecard'}"`,
             createdAt: r.submissionDate
         }));
 
         const goalActivities = allGoals.map((g: any) => ({
             id: g.id,
             type: 'goal',
-            title: 'Goal Assigned',
-            message: `New goal assigned: "${g.name}"`,
+            title: 'Scorecard Assigned',
+            message: `New scorecard assigned: "${g.name}"`,
             createdAt: g.createdAt
         }));
 

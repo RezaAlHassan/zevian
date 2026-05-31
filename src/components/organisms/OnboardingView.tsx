@@ -134,8 +134,8 @@ export function OnboardingView() {
                 emails: emails.filter(e => e.includes('@')).join(','),
                 origin: window.location.origin,
                 // goal data
-                goalName: goalName || 'Custom Goal',
-                goalInstructions: goalInstructions || customGoalText || 'Custom goal instructions',
+                goalName: goalName || 'Custom Scorecard',
+                goalInstructions: goalInstructions || customGoalText || 'Custom scorecard instructions',
                 criteria: goalCriteria || [],
             })
             setStep(6)
@@ -263,10 +263,10 @@ export function OnboardingView() {
     const renderStep3 = () => (
         <div style={{ maxWidth: '720px', margin: '0 auto', animation: 'fadeUp 0.4s ease' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.accent, fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '12px' }}>
-                <Icon name="target" size={14} /> Step 3: Create Goal
+                <Icon name="target" size={14} /> Step 3: Create Scorecard
             </div>
-            <h1 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '12px', letterSpacing: '-0.5px' }}>Create goal for {projName || 'this project'}</h1>
-            <p style={{ color: colors.text3, fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>Goals give the evaluation context. Describe what you want to track, and it will build the criteria.</p>
+            <h1 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '12px', letterSpacing: '-0.5px' }}>Create scorecard for {projName || 'this project'}</h1>
+            <p style={{ color: colors.text3, fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>Scorecards give the evaluation context. Describe what you want to track, and it will build the KPIs.</p>
 
             <div style={{ padding: '24px', background: colors.surface, border: `1.5px solid ${colors.border}`, borderRadius: '16px' }}>
                 <label style={labelStyle}>Describe what you want to track. The more specific you are the better Zevian will be able to evaluate.</label>
@@ -295,7 +295,7 @@ export function OnboardingView() {
 
                 {goalGenerated && (
                     <div style={{ marginTop: '20px', padding: '16px', background: colors.surface2, borderRadius: '12px', animation: 'fadeUp 0.3s ease' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, marginBottom: '10px' }}>Generated Goal: {goalName}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, marginBottom: '10px' }}>Generated Scorecard: {goalName}</div>
                         <div style={{ fontSize: '12px', color: colors.text3, marginBottom: '16px' }}>{goalInstructions}</div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                             {goalCriteria.map((c, i) => (
@@ -322,7 +322,7 @@ export function OnboardingView() {
                 <Icon name="users" size={14} /> Step 4: Your Team
             </div>
             <h1 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '12px', letterSpacing: '-0.5px' }}>Invite employees</h1>
-            <p style={{ color: colors.text3, fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>Add their email addresses. They'll be automatically assigned to your project and goal.</p>
+            <p style={{ color: colors.text3, fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>Add their email addresses. They'll be automatically assigned to your project and scorecard.</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
                 {emails.map((email, idx) => (
@@ -485,7 +485,7 @@ export function OnboardingView() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px',
                 }}>🎉</div>
                 <h1 style={{ fontSize: '36px', fontWeight: 800, marginBottom: '12px', letterSpacing: '-0.8px' }}>All set!</h1>
-                <p style={{ color: colors.text3, fontSize: '16px', marginBottom: '40px', lineHeight: 1.6 }}>Your organization, project, and first goal are ready.</p>
+                <p style={{ color: colors.text3, fontSize: '16px', marginBottom: '40px', lineHeight: 1.6 }}>Your organization, project, and first scorecard are ready.</p>
 
                 {/* Summary card */}
                 <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '16px', overflow: 'hidden', textAlign: 'left', marginBottom: '32px' }}>
@@ -495,12 +495,12 @@ export function OnboardingView() {
                     </div>
                     <div style={{ padding: '20px' }}>
                         <SummaryRow label="Project" value={projName} />
-                        <SummaryRow label="Goal" value={goalName || 'Custom Goal'} />
+                        <SummaryRow label="Scorecard" value={goalName || 'Custom Scorecard'} />
                         <SummaryRow label="Cadence" value={frequency} accent />
 
                         {criteria.length > 0 && (
                             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: `1px solid ${colors.border}` }}>
-                                <div style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '10px' }}>Scoring Criteria</div>
+                                <div style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '10px' }}>KPIs</div>
                                 {criteria.map((c, i) => (
                                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <span style={{ fontSize: '13px', color: colors.text2 }}>{c.name}</span>

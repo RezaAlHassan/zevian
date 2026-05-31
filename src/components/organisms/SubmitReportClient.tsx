@@ -433,8 +433,8 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                         <Icon name="target" size={14} />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '15px', fontWeight: 800, color: colors.text, letterSpacing: '-0.2px' }}>Select Goal</div>
-                                        <div style={{ fontSize: '12px', color: colors.text3, marginTop: '1px' }}>Choose one active goal to report on for this period.</div>
+                                        <div style={{ fontSize: '15px', fontWeight: 800, color: colors.text, letterSpacing: '-0.2px' }}>Select Scorecard</div>
+                                        <div style={{ fontSize: '12px', color: colors.text3, marginTop: '1px' }}>Choose one active scorecard to report on for this period.</div>
                                     </div>
                                 </div>
 
@@ -477,7 +477,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                                         )}
                                                     </div>
                                                     <div style={{ fontSize: '12px', color: colors.text3, marginBottom: goal.description ? '8px' : '0' }}>
-                                                        {goal.criteria?.length || 0} criteria attached
+                                                        {goal.criteria?.length || 0} KPIs attached
                                                     </div>
                                                     {goal.description && (
                                                         <p style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.5, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -670,8 +670,8 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
                                             <div style={{ fontSize: '20px', fontWeight: 900, color: colors.accent, lineHeight: 1 }}>{initialMetrics.length > 0 ? `${goalWeight}%` : '100%'}</div>
-                                            <div style={{ fontSize: '10px', fontWeight: 700, color: colors.accent, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Goal Alignment</div>
-                                            <div style={{ fontSize: '10.5px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>Criteria &amp; instructions</div>
+                                            <div style={{ fontSize: '10px', fontWeight: 700, color: colors.accent, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Scorecard Alignment</div>
+                                            <div style={{ fontSize: '10.5px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>KPIs &amp; instructions</div>
                                         </div>
                                         {initialMetrics.length > 0 && (
                                             <div style={{ flex: 1, background: `${colors.purple}12`, border: `1px solid ${colors.purple}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
@@ -731,7 +731,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                             <>
                                                 <div style={{ borderTop: `1px solid ${colors.border}`, margin: '12px 0' }} />
                                                 <div style={{ fontSize: '13px', color: colors.text2, marginBottom: '10px' }}>
-                                                    <strong>Goal:</strong> <br />
+                                                    <strong>Scorecard:</strong> <br />
                                                     {selectedGoal.name}
                                                 </div>
                                                 <div style={{ fontSize: '11.5px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Instructions</div>
@@ -740,7 +740,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                                 </div>
                                                 {selectedGoal.criteria && selectedGoal.criteria.length > 0 && (
                                                     <>
-                                                        <div style={{ fontSize: '11.5px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Evaluation Criteria</div>
+                                                        <div style={{ fontSize: '11.5px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>KPIs</div>
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                             {selectedGoal.criteria.map((c: any, i: number) => (
                                                                 <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12.5px', color: colors.text2, padding: '4px 0', borderBottom: `1px solid ${colors.border}` }}>
