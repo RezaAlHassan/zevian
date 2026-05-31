@@ -4,7 +4,7 @@ import { colors, radius, typography, getScoreStatus } from '@/design-system'
 import React from 'react'
 
 interface StatusPillProps {
-  status?: 'active' | 'at-risk' | 'review' | 'no-reports' | 'on-track' | 'no-data' | 'pending' | 'scored' | 'reviewed' | 'late' | 'on-leave' | 'on_leave' | 'missed' | 'due_today' | 'upcoming' | 'submitted_late'
+  status?: 'active' | 'at-risk' | 'review' | 'no-reports' | 'on-track' | 'no-data' | 'pending' | 'scored' | 'reviewed' | 'late' | 'on-leave' | 'on_leave' | 'missed' | 'excused' | 'due_today' | 'upcoming' | 'submitted_late'
   score?: number | null
   children?: React.ReactNode
   showDot?: boolean
@@ -27,6 +27,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'on-leave': { background: colors.surface3, color: colors.text2 },
     'on_leave': { background: colors.surface3, color: colors.text3 },
     'missed': { background: 'rgba(120,30,30,0.4)', color: colors.danger },
+    'excused': { background: colors.surface3, color: colors.text2 },
     'due_today': { background: 'rgba(255,255,255,0.16)', color: colors.text },
     'upcoming': { background: colors.surface3, color: colors.text3 },
     'submitted_late': { background: colors.greenGlow, color: colors.green },
@@ -46,6 +47,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'on-leave': 'On Leave',
     'on_leave': 'On Leave',
     'missed': 'Missed',
+    'excused': 'Excused',
     'due_today': 'Due Today',
     'upcoming': 'Upcoming',
     'submitted_late': 'Submitted',
@@ -65,6 +67,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'on-leave': colors.text3,
     'on_leave': colors.text3,
     'missed': colors.danger,
+    'excused': colors.text3,
     'due_today': colors.text,
     'upcoming': colors.text3,
     'submitted_late': colors.green,

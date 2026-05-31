@@ -265,8 +265,9 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                 const dueRaw = period.dueDate || period.period_end
                 const dueDate = new Date(typeof dueRaw === 'string' && !dueRaw.includes('T') ? `${dueRaw}T12:00:00` : dueRaw)
                 const daysAgo = Math.round((new Date().getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+                const isExcused = period.status === 'excused'
                 return (
-                  <tr key={period.id} style={{ borderBottom: `1px solid ${colors.border}`, background: 'rgba(120,30,30,0.06)', fontStyle: 'italic', opacity: 0.92 }}>
+                  <tr key={period.id} style={{ borderBottom: `1px solid ${colors.border}`, background: isExcused ? 'rgba(255,255,255,0.02)' : 'rgba(120,30,30,0.06)', fontStyle: isExcused ? 'normal' : 'italic', opacity: isExcused ? 0.7 : 0.92 }}>
                     {role === 'manager' && (
                       <td style={{ padding: '14px 20px', fontSize: '13px', fontWeight: 500, color: colors.text2 }}>{employeeName}</td>
                     )}
@@ -275,7 +276,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                       <span style={{ padding: '3px 8px', background: colors.surface3, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: colors.text2 }}>{projectName}</span>
                     </td>
                     <td style={{ padding: '14px 14px' }}>
-                      <div style={{ fontSize: '12.5px', color: colors.danger, fontWeight: 600 }}>
+                      <div style={{ fontSize: '12.5px', color: isExcused ? colors.text3 : colors.danger, fontWeight: 600 }}>
                         {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
                       <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>
@@ -286,17 +287,19 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                       <span style={{ fontSize: '11.5px', color: colors.text3, fontWeight: 600 }}>{freqLabel}</span>
                     </td>
                     <td style={{ padding: '14px 14px' }}>
-                      <StatusPill status="missed" />
+                      <StatusPill status={isExcused ? 'excused' : 'missed'} />
                     </td>
                     {role === 'manager' && (
                       <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setLeaveModalData({ isOpen: true, empId: period.employeeId, empName: employeeName })}
-                        >
-                          Approve Leave
-                        </Button>
+                        {!isExcused && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setLeaveModalData({ isOpen: true, empId: period.employeeId, empName: employeeName })}
+                          >
+                            Approve Leave
+                          </Button>
+                        )}
                       </td>
                     )}
                   </tr>

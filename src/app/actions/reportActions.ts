@@ -46,11 +46,11 @@ export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', 
         const pendingReview = reports.filter((r: any) => !r.reviewedBy).length
         const overrides = reports.filter((r: any) => r.managerOverallScore !== null).length
 
-        // Fetch missed periods for the Missed filter in ReportsView
+        // Fetch missed and excused periods for the Missed filter in ReportsView
         let periodsQuery = (supabase as any)
             .from('reporting_periods')
             .select('*, goals(id, name, projects(name, report_frequency)), employees!inner(id, name, manager_id, organization_id)')
-            .eq('status', 'missed')
+            .in('status', ['missed', 'excused'])
             .order('period_end', { ascending: false })
 
         if (safeView === 'org') {
