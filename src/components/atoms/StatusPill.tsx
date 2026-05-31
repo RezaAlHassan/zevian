@@ -47,7 +47,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'on-leave': 'On Leave',
     'on_leave': 'On Leave',
     'missed': 'Missed',
-    'excused': 'Excused',
+    'excused': 'Waived',
     'due_today': 'Due Today',
     'upcoming': 'Upcoming',
     'submitted_late': 'Submitted',
