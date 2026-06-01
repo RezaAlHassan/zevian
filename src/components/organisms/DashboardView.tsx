@@ -4,13 +4,14 @@ import React from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { colors, layout, radius, typography, getScoreColor, shadows, animation } from '@/design-system'
-import { Avatar } from '@/components/atoms'
+import { Avatar, StatusPill } from '@/components/atoms'
 import { Card } from '@/components/molecules/Card'
 import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import { AIOrganizationSummaryCard } from '@/components/molecules/AIOrganizationSummaryCard'
 import { SlimProjectCard } from '@/components/molecules/SlimProjectCard'
 import { RecentReportItem } from '@/components/molecules/RecentReportItem'
 import { Organization } from '@/types'
+import { ComposedChart, Line, Area, ReferenceArea, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface Props {
   teamStats: any
@@ -192,16 +193,41 @@ function scoreBand(score: number | null | undefined) {
   return 'red' as const
 }
 
+const PERF_AVATAR_PALETTE = ['#2A3A5A', '#2E3A4A', '#3A2A5A', '#2A4A3A', '#4A3A2A', '#3A2A4A']
+function getPerfAvatarBg(name: string): string {
+  let h = 0
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffff
+  return PERF_AVATAR_PALETTE[h % PERF_AVATAR_PALETTE.length]
+}
+
+
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{ background: '#1A1F2E', border: '1px solid #2A3045', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
+      <div style={{ color: '#8892A4', marginBottom: 6 }}>{label}</div>
+      {payload.map((p: any) => (
+        <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, display: 'inline-block' }} />
+          <span style={{ color: '#8892A4', minWidth: 80 }}>{p.name}</span>
+          <span style={{ color: '#F1F5F9', fontWeight: 700, fontFamily: 'monospace' }}>{p.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function DashboardView({ teamStats, organization }: Props) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const recentReportsRef = React.useRef<HTMLDivElement | null>(null)
-  const [reportFilter, setReportFilter] = React.useState<ReportFilter>('all')
+  const [reportFilter, setReportFilter] = React.useState<ReportFilter>('needs-review')
   const [showAiSummary, setShowAiSummary] = React.useState(false)
   const [aiSummaryOpened, setAiSummaryOpened] = React.useState(false)
   const [orgMetricsExpanded, setOrgMetricsExpanded] = React.useState(
     (teamStats?.metricStats || []).some((metric: any) => (metric.avg ?? 10) < 7)
   )
+  const [hoveredPerfId, setHoveredPerfId] = React.useState<string | null>(null)
 
   const paramsString = searchParams.toString()
   const appendParams = React.useCallback((href: string) => {
@@ -219,6 +245,8 @@ export function DashboardView({ teamStats, organization }: Props) {
   const metricStats = teamStats?.metricStats || []
   const trendScores = teamStats?.trendScores || []
   const orgTrendScores = teamStats?.orgTrendScores || []
+  const targetMin = teamStats?.targetMin ?? null
+  const targetMax = teamStats?.targetMax ?? null
 
   React.useEffect(() => {
     setOrgMetricsExpanded(metricStats.some((metric: any) => (metric.avg ?? 10) < 7))
@@ -241,34 +269,34 @@ export function DashboardView({ teamStats, organization }: Props) {
         }))
     }
 
-    return recentReports.filter((report: any) => {
+    const filtered = recentReports.filter((report: any) => {
       const tags: string[] = report.tags ?? []
       if (reportFilter === 'needs-review') return !report.reviewed
       if (reportFilter === 'flagged') return tags.some(t => ['PROMPT_INJECTION', 'ESCALATING_CLAIMS', 'STAGNANT_LANGUAGE', 'KEYWORD_STUFFING', 'PADDING'].includes(t))
       if (reportFilter === 'late') return tags.includes('LATE')
       return true
-    }).slice(0, 8)
+    })
+
+    if (reportFilter === 'all') {
+      return [...filtered].sort((a: any, b: any) => {
+        if (!a.reviewed && b.reviewed) return -1
+        if (a.reviewed && !b.reviewed) return 1
+        return new Date(b.date ?? b.submissionDate).getTime() - new Date(a.date ?? a.submissionDate).getTime()
+      }).slice(0, 8)
+    }
+
+    return filtered.slice(0, 8)
   }, [recentReports, reportFilter, reportingPeriods])
 
   const unhealthyMetrics = metricStats.filter((metric: any) => (metric.avg ?? 10) < 7)
   const showOrgMetrics = metricStats.length > 0
 
-  const seriesMax = 10
-  const svgWidth = 760
-  const svgHeight = 220
-  const chartPadding = { left: 24, right: 72, top: 18, bottom: 26 }
-  const plotWidth = svgWidth - chartPadding.left - chartPadding.right
-  const plotHeight = svgHeight - chartPadding.top - chartPadding.bottom
-  const pointsToPolyline = (values: number[]) => {
-    if (values.length < 2) return ''
-    return values.map((value, index) => {
-      const x = chartPadding.left + (plotWidth * index) / (values.length - 1)
-      const y = chartPadding.top + ((seriesMax - value) / seriesMax) * plotHeight
-      return `${x},${y}`
-    }).join(' ')
-  }
-  const bandTop = chartPadding.top + ((seriesMax - 8.5) / seriesMax) * plotHeight
-  const bandBottom = chartPadding.top + ((seriesMax - 7.0) / seriesMax) * plotHeight
+  const chartData = trendScores.map((score: number, i: number) => ({
+    week: `W${i + 1}`,
+    avg: score,
+    org: orgTrendScores[i] ?? null,
+  }))
+  const hasOrgMetrics = orgTrendScores.length > 1
 
   return (
     <div style={{ padding: layout.contentPadding, width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -349,7 +377,7 @@ export function DashboardView({ teamStats, organization }: Props) {
                       {employee.latestDrop.toFixed(1)}
                     </span>
                   )}
-                  <InlineTag label="REVIEW" tone="amber" />
+                  <StatusPill status="review" />
                 </div>
               </Link>
             ))}
@@ -388,6 +416,7 @@ export function DashboardView({ teamStats, organization }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(320px, 1fr)', gap: '16px', alignItems: 'start' }}>
         <div ref={recentReportsRef}>
           <Card
+            className="hoverable-card"
             title="Recent Reports"
             icon="reports"
             action={<Link href={appendParams('/reports')} style={{ fontSize: '12px', color: colors.accent, textDecoration: 'none', fontWeight: 700 }}>View All</Link>}
@@ -418,6 +447,7 @@ export function DashboardView({ teamStats, organization }: Props) {
                     variant="report"
                     id={item.id}
                     href={appendParams(`/reports/${item.id}`)}
+                    employeeId={item.employeeId}
                     employeeName={item.employeeName}
                     employeeTitle={item.employeeTitle}
                     goalName={item.goalName}
@@ -430,38 +460,74 @@ export function DashboardView({ teamStats, organization }: Props) {
                     isLast={index === filteredReportRows.length - 1}
                   />
                 )
-              )) : (
+              )) : reportFilter === 'needs-review' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: 8 }}>
+                  <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M2.5 8.5l3.5 3.5 7-7" stroke="#00D4AA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#F1F5F9' }}>All reports reviewed</span>
+                  <span style={{ fontSize: 12, color: '#8892A4', textAlign: 'center' }}>No reports waiting for your review right now.</span>
+                </div>
+              ) : (
                 <div style={{ padding: '20px 0', color: colors.text3, fontSize: '13px' }}>No items in this filter.</div>
               )}
             </div>
           </Card>
         </div>
 
-        <Card title="Team Performance" icon="people">
+        <Card className="hoverable-card" title="Team Performance" icon="people">
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {teamPerformance.map((employee: any, index: number) => {
-              const statusLabel = employee.status === 'at-risk' ? 'AT RISK' : employee.status === 'review' ? 'REVIEW' : employee.status === 'on-track' ? 'ON TRACK' : 'BUILDING BASELINE'
-              const statusTone = employee.status === 'at-risk' ? 'red' : employee.status === 'review' ? 'amber' : employee.status === 'on-track' ? 'green' : 'neutral'
-              const badgeHref = appendParams(`/employees/${employee.id}`)
+              const isNoData = employee.status === 'no-data' || (employee.reportCount ?? 0) === 0
+              const scoreColor = employee.score != null ? getScoreColor(employee.score) : colors.text3
+              const trendArrow = employee.scoreDirection === 'up' ? '↑' : employee.scoreDirection === 'down' ? '↓' : employee.scoreDirection === 'flat' ? '→' : null
+              const trendColor = employee.scoreDirection === 'up' ? colors.green : employee.scoreDirection === 'down' ? colors.danger : colors.text3
+              const reportCount = employee.reportCount ?? 0
+              const submissionRate = employee.submissionRate
+              const metaLine = reportCount > 0
+                ? submissionRate != null
+                  ? `${reportCount} report${reportCount === 1 ? '' : 's'} · ${submissionRate}% submission rate`
+                  : `${reportCount} report${reportCount === 1 ? '' : 's'} submitted`
+                : 'No reports yet'
               return (
-                <Link key={employee.id} href={badgeHref} className="perf-row" style={{ textDecoration: 'none', display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', padding: '14px 0', borderBottom: index === teamPerformance.length - 1 ? 'none' : `1px solid ${colors.border}`, transition: `all ${animation.base}`, cursor: 'pointer' }}>
+                <Link
+                  key={employee.id}
+                  href={appendParams(`/employees/${employee.id}`)}
+                  onMouseEnter={() => setHoveredPerfId(employee.id)}
+                  onMouseLeave={() => setHoveredPerfId(null)}
+                  style={{
+                    textDecoration: 'none',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto',
+                    gap: '12px',
+                    padding: '14px 10px',
+                    margin: '0 -10px',
+                    borderRadius: 8,
+                    borderBottom: index === teamPerformance.length - 1 ? 'none' : `1px solid ${colors.border}`,
+                    boxShadow: hoveredPerfId === employee.id ? 'inset 0 0 0 1px rgba(255,255,255,0.09)' : 'none',
+                    transition: `box-shadow ${animation.base}`,
+                    cursor: 'pointer',
+                    opacity: isNoData ? 0.5 : 1,
+                  }}
+                >
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                    <Avatar name={employee.name} size="lg" />
+                    <Avatar name={employee.name} size="lg" style={{ background: getPerfAvatarBg(employee.name), color: '#C8D4E8' }} />
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '13.5px', fontWeight: 700, color: colors.text }}>{employee.name}</span>
-                        {employee.score != null && <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, color: getScoreColor(employee.score), fontSize: '15px' }}>{employee.score.toFixed(1)}</span>}
                       </div>
                       <div style={{ fontSize: '12px', color: colors.text3, marginTop: '3px' }}>{employee.role}</div>
-                      <div style={{ fontSize: '12px', color: colors.text3, marginTop: '4px' }}>
-                        {(employee.score != null || (employee.reportCount ?? 0) > 0)
-                          ? `${employee.submittedPeriods ?? 0} of ${employee.periodCount ?? 0} periods · ${employee.reportCount ?? 0} report${(employee.reportCount ?? 0) === 1 ? '' : 's'}`
-                          : 'No reports yet'}
-                      </div>
+                      <div style={{ fontSize: '12px', color: colors.text3, marginTop: '4px' }}>{metaLine}</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                    <InlineTag label={statusLabel} tone={statusTone as any} />
+                    {employee.score != null && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, color: scoreColor, fontSize: '15px', lineHeight: 1 }}>{employee.score.toFixed(1)}</span>
+                        {trendArrow && <span style={{ fontSize: '11px', fontWeight: 700, color: trendColor, lineHeight: 1 }}>{trendArrow}</span>}
+                      </div>
+                    )}
+                    <StatusPill status={employee.status}>
+                      {employee.status === 'no-data' ? 'Building Baseline' : undefined}
+                    </StatusPill>
                     {employee.trustSignal?.label && <InlineTag label={employee.trustSignal.label} tone={employee.trustSignal.color === 'green' ? 'green' : employee.trustSignal.color === 'amber' ? 'amber' : 'neutral'} />}
                   </div>
                 </Link>
@@ -475,24 +541,55 @@ export function DashboardView({ teamStats, organization }: Props) {
         {trendScores.length > 1 ? (
           <>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '14px', fontSize: '12px', color: colors.text3 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '10px', height: '10px', borderRadius: '50%', background: colors.accent }} />Avg Score</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '14px', height: '2px', borderTop: `2px dashed ${colors.teal}`, display: 'inline-block' }} />Org Metrics Score</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#5B7FFF' }} />
+                Avg Score
+              </span>
+              {hasOrgMetrics && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '14px', height: '2px', borderTop: `2px dashed #00D4AA`, display: 'inline-block' }} />
+                  Org Metrics Score
+                </span>
+              )}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '12px', height: '8px', background: 'rgba(0,212,170,0.07)', border: '1px dashed rgba(0,212,170,0.2)', display: 'inline-block', borderRadius: 2 }} />
+                Target Zone
+              </span>
             </div>
-            <svg width="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none" style={{ display: 'block' }}>
-              <rect x={chartPadding.left} y={bandTop} width={plotWidth} height={bandBottom - bandTop} fill="rgba(34,197,94,0.06)" rx="8" />
-              {[0, 1, 2, 3].map((row) => {
-                const y = chartPadding.top + (plotHeight * row) / 3
-                return <line key={row} x1={chartPadding.left} y1={y} x2={svgWidth - chartPadding.right} y2={y} stroke={colors.border} strokeWidth="1" />
-              })}
-              <polyline points={pointsToPolyline(trendScores)} fill="none" stroke={colors.accent} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-              {orgTrendScores.length > 1 && <polyline points={pointsToPolyline(orgTrendScores)} fill="none" stroke={colors.teal} strokeWidth="2" strokeDasharray="7 6" strokeLinecap="round" strokeLinejoin="round" />}
-              {trendScores.map((value: number, index: number) => {
-                const x = chartPadding.left + (plotWidth * index) / (trendScores.length - 1)
-                const y = chartPadding.top + ((seriesMax - value) / seriesMax) * plotHeight
-                return <circle key={index} cx={x} cy={y} r={index === trendScores.length - 1 ? 5 : 4} fill={colors.accent} stroke={colors.bg} strokeWidth="2" />
-              })}
-              <text x={svgWidth - chartPadding.right + 8} y={bandTop + 12} fill={colors.text3} fontSize="10">Target Zone</text>
-            </svg>
+            <ResponsiveContainer width="100%" height={240}>
+              <ComposedChart data={chartData} margin={{ top: 8, right: 16, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="avgGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#5B7FFF" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#5B7FFF" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="#2A3045" />
+                <XAxis dataKey="week" tick={{ fill: '#8892A4', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 10]} tick={{ fill: '#8892A4', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#2A3045', strokeWidth: 1 }} />
+                <ReferenceArea
+                  y1={targetMin ?? 7.5} y2={targetMax ?? 9.5}
+                  fill="#00D4AA" fillOpacity={0.07}
+                  stroke="#00D4AA" strokeOpacity={0.2} strokeDasharray="4 4"
+                  label={{ value: 'Target Zone', position: 'insideTopRight', fill: '#00D4AA', fontSize: 11, opacity: 0.6 }}
+                />
+                <Area
+                  type="monotone" dataKey="avg" name="Avg Score"
+                  stroke="#5B7FFF" strokeWidth={2}
+                  fill="url(#avgGradient)"
+                  dot={{ fill: '#5B7FFF', r: 4, strokeWidth: 0 }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                />
+                {hasOrgMetrics && (
+                  <Line
+                    type="monotone" dataKey="org" name="Org Metrics"
+                    stroke="#00D4AA" strokeWidth={1.5} strokeDasharray="5 4"
+                    dot={false}
+                  />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
           </>
         ) : (
           <div style={{ color: colors.text3, fontSize: '13px' }}>Trend appears after at least two scored reports.</div>
@@ -573,14 +670,16 @@ export function DashboardView({ teamStats, organization }: Props) {
       </div>
 
       <style jsx>{`
+        .hoverable-card {
+          transition: border-color 0.15s ease;
+        }
+        .hoverable-card:hover {
+          border-color: ${colors.borderHover} !important;
+        }
         .attention-card:hover {
           border-color: ${colors.borderHover} !important;
           transform: translateY(-1px);
           box-shadow: ${shadows.cardHover};
-        }
-        .perf-row:hover {
-          background: rgba(255, 255, 255, 0.03);
-          transform: translateX(2px);
         }
       `}</style>
     </div>

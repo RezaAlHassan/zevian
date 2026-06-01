@@ -15,9 +15,10 @@ interface CardProps {
   danger?: boolean
 }
 
-export function Card({ children, title, subtitle, icon, action, chip, danger }: CardProps) {
+export function Card({ children, title, subtitle, icon, action, chip, danger, className }: CardProps) {
   return (
     <div
+      className={className}
       style={{
         background: colors.surface,
         border: `1px solid ${colors.border}`,

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { colors, radius, typography, getScoreColor } from '@/design-system'
 import { Avatar } from '@/components/atoms'
 
@@ -22,6 +22,7 @@ interface ReportProps extends BaseProps {
   variant: 'report'
   id: string
   href: string
+  employeeId?: string
   score?: number | null
   tags?: string[]
   reviewed?: boolean
@@ -30,16 +31,88 @@ interface ReportProps extends BaseProps {
 
 type Props = MissedProps | ReportProps
 
-function fmtDate(iso: string) {
+const AVATAR_PALETTE = ['#2A3A5A', '#2E3A4A', '#3A2A5A', '#2A4A3A', '#4A3A2A', '#3A2A4A']
+
+function getAvatarBg(name: string): string {
+  let h = 0
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffff
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length]
+}
+
+
+function relativeTime(iso: string): { label: string; color: string } {
   try {
-    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    const date = new Date(iso)
+    const diffMs = Date.now() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    let label: string
+    if (diffMins < 1) label = 'just now'
+    else if (diffMins < 60) label = `${diffMins}m ago`
+    else if (diffHours < 24) label = `${diffHours}h ago`
+    else if (diffDays < 7) label = `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+    else if (diffDays < 30) label = `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) === 1 ? '' : 's'} ago`
+    else label = `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) === 1 ? '' : 's'} ago`
+
+    const color = diffDays >= 7 ? '#F59E0B' : '#5B7070'
+    return { label, color }
+  } catch {
+    return { label: iso, color: '#5B7070' }
+  }
+}
+
+function exactTime(iso: string): string {
+  try {
+    const date = new Date(iso)
+    const diffHours = (Date.now() - date.getTime()) / 3600000
+    const datePart = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    if (diffHours < 24) {
+      const timePart = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+      return `${datePart} · ${timePart}`
+    }
+    return datePart
   } catch {
     return iso
   }
 }
 
-type Tone = 'red' | 'amber' | 'green' | 'neutral'
+function RelativeDate({ iso }: { iso: string }) {
+  const [hovered, setHovered] = React.useState(false)
+  const { label, color } = relativeTime(iso)
+  return (
+    <span
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ position: 'relative', fontSize: '12px', color, cursor: 'default' }}
+    >
+      {label}
+      {hovered && (
+        <span style={{
+          position: 'absolute',
+          bottom: 'calc(100% + 6px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#1A1F2E',
+          border: '1px solid #2A3045',
+          borderRadius: 6,
+          padding: '5px 9px',
+          fontSize: '11px',
+          fontWeight: 500,
+          color: '#C8D4E8',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none',
+          zIndex: 50,
+        }}>
+          {exactTime(iso)}
+        </span>
+      )}
+    </span>
+  )
+}
 
+type Tone = 'red' | 'amber' | 'green' | 'neutral'
 interface TagCfg { label: string; tone: Tone }
 
 const TAG_CFG: Record<string, TagCfg> = {
@@ -75,21 +148,39 @@ function pillarStyle(tone: Tone) {
   }
 }
 
+const BADGE = {
+  'needs-review': { bg: '#3D2E0A', color: '#F59E0B', label: 'Needs Review' },
+  'reviewed':     { bg: '#0A2E1A', color: '#00D4AA', label: 'Reviewed' },
+  'scored':       { bg: '#1A2340', color: '#7C9CF8', label: 'Scored' },
+}
+
 export function RecentReportItem(props: Props) {
+  const router = useRouter()
+  const [nameHovered, setNameHovered] = React.useState(false)
+  const [rowHovered, setRowHovered] = React.useState(false)
+
+  const isReport = props.variant === 'report'
+
   const rowStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: '1fr auto',
     gap: '12px',
-    padding: '14px 0',
+    padding: '12px 10px',
+    margin: '0 -10px',
     alignItems: 'center',
     borderBottom: props.isLast ? 'none' : `1px solid ${colors.border}`,
+    borderRadius: 8,
+    background: 'transparent',
+    boxShadow: rowHovered && isReport ? 'inset 0 0 0 1px rgba(255,255,255,0.09)' : 'none',
+    transition: 'box-shadow 0.15s ease',
+    cursor: isReport ? 'pointer' : 'default',
   }
 
   if (props.variant === 'missed') {
     return (
       <div style={rowStyle}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-          <Avatar name={props.employeeName} size="md" />
+          <Avatar name={props.employeeName} size="md" style={{ background: getAvatarBg(props.employeeName), color: '#C8D4E8' }} />
           <div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: colors.text }}>
               {props.employeeName}
@@ -105,88 +196,153 @@ export function RecentReportItem(props: Props) {
             </div>
           </div>
         </div>
-        <div style={{ fontSize: '12px', color: colors.text3, flexShrink: 0 }}>{fmtDate(props.date)}</div>
+        <div style={{ flexShrink: 0 }}><RelativeDate iso={props.date} /></div>
       </div>
     )
   }
 
-  // Report variant
-  const { href, score, tags = [], reviewed, overridden } = props
+  const { id, employeeId, score, tags = [], reviewed, overridden } = props
 
   const integrityTags = TAG_ORDER.filter(t => tags.includes(t)).slice(0, 4)
   const scoreColor = score != null ? getScoreColor(score) : colors.text3
 
+  const badgeState = (reviewed ? 'reviewed' : score != null ? 'needs-review' : 'scored') as 'reviewed' | 'needs-review' | 'scored'
+  const isNeedsReview = badgeState === 'needs-review'
+
   return (
-    <div style={rowStyle}>
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', minWidth: 0 }}>
-        <Avatar name={props.employeeName} size="md" />
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13.5px', fontWeight: 700, color: colors.text }}>{props.employeeName}</span>
-            {score != null && (
-              <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, fontSize: '14px', color: scoreColor }}>
-                {score.toFixed(1)}
-              </span>
+    <div
+      style={rowStyle}
+      onClick={() => router.push(`/reports/${id}`)}
+      onMouseEnter={() => setRowHovered(true)}
+      onMouseLeave={() => setRowHovered(false)}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {/* Employee zone */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}
+        >
+          <Avatar
+            name={props.employeeName}
+            size="md"
+            style={{ background: getAvatarBg(props.employeeName), color: '#C8D4E8' }}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
+            <span
+              onClick={e => { if (employeeId) { e.stopPropagation(); router.push(`/employees/${employeeId}`) } }}
+              onMouseEnter={() => setNameHovered(true)}
+              onMouseLeave={() => setNameHovered(false)}
+              style={{
+                fontSize: '13.5px',
+                fontWeight: 700,
+                color: colors.text,
+                textDecoration: nameHovered && !!employeeId ? 'underline' : 'none',
+                textUnderlineOffset: '3px',
+                cursor: employeeId ? 'pointer' : 'default',
+              }}
+            >
+              {props.employeeName}
+            </span>
+            {props.employeeTitle && (
+              <span style={{ fontSize: '13.5px', fontWeight: 400, color: colors.text3 }}>· {props.employeeTitle}</span>
             )}
+            {(() => {
+              const badge = BADGE[badgeState]
+              return (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '2px 7px', borderRadius: 4,
+                  fontSize: 10, fontWeight: 700,
+                  background: badge.bg, color: badge.color,
+                }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: badge.color, display: 'inline-block', flexShrink: 0 }} />
+                  {badge.label}
+                </span>
+              )
+            })()}
           </div>
+        </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', paddingLeft: '40px', flexWrap: 'wrap' }}>
           {(props.goalName || props.projectName) && (
-            <div style={{ fontSize: '12px', color: colors.text3, marginTop: '3px' }}>
+            <span style={{ fontSize: '12px', color: colors.text3 }}>
               {[props.goalName, props.projectName].filter(Boolean).join(' · ')}
-            </div>
+            </span>
           )}
+          {(props.goalName || props.projectName) && (
+            <span style={{ fontSize: '12px', color: colors.text3 }}>·</span>
+          )}
+          <RelativeDate iso={props.date} />
+        </div>
 
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+        {integrityTags.length > 0 && (
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px', paddingLeft: '40px' }}>
             {integrityTags.map(tag => {
               const cfg = TAG_CFG[tag]
               return cfg ? <span key={tag} style={pillarStyle(cfg.tone)}>{cfg.label}</span> : null
             })}
-            {reviewed ? (
-              <span style={pillarStyle('green')}>✓ Reviewed</span>
-            ) : (
-              <span style={pillarStyle('neutral')}>○ Scored</span>
-            )}
           </div>
-        </div>
+        )}
       </div>
 
+      {/* Action zone */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px', flexShrink: 0 }}>
-        {reviewed ? (
-          <>
-            <Link href={href} style={{
+        {score != null && (
+          <span style={{
+            fontFamily: typography.fonts.numeric,
+            fontWeight: 900,
+            fontSize: '14px',
+            color: scoreColor,
+          }}>
+            {score.toFixed(1)}
+          </span>
+        )}
+
+        {isNeedsReview ? (
+          <button
+            onClick={() => router.push(`/reports/${id}`)}
+            style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '5px',
               padding: '7px 12px',
               borderRadius: radius.md,
-              textDecoration: 'none',
+              border: `1px solid ${colors.border}`,
               fontSize: '12px',
               fontWeight: 700,
               color: colors.text2,
               background: colors.surface2,
-              border: `1px solid ${colors.border}`,
-            }}>
-              View →
-            </Link>
-            {overridden && (
-              <span style={{ fontSize: '11px', color: colors.text3, fontWeight: 600 }}>Overridden</span>
-            )}
-          </>
+              cursor: 'pointer',
+            }}
+          >
+            Review Report →
+          </button>
         ) : (
-          <Link href={href} style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            padding: '7px 12px',
-            borderRadius: radius.md,
-            textDecoration: 'none',
-            fontSize: '12px',
-            fontWeight: 700,
-            color: '#fff',
-            background: colors.accent,
-          }}>
-            Review →
-          </Link>
+          <button
+            onClick={() => router.push(`/reports/${id}`)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '7px 12px',
+              borderRadius: radius.md,
+              border: `1px solid ${colors.border}`,
+              fontSize: '12px',
+              fontWeight: 700,
+              color: colors.text2,
+              background: colors.surface2,
+              cursor: 'pointer',
+            }}
+          >
+            View →
+          </button>
+        )}
+
+        {overridden && (
+          <span style={{ fontSize: '11px', color: colors.text3, fontWeight: 600 }}>Overridden</span>
         )}
       </div>
     </div>
