@@ -101,16 +101,34 @@ export async function runMissedReportCheck(employeeId?: string): Promise<{
       
     if (goal && (goal.projects as any)?.report_frequency) {
        const freq = (goal.projects as any).report_frequency;
-       const { generatePeriodsForGoalEmployee } = await import('./reportingPeriods');
-       // Generate from previous period_end, creating just the next sequence of periods
-       await generatePeriodsForGoalEmployee(
-           period.goal_id, 
-           period.employee_id, 
-           freq, 
-           new Date(period.period_end), 
-           26, 
-           false
-       );
+
+       // Only extend the chain when there is no upcoming pending period already.
+       // Previously this regenerated 26 periods from the (past) period_end on every
+       // missed period — those new periods were themselves overdue, so the next run
+       // marked them missed and generated 26 more, fanning out exponentially.
+       const { data: futurePending } = await supabase
+         .from('reporting_periods')
+         .select('id')
+         .eq('goal_id', period.goal_id)
+         .eq('employee_id', period.employee_id)
+         .eq('status', 'pending')
+         .gt('period_end', new Date().toISOString())
+         .limit(1);
+
+       if (!futurePending || futurePending.length === 0) {
+          const { generatePeriodsForGoalEmployee } = await import('./reportingPeriods');
+          // Anchor forward: from the just-passed period_end, but never before "now",
+          // so freshly generated periods are not instantly overdue.
+          const anchor = new Date(Math.max(new Date(period.period_end).getTime(), Date.now()));
+          await generatePeriodsForGoalEmployee(
+              period.goal_id,
+              period.employee_id,
+              freq,
+              anchor,
+              26,
+              false
+          );
+       }
     }
     
     // STEP 5: Consecutive Missed Check

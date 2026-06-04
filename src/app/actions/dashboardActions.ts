@@ -38,7 +38,13 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
             const effectiveView = view ?? (isSenior ? 'org' : 'direct')
             // Enforce: non-senior managers cannot use org view even if ?view=org is in the URL
             const safeView = (!isSenior && effectiveView === 'org') ? 'direct' : effectiveView
-            const data = await dashboardService.getManagerDashboardData(employee.id, safeView, startDate, endDate)
+            // Pass the org + active custom metrics we already fetched so the service can skip
+            // re-fetching the manager profile, organization, and custom metrics (removes round-trips).
+            const data = await dashboardService.getManagerDashboardData(employee.id, safeView, startDate, endDate, {
+                orgId: employee.organizationId,
+                selectedMetricIds: (organization.selectedMetrics as string[] | undefined) || [],
+                activeCustomMetricNames: (organization.customMetrics || []).map((m: CustomMetric) => m.name),
+            })
             return { ...data, organization }
         }
 
@@ -58,6 +64,7 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
                     .select('*')
                     .eq('employee_id', employee.id)
                     .in('status', ['pending', 'submitted', 'missed'])
+                    .gte('period_end', new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString())
                     .order('period_end', { ascending: true })
             ])
             soonestPeriod = soonest
@@ -131,6 +138,7 @@ export async function getEmployeeDashboardDataByIdAction(employeeId: string, sta
             .select('*')
             .eq('employee_id', employeeId)
             .in('status', ['pending', 'submitted', 'missed'])
+            .gte('period_end', new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString())
             .order('period_end', { ascending: true })
         
         return { ...data, organization, upcomingPeriods: allPeriods || [] }
@@ -176,7 +184,7 @@ export async function getEmployeeDetailedDataAction(employeeId: string, startDat
             reportService.getEmployeeReports(employeeId, startDate, endDate),
             notificationService.getAll(employeeId),
             leaveService.getByEmployeeId(employeeId),
-            supabase.from('reporting_periods').select('*').eq('employee_id', employeeId).in('status', ['pending', 'submitted', 'missed']).order('period_end', { ascending: true })
+            supabase.from('reporting_periods').select('*').eq('employee_id', employeeId).in('status', ['pending', 'submitted', 'missed']).gte('period_end', new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString()).order('period_end', { ascending: true })
         ])
 
         const organization = await organizationService.getById(caller.organizationId)

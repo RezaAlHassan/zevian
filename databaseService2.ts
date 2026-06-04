@@ -1706,7 +1706,7 @@ export const dashboardService = {
         // Batch 1: all four queries are independent — run in parallel
         let reportsQuery = supabase
             .from('reports')
-            .select('*, goals(id, name, project_id), report_criterion_scores(*)')
+            .select('*, goals(id, name, project_id), report_criterion_scores(criterion_name, score)')
             .eq('employee_id', employeeId);
         if (startDate) reportsQuery = reportsQuery.gte('submission_date', startDate);
         if (endDate) reportsQuery = reportsQuery.lte('submission_date', endDate);
@@ -1914,16 +1914,29 @@ export const dashboardService = {
         };
     },
 
-    async getManagerDashboardData(managerId: string, view: 'org' | 'direct' = 'org', startDate?: string, endDate?: string) {
-        // 1. Get Manager Profile and Org ID
-        const { data: managerData, error: managerError } = await supabase
-            .from('employees')
-            .select('*, organizations(*)')
-            .eq('id', managerId)
-            .single();
-
-        if (managerError) throw managerError;
-        const orgId = managerData.organization_id;
+    async getManagerDashboardData(managerId: string, view: 'org' | 'direct' = 'org', startDate?: string, endDate?: string, ctx?: { orgId: string; selectedMetricIds: string[]; activeCustomMetricNames: string[] }) {
+        // 1. Resolve org id + selected metrics.
+        // When the caller already loaded the manager's org/custom metrics (the dashboard action does),
+        // it passes them in `ctx` so we skip the manager-profile, organization, and custom-metrics
+        // round-trips entirely.
+        let orgId: string;
+        let selectedMetricIds: string[];
+        let activeCustomMetricNames: string[] | null;
+        if (ctx) {
+            orgId = ctx.orgId;
+            selectedMetricIds = ctx.selectedMetricIds;
+            activeCustomMetricNames = ctx.activeCustomMetricNames;
+        } else {
+            const { data: managerData, error: managerError } = await supabase
+                .from('employees')
+                .select('organization_id, organizations(selected_metrics)')
+                .eq('id', managerId)
+                .single();
+            if (managerError) throw managerError;
+            orgId = managerData.organization_id;
+            selectedMetricIds = (managerData.organizations as any)?.selected_metrics || [];
+            activeCustomMetricNames = null; // fetched in Batch 1 below
+        }
 
         // Batch 1: project_assignees (direct only), employees, and custom metrics are all independent
         const [assignedResult, employeesRawResult, customMetricsResult] = await Promise.all([
@@ -1933,8 +1946,13 @@ export const dashboardService = {
             view === 'direct'
                 ? supabase.from('employees').select('*').eq('organization_id', orgId).eq('manager_id', managerId)
                 : supabase.from('employees').select('*').eq('organization_id', orgId),
-            supabase.from('organization_custom_metrics').select('name').eq('organization_id', orgId).eq('is_active', true),
+            activeCustomMetricNames !== null
+                ? Promise.resolve({ data: null as any, error: null })
+                : supabase.from('organization_custom_metrics').select('name').eq('organization_id', orgId).eq('is_active', true),
         ]);
+        if (activeCustomMetricNames === null) {
+            activeCustomMetricNames = (customMetricsResult.data || []).map((m: any) => m.name);
+        }
 
         if (employeesRawResult.error) throw employeesRawResult.error;
         // Filter inactive in JS — safe whether or not the is_active column exists yet
@@ -1954,7 +1972,7 @@ export const dashboardService = {
 
         let reportsQuery = supabase
             .from('reports')
-            .select('*, employees!reports_employee_id_fkey!inner(organization_id, name, manager_id, title), goals(project_id, name, projects(name)), report_criterion_scores(*)')
+            .select('*, employees!reports_employee_id_fkey!inner(organization_id, name, manager_id, title), goals(project_id, name, projects(name)), report_criterion_scores(criterion_name, score)')
             .eq('employees.organization_id', orgId);
         if (view === 'direct') {
             reportsQuery = directReportIds.length > 0
@@ -1990,7 +2008,7 @@ export const dashboardService = {
                   })()
                 : Promise.resolve({ data: [] as any[], error: null }),
             targetEmpIds.length > 0
-                ? supabase.from('reporting_periods').select('*').in('employee_id', targetEmpIds).order('period_start', { ascending: false })
+                ? supabase.from('reporting_periods').select('*').in('employee_id', targetEmpIds).gte('period_end', new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString()).order('period_start', { ascending: false })
                 : Promise.resolve({ data: [] as any[], error: null }),
             supabase.from('manager_settings').select('grace_period_days').eq('manager_id', managerId).maybeSingle(),
         ]);
@@ -2018,11 +2036,10 @@ export const dashboardService = {
             'growth': 'Learning & Growth',
             'ownership': 'Ownership & Accountability',
         };
-        const selectedMetricIds = managerData.organizations?.selected_metrics || [];
         const selectedMetricNames = new Set<string>(
             selectedMetricIds.map((id: string) => DEFAULT_METRIC_ID_TO_NAME[id]).filter(Boolean)
         );
-        (customMetricsResult.data || []).forEach((m: any) => selectedMetricNames.add(m.name));
+        (activeCustomMetricNames || []).forEach((name: string) => selectedMetricNames.add(name));
 
         let orgTotalScore = 0;
         let orgScoreCount = 0;
@@ -2194,15 +2211,35 @@ export const dashboardService = {
             return tags;
         }
 
-        // Enrich teamPerformance with report/period counts
+        // Enrich teamPerformance with report/period counts and score direction
         const enrichedTeamPerformance = teamPerformance.map((emp: any) => {
             const empPeriods = periodsData.filter((p: any) => p.employee_id === emp.id);
             const empReports = (reportsData || []).filter((r: any) => r.employee_id === emp.id);
+            const submittedPeriods = empPeriods.filter((p: any) => p.report_id != null).length;
+            const submissionRate = empPeriods.length > 0
+                ? Math.round((submittedPeriods / empPeriods.length) * 100)
+                : null;
+            const sortedReports = [...empReports].sort((a: any, b: any) =>
+                new Date(b.submitted_at || b.created_at).getTime() - new Date(a.submitted_at || a.created_at).getTime()
+            );
+            const latestScore = sortedReports[0]
+                ? (sortedReports[0].manager_overall_score ?? sortedReports[0].evaluation_score ?? null)
+                : null;
+            const prevScore = sortedReports[1]
+                ? (sortedReports[1].manager_overall_score ?? sortedReports[1].evaluation_score ?? null)
+                : null;
+            let scoreDirection: 'up' | 'down' | 'flat' | null = null;
+            if (latestScore != null && prevScore != null) {
+                const diff = latestScore - prevScore;
+                scoreDirection = diff > 0.3 ? 'up' : diff < -0.3 ? 'down' : 'flat';
+            }
             return {
                 ...emp,
                 reportCount: empReports.length,
-                submittedPeriods: empPeriods.filter((p: any) => p.report_id != null).length,
+                submittedPeriods,
                 periodCount: empPeriods.length,
+                submissionRate,
+                scoreDirection,
             };
         });
 
@@ -2233,6 +2270,7 @@ export const dashboardService = {
         // Enrich recentReports with tags, reviewed status, goalName, projectName
         const recentReports = (reportsData || []).slice(0, 10).map((r: any) => ({
             id: r.id,
+            employeeId: r.employee_id || r.employees?.id,
             employeeName: r.employees?.name || 'Unknown',
             employeeTitle: r.employees?.title || '',
             goalName: r.goals?.name || null,

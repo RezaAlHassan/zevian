@@ -54,7 +54,12 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Use getSession() (local cookie read, refreshes when expired) rather than getUser()
+  // (a network round-trip to the Auth server on every request). This middleware only
+  // decides redirects — actual data access in Server Components/Actions still calls
+  // getUser() to cryptographically validate before reading anything.
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
 
   const { pathname } = request.nextUrl
   const isAuthRoute = ['/login', '/signup', '/verify-email'].some(p => pathname.startsWith(p))

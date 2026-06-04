@@ -3,8 +3,10 @@
 import { colors, radius, typography, getScoreStatus } from '@/design-system'
 import React from 'react'
 
+// Design system rule: use StatusPill for all entity-state badges (status, review state, submission state).
+// Use InlineTag for labels/flags that aren't entity state (attention flags, metadata counts, trust signals).
 interface StatusPillProps {
-  status?: 'active' | 'at-risk' | 'review' | 'no-reports' | 'on-track' | 'no-data' | 'pending' | 'scored' | 'reviewed' | 'late' | 'on-leave' | 'on_leave' | 'missed' | 'excused' | 'due_today' | 'upcoming' | 'submitted_late'
+  status?: 'active' | 'at-risk' | 'review' | 'needs-review' | 'no-reports' | 'on-track' | 'no-data' | 'pending' | 'scored' | 'reviewed' | 'late' | 'on-leave' | 'on_leave' | 'missed' | 'excused' | 'due_today' | 'upcoming' | 'submitted_late'
   score?: number | null
   children?: React.ReactNode
   showDot?: boolean
@@ -17,6 +19,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'active': { background: colors.greenGlow, color: colors.green },
     'on-track': { background: colors.greenGlow, color: colors.green },
     'review': { background: 'rgba(245,158,11,0.12)', color: colors.warn },
+    'needs-review': { background: 'rgba(245,158,11,0.12)', color: colors.warn },
     'at-risk': { background: colors.dangerGlow, color: colors.danger },
     'no-reports': { background: colors.surface3, color: colors.text3 },
     'no-data': { background: colors.surface3, color: colors.text3 },
@@ -37,6 +40,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'active': 'Active',
     'on-track': 'On Track',
     'review': 'Review',
+    'needs-review': 'Needs Review',
     'at-risk': 'At Risk',
     'no-reports': 'No Reports',
     'no-data': 'No Data',
@@ -57,6 +61,7 @@ export function StatusPill({ status: propStatus, score, children, showDot = true
     'active': colors.green,
     'on-track': colors.green,
     'review': colors.warn,
+    'needs-review': colors.warn,
     'at-risk': colors.danger,
     'no-reports': colors.text3,
     'no-data': colors.text3,

@@ -44,6 +44,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
     const [showFullSummary, setShowFullSummary] = useState(false)
     const [pendingCalibration, setPendingCalibration] = useState<'adjusted_up' | 'adjusted_down' | null>(null)
     const [localCalibration, setLocalCalibration] = useState<string | null | undefined>(report.managerCalibration)
+    const [localReviewed, setLocalReviewed] = useState(!!report.reviewedBy)
 
     const handleScore = async () => {
         if (!report.id || evaluationData) return
@@ -81,6 +82,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
             setOverrideScore('')
             setOverrideReason('')
             setShowOverrideModal(false)
+            setLocalReviewed(true)
             router.refresh()
         } else {
             alert(result.error || "Failed to save override")
@@ -94,6 +96,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
         setIsSavingOverride(false)
         if (result.success) {
             setLocalCalibration('agree')
+            setLocalReviewed(true)
             router.refresh()
         } else {
             alert(result.error || "Failed to save calibration")
@@ -156,35 +159,40 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     </div>
                 )}
                 {role === 'manager' && canOverride && hasScored && (
-                    localCalibration ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: colors.text2 }}>
-                            {localCalibration === 'agree' && '✓ You agreed with this score'}
-                            {localCalibration === 'adjusted_down' && '↓ You adjusted this score down'}
-                            {localCalibration === 'adjusted_up' && '↑ You adjusted this score up'}
-                        </div>
-                    ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <button
-                                onClick={handleCalibrationAgree}
-                                disabled={isSavingOverride}
-                                style={{ padding: '5px 11px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.green, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            >
-                                ✓ Looks Right
-                            </button>
-                            <button
-                                onClick={handleCalibrationDown}
-                                style={{ padding: '5px 11px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.warn, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            >
-                                ↓ Too High
-                            </button>
-                            <button
-                                onClick={handleCalibrationUp}
-                                style={{ padding: '5px 11px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.accent, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            >
-                                ↑ Too Low
-                            </button>
-                        </div>
-                    )
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                        {localCalibration ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: colors.text2 }}>
+                                {localCalibration === 'agree' && '✓ You agreed with this score'}
+                                {localCalibration === 'adjusted_down' && '↓ You adjusted this score down'}
+                                {localCalibration === 'adjusted_up' && '↑ You adjusted this score up'}
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <button
+                                    onClick={handleCalibrationAgree}
+                                    disabled={isSavingOverride}
+                                    style={{ padding: '5px 11px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.green, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                    ✓ Looks Right
+                                </button>
+                                <button
+                                    onClick={handleCalibrationDown}
+                                    style={{ padding: '5px 11px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.warn, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                    ↓ Too High
+                                </button>
+                                <button
+                                    onClick={handleCalibrationUp}
+                                    style={{ padding: '5px 11px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.accent, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                    ↑ Too Low
+                                </button>
+                            </div>
+                        )}
+                        {localReviewed && (
+                            <span style={{ fontSize: '11px', color: colors.text3, fontWeight: 500 }}>Marked as reviewed</span>
+                        )}
+                    </div>
                 )}
                 {role === 'manager' && canOverride && !hasScored && (
                     <Button variant="secondary" size="sm" icon="edit" onClick={() => setShowOverrideModal(true)}>
