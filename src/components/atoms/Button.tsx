@@ -12,8 +12,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode
 }
 
-export function Button({ variant = 'primary', size = 'md', icon, loading, children, style, disabled, ...props }: ButtonProps) {
+export function Button({ variant = 'primary', size = 'md', icon, loading, children, style, disabled, onMouseEnter, onMouseLeave, ...props }: ButtonProps) {
+  const [hovered, setHovered] = React.useState(false)
   const isActuallyDisabled = disabled || loading
+
   const baseStyle: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
@@ -21,8 +23,8 @@ export function Button({ variant = 'primary', size = 'md', icon, loading, childr
     gap: '8px',
     borderRadius: radius.md,
     fontWeight: typography.weight.semibold,
-    cursor: 'pointer',
-    transition: `all ${animation.fast}`,
+    cursor: isActuallyDisabled ? 'not-allowed' : 'pointer',
+    transition: `background ${animation.fast}, box-shadow ${animation.fast}, border-color ${animation.fast}, color ${animation.fast}`,
     border: 'none',
     fontFamily: typography.fonts.body,
   }
@@ -35,18 +37,18 @@ export function Button({ variant = 'primary', size = 'md', icon, loading, childr
 
   const variantStyles: Record<string, React.CSSProperties> = {
     primary: {
-      background: colors.accent,
+      background: hovered && !isActuallyDisabled ? colors.accentHover : colors.accent,
       color: '#fff',
-      boxShadow: '0 0 20px rgba(91,127,255,0.25)',
+      boxShadow: hovered && !isActuallyDisabled ? '0 0 24px rgba(91,127,255,0.4)' : '0 0 20px rgba(91,127,255,0.25)',
     },
     secondary: {
-      background: colors.surface2,
-      color: colors.text2,
-      border: `1px solid ${colors.border}`,
+      background: hovered && !isActuallyDisabled ? colors.surface3 : colors.surface2,
+      color: hovered && !isActuallyDisabled ? colors.text : colors.text2,
+      border: `1px solid ${hovered && !isActuallyDisabled ? colors.borderHover : colors.border}`,
     },
     ghost: {
-      background: 'transparent',
-      color: colors.text2,
+      background: hovered && !isActuallyDisabled ? colors.accentGlow : 'transparent',
+      color: hovered && !isActuallyDisabled ? colors.accent : colors.text2,
     },
   }
 
@@ -56,10 +58,12 @@ export function Button({ variant = 'primary', size = 'md', icon, loading, childr
         ...baseStyle,
         ...sizeStyles[size],
         ...variantStyles[variant],
-        ...(isActuallyDisabled ? { opacity: 0.45, cursor: 'not-allowed' } : {}),
+        ...(isActuallyDisabled ? { opacity: 0.45 } : {}),
         ...style,
       }}
       disabled={isActuallyDisabled}
+      onMouseEnter={(e) => { setHovered(true); onMouseEnter?.(e) }}
+      onMouseLeave={(e) => { setHovered(false); onMouseLeave?.(e) }}
       {...props}
     >
       {loading ? (
@@ -80,6 +84,10 @@ export function Button({ variant = 'primary', size = 'md', icon, loading, childr
           border-top-color: #fff;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
+        }
+        button:focus-visible {
+          outline: 2px solid ${colors.accent};
+          outline-offset: 2px;
         }
       `}</style>
     </button>

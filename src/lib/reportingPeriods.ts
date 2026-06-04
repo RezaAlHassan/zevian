@@ -158,9 +158,26 @@ export async function generatePeriodsForGoalEmployee(
     });
   }
 
+  // Idempotency guard: never create a period for a (goal, employee) slot that already
+  // exists. Without this, repeated calls (e.g. the missed-report trigger regenerating
+  // from a past anchor) can fan out into hundreds of thousands of duplicate pending rows.
+  const { data: existing, error: existingError } = await supabase
+    .from('reporting_periods')
+    .select('period_start')
+    .eq('goal_id', goalId)
+    .eq('employee_id', employeeId);
+  if (existingError) throw existingError;
+
+  const existingStarts = new Set(
+    (existing || []).map((p: any) => new Date(p.period_start).getTime())
+  );
+  const newRows = rows.filter((r) => !existingStarts.has(new Date(r.period_start).getTime()));
+
+  if (newRows.length === 0) return [];
+
   const { data, error } = await supabase
     .from('reporting_periods')
-    .insert(rows)
+    .insert(newRows)
     .select();
 
   if (error) throw error;

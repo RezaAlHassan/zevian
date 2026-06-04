@@ -672,7 +672,9 @@ export async function setCalibrationAction(
             return { error: 'Unauthorized: You are not the manager for this employee' }
         }
 
-        await reportService.update(reportId, { managerCalibration: calibration })
+        await reportService.update(reportId, { managerCalibration: calibration, reviewedBy: employee.id })
+        revalidatePath('/dashboard')
+        revalidatePath('/reports')
         return { success: true }
     } catch (error) {
         console.error('setCalibrationAction Error:', error)
