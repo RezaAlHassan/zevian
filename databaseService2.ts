@@ -2211,13 +2211,23 @@ export const dashboardService = {
             return tags;
         }
 
+        // A period only counts toward the "expected" submission denominator once its
+        // deadline has passed (or it was already submitted). The forward chain of future
+        // pending periods (generated ahead of time) and void/excused (leave) periods are
+        // NOT expected yet — counting them would inflate "expected" and crush the rate.
+        const nowMs = Date.now();
+        const isExpectedPeriod = (p: any) =>
+            p.status !== 'void' && p.status !== 'excused' &&
+            (p.report_id != null || new Date(p.period_end).getTime() <= nowMs);
+
         // Enrich teamPerformance with report/period counts and score direction
         const enrichedTeamPerformance = teamPerformance.map((emp: any) => {
             const empPeriods = periodsData.filter((p: any) => p.employee_id === emp.id);
             const empReports = (reportsData || []).filter((r: any) => r.employee_id === emp.id);
-            const submittedPeriods = empPeriods.filter((p: any) => p.report_id != null).length;
-            const submissionRate = empPeriods.length > 0
-                ? Math.round((submittedPeriods / empPeriods.length) * 100)
+            const empExpectedPeriods = empPeriods.filter(isExpectedPeriod);
+            const submittedPeriods = empExpectedPeriods.filter((p: any) => p.report_id != null).length;
+            const submissionRate = empExpectedPeriods.length > 0
+                ? Math.round((submittedPeriods / empExpectedPeriods.length) * 100)
                 : null;
             const sortedReports = [...empReports].sort((a: any, b: any) =>
                 new Date(b.submitted_at || b.created_at).getTime() - new Date(a.submitted_at || a.created_at).getTime()
@@ -2327,8 +2337,9 @@ export const dashboardService = {
 
         // KPIs
         const needsReviewCount = recentReports.filter((r: any) => !r.reviewed).length;
-        const totalPeriods = periodsData.length;
-        const submittedPeriodCount = periodsData.filter((p: any) => p.report_id != null).length;
+        const expectedPeriods = periodsData.filter(isExpectedPeriod);
+        const totalPeriods = expectedPeriods.length;
+        const submittedPeriodCount = expectedPeriods.filter((p: any) => p.report_id != null).length;
 
         return {
             totalReports,
