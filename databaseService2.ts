@@ -2211,24 +2211,39 @@ export const dashboardService = {
             return tags;
         }
 
-        // A period only counts toward the "expected" submission denominator once its
-        // deadline has passed (or it was already submitted). The forward chain of future
-        // pending periods (generated ahead of time) and void/excused (leave) periods are
-        // NOT expected yet — counting them would inflate "expected" and crush the rate.
+        // Current-period submission: for each (employee, goal) scorecard, look only at the
+        // most recent period that has actually come due (period_end <= now). The scorecard
+        // counts once, and is "submitted" if that latest-due period has a report. This ignores
+        // the future forward-chain, is robust to duplicate rows (a slot is counted once), and
+        // skips void/excused (leave) periods. It answers "is the team reporting this period?"
+        // rather than an ever-growing all-time tally.
         const nowMs = Date.now();
-        const isExpectedPeriod = (p: any) =>
-            p.status !== 'void' && p.status !== 'excused' &&
-            (p.report_id != null || new Date(p.period_end).getTime() <= nowMs);
+        const currentPeriodStats = (rows: any[]) => {
+            const byChain: Record<string, any[]> = {};
+            for (const p of rows) {
+                if (p.status === 'void' || p.status === 'excused') continue;
+                if (new Date(p.period_end).getTime() > nowMs) continue; // not due yet
+                const key = `${p.employee_id}|${p.goal_id}`;
+                (byChain[key] = byChain[key] || []).push(p);
+            }
+            let expected = 0, submitted = 0;
+            for (const key of Object.keys(byChain)) {
+                const due = byChain[key];
+                expected++;
+                const latestEnd = Math.max(...due.map((p: any) => new Date(p.period_end).getTime()));
+                const atLatest = due.filter((p: any) => new Date(p.period_end).getTime() === latestEnd);
+                if (atLatest.some((p: any) => p.report_id != null)) submitted++;
+            }
+            return { expected, submitted, pct: expected > 0 ? Math.round((submitted / expected) * 100) : null };
+        };
 
         // Enrich teamPerformance with report/period counts and score direction
         const enrichedTeamPerformance = teamPerformance.map((emp: any) => {
             const empPeriods = periodsData.filter((p: any) => p.employee_id === emp.id);
             const empReports = (reportsData || []).filter((r: any) => r.employee_id === emp.id);
-            const empExpectedPeriods = empPeriods.filter(isExpectedPeriod);
-            const submittedPeriods = empExpectedPeriods.filter((p: any) => p.report_id != null).length;
-            const submissionRate = empExpectedPeriods.length > 0
-                ? Math.round((submittedPeriods / empExpectedPeriods.length) * 100)
-                : null;
+            const empCurrent = currentPeriodStats(empPeriods);
+            const submittedPeriods = empCurrent.submitted;
+            const submissionRate = empCurrent.pct;
             const sortedReports = [...empReports].sort((a: any, b: any) =>
                 new Date(b.submitted_at || b.created_at).getTime() - new Date(a.submitted_at || a.created_at).getTime()
             );
@@ -2247,7 +2262,7 @@ export const dashboardService = {
                 ...emp,
                 reportCount: empReports.length,
                 submittedPeriods,
-                periodCount: empPeriods.length,
+                periodCount: empCurrent.expected,
                 submissionRate,
                 scoreDirection,
             };
@@ -2337,9 +2352,12 @@ export const dashboardService = {
 
         // KPIs
         const needsReviewCount = recentReports.filter((r: any) => !r.reviewed).length;
-        const expectedPeriods = periodsData.filter(isExpectedPeriod);
-        const totalPeriods = expectedPeriods.length;
-        const submittedPeriodCount = expectedPeriods.filter((p: any) => p.report_id != null).length;
+        // Org submission rate = current-period submission across the team shown in Team
+        // Performance (employees only, excludes the viewing manager) for consistency.
+        const teamIds = new Set(enrichedTeamPerformance.map((e: any) => e.id));
+        const teamCurrent = currentPeriodStats(periodsData.filter((p: any) => teamIds.has(p.employee_id)));
+        const totalPeriods = teamCurrent.expected;
+        const submittedPeriodCount = teamCurrent.submitted;
 
         return {
             totalReports,
@@ -2360,7 +2378,7 @@ export const dashboardService = {
                 reportsDelta: null,
                 teamAvgScore: totalReports > 0 ? Number(avgScore.toFixed(1)) : null,
                 teamAvgDelta: null,
-                submissionRate: { submitted: submittedPeriodCount, expected: totalPeriods },
+                submissionRate: { submitted: submittedPeriodCount, expected: totalPeriods, pct: teamCurrent.pct },
                 needsReviewCount,
             },
         };

@@ -30,6 +30,7 @@ function KpiCard({
   delta,
   tone = 'neutral',
   onClick,
+  info,
 }: {
   label: string
   value: string | number
@@ -37,6 +38,7 @@ function KpiCard({
   delta?: { value: number; direction: 'up' | 'down' | 'flat' } | null
   tone?: 'neutral' | 'green' | 'amber' | 'red'
   onClick?: () => void
+  info?: string
 }) {
   const valueColor =
     tone === 'green' ? colors.green :
@@ -65,8 +67,20 @@ function KpiCard({
         textTransform: 'uppercase',
         letterSpacing: '0.06em',
         marginBottom: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
       }}>
         {label}
+        {info && (
+          <span
+            title={info}
+            style={{ cursor: 'help', opacity: 0.6, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}
+            aria-label={info}
+          >
+            ⓘ
+          </span>
+        )}
       </div>
       <div style={{
         fontFamily: typography.fonts.numeric,
@@ -401,8 +415,19 @@ export function DashboardView({ teamStats, organization }: Props) {
         />
         <KpiCard
           label="Submission Rate"
-          value={`${kpis.submissionRate?.submitted ?? 0} / ${kpis.submissionRate?.expected ?? 0}`}
-          subtitle="submitted"
+          value={kpis.submissionRate?.pct != null ? `${kpis.submissionRate.pct}%` : '—'}
+          subtitle={
+            kpis.submissionRate?.expected
+              ? `${kpis.submissionRate.submitted} of ${kpis.submissionRate.expected} reports due now`
+              : 'none due yet'
+          }
+          info="Counts the most recent report due for each active scorecard. Excludes future periods and approved leave."
+          tone={
+            kpis.submissionRate?.pct == null ? 'neutral'
+              : kpis.submissionRate.pct >= 80 ? 'green'
+              : kpis.submissionRate.pct >= 50 ? 'amber'
+              : 'red'
+          }
         />
         <KpiCard
           label="Needs Review"
