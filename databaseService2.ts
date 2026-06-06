@@ -2352,12 +2352,35 @@ export const dashboardService = {
 
         // KPIs
         const needsReviewCount = recentReports.filter((r: any) => !r.reviewed).length;
-        // Org submission rate = current-period submission across the team shown in Team
-        // Performance (employees only, excludes the viewing manager) for consistency.
+        // Distinct employees who contributed at least one report in the selected range —
+        // used as the "Reports Submitted" subtitle ("across N team members").
+        const contributorCount = new Set((reportsData || []).map((r: any) => r.employee_id)).size;
+        // Org submission rate, scoped to the selected date range: every reporting period that
+        // came due (period_end <= now) within [startDate, endDate] counts once; it's "submitted"
+        // if that period has a report. Unlike currentPeriodStats (which only looks at the latest
+        // due period per scorecard), this answers "of everything that was due in this window, how
+        // much got reported?" so it tracks the date filter at the top of the dashboard.
         const teamIds = new Set(enrichedTeamPerformance.map((e: any) => e.id));
-        const teamCurrent = currentPeriodStats(periodsData.filter((p: any) => teamIds.has(p.employee_id)));
-        const totalPeriods = teamCurrent.expected;
-        const submittedPeriodCount = teamCurrent.submitted;
+        const windowStartMs = startDate ? new Date(startDate).getTime() : -Infinity;
+        const windowEndMs = endDate ? new Date(endDate).getTime() : Infinity;
+        const windowedSubmissionStats = (rows: any[]) => {
+            const byKey: Record<string, boolean> = {}; // period slot -> submitted? (dedupes duplicate rows)
+            for (const p of rows) {
+                if (p.status === 'void' || p.status === 'excused') continue;
+                const endT = new Date(p.period_end).getTime();
+                if (endT > nowMs) continue;                       // not due yet
+                if (endT < windowStartMs || endT > windowEndMs) continue; // outside selected range
+                const key = `${p.employee_id}|${p.goal_id}|${p.period_end}`;
+                byKey[key] = byKey[key] || p.report_id != null;
+            }
+            const keys = Object.keys(byKey);
+            const submitted = keys.filter(k => byKey[k]).length;
+            const expected = keys.length;
+            return { expected, submitted, pct: expected > 0 ? Math.round((submitted / expected) * 100) : null };
+        };
+        const teamWindow = windowedSubmissionStats(periodsData.filter((p: any) => teamIds.has(p.employee_id)));
+        const totalPeriods = teamWindow.expected;
+        const submittedPeriodCount = teamWindow.submitted;
 
         return {
             totalReports,
@@ -2378,7 +2401,8 @@ export const dashboardService = {
                 reportsDelta: null,
                 teamAvgScore: totalReports > 0 ? Number(avgScore.toFixed(1)) : null,
                 teamAvgDelta: null,
-                submissionRate: { submitted: submittedPeriodCount, expected: totalPeriods, pct: teamCurrent.pct },
+                submissionRate: { submitted: submittedPeriodCount, expected: totalPeriods, pct: teamWindow.pct },
+                contributorCount,
                 needsReviewCount,
             },
         };

@@ -38,9 +38,20 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
             const effectiveView = view ?? (isSenior ? 'org' : 'direct')
             // Enforce: non-senior managers cannot use org view even if ?view=org is in the URL
             const safeView = (!isSenior && effectiveView === 'org') ? 'direct' : effectiveView
+            // Manager dashboard defaults to the last 7 days when no range is selected.
+            // An explicit 'all' sentinel (from the date picker's "All Time") clears the filter.
+            let effStart = startDate
+            let effEnd = endDate
+            if (startDate === 'all') {
+                effStart = undefined
+                effEnd = undefined
+            } else if (!startDate && !endDate) {
+                effStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+                effEnd = new Date().toISOString()
+            }
             // Pass the org + active custom metrics we already fetched so the service can skip
             // re-fetching the manager profile, organization, and custom metrics (removes round-trips).
-            const data = await dashboardService.getManagerDashboardData(employee.id, safeView, startDate, endDate, {
+            const data = await dashboardService.getManagerDashboardData(employee.id, safeView, effStart, effEnd, {
                 orgId: employee.organizationId,
                 selectedMetricIds: (organization.selectedMetrics as string[] | undefined) || [],
                 activeCustomMetricNames: (organization.customMetrics || []).map((m: CustomMetric) => m.name),
