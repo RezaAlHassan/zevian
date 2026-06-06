@@ -16,15 +16,20 @@ import {
 } from 'date-fns'
 
 interface DateRangeSelectorProps {
-    startDate?: string // ISO string
+    startDate?: string // ISO string, or 'all' sentinel when defaultRangeDays is set
     endDate?: string   // ISO string
     onRangeChange: (start: string | undefined, end: string | undefined) => void
+    // When set, an empty selection defaults to the last N days (labelled "Last N Days")
+    // instead of "All Time", and picking "All Time" emits the 'all' sentinel so it can be
+    // distinguished from the empty default.
+    defaultRangeDays?: number
 }
 
 export function DateRangeSelector({
     startDate,
     endDate,
-    onRangeChange
+    onRangeChange,
+    defaultRangeDays
 }: DateRangeSelectorProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [showCalendar, setShowCalendar] = useState(false)
@@ -39,9 +44,13 @@ export function DateRangeSelector({
         }
     }
 
-    const selectedRange = startDate && endDate
-        ? `${displayFormat(startDate)} — ${displayFormat(endDate)}`
-        : 'All Time'
+    const selectedRange = startDate === 'all'
+        ? 'All Time'
+        : startDate && endDate
+            ? `${displayFormat(startDate)} — ${displayFormat(endDate)}`
+            : defaultRangeDays != null
+                ? `Last ${defaultRangeDays} Days`
+                : 'All Time'
 
     const handleRangeSelect = (start: Date, end: Date) => {
         onRangeChange(start.toISOString(), end.toISOString())
@@ -51,7 +60,13 @@ export function DateRangeSelector({
 
     const setQuickRange = (range: string) => {
         if (range === 'All Time') {
-            onRangeChange(undefined, undefined)
+            // With a default range, clearing params would fall back to the default, so emit an
+            // explicit 'all' sentinel. Without one, "All Time" is simply the empty selection.
+            if (defaultRangeDays != null) {
+                onRangeChange('all', 'all')
+            } else {
+                onRangeChange(undefined, undefined)
+            }
             setIsOpen(false)
             return
         }

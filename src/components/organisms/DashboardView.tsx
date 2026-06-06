@@ -344,9 +344,13 @@ export function DashboardView({ teamStats, organization }: Props) {
         <DateRangeSelector
           startDate={searchParams.get('start') || undefined}
           endDate={searchParams.get('end') || undefined}
+          defaultRangeDays={7}
           onRangeChange={(start, end) => {
             const params = new URLSearchParams(searchParams.toString())
-            if (start && end) {
+            if (start === 'all') {
+              params.set('start', 'all')
+              params.delete('end')
+            } else if (start && end) {
               params.set('start', start)
               params.set('end', end)
             } else {
@@ -362,8 +366,8 @@ export function DashboardView({ teamStats, organization }: Props) {
         <AIOrganizationSummaryCard
           organizationId={organization.id}
           organizationName={organization.name}
-          startDate={searchParams.get('start') || undefined}
-          endDate={searchParams.get('end') || undefined}
+          startDate={searchParams.get('start') === 'all' ? undefined : (searchParams.get('start') || undefined)}
+          endDate={searchParams.get('start') === 'all' ? undefined : (searchParams.get('end') || undefined)}
           autoGenerate={aiSummaryOpened}
         />
       )}
@@ -401,15 +405,19 @@ export function DashboardView({ teamStats, organization }: Props) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
         <KpiCard
-          label="Reports This Period"
+          label="Reports Submitted"
           value={kpis.reportsThisPeriod ?? 0}
-          subtitle="vs previous period"
+          subtitle={
+            kpis.contributorCount
+              ? `across ${kpis.contributorCount} team member${kpis.contributorCount === 1 ? '' : 's'}`
+              : 'no reports yet'
+          }
           delta={kpis.reportsDelta}
         />
         <KpiCard
           label="Team Avg Score"
           value={kpis.teamAvgScore != null ? kpis.teamAvgScore.toFixed(1) : '—'}
-          subtitle="vs previous period"
+          subtitle="out of 10"
           delta={kpis.teamAvgDelta}
           tone={scoreBand(kpis.teamAvgScore)}
         />
@@ -418,10 +426,10 @@ export function DashboardView({ teamStats, organization }: Props) {
           value={kpis.submissionRate?.pct != null ? `${kpis.submissionRate.pct}%` : '—'}
           subtitle={
             kpis.submissionRate?.expected
-              ? `${kpis.submissionRate.submitted} of ${kpis.submissionRate.expected} reports due now`
+              ? `${kpis.submissionRate.expected} report${kpis.submissionRate.expected === 1 ? '' : 's'} due`
               : 'none due yet'
           }
-          info="Counts the most recent report due for each active scorecard. Excludes future periods and approved leave."
+          info="Of every report due in the selected date range, the share that was submitted. Excludes periods not yet due and approved leave."
           tone={
             kpis.submissionRate?.pct == null ? 'neutral'
               : kpis.submissionRate.pct >= 80 ? 'green'
@@ -432,7 +440,7 @@ export function DashboardView({ teamStats, organization }: Props) {
         <KpiCard
           label="Needs Review"
           value={kpis.needsReviewCount ?? 0}
-          subtitle="older than 24h"
+          subtitle={(kpis.needsReviewCount ?? 0) > 0 ? 'awaiting your review' : 'all caught up'}
           tone={(kpis.needsReviewCount ?? 0) > 0 ? 'amber' : 'neutral'}
           onClick={() => recentReportsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
