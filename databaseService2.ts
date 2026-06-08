@@ -2281,11 +2281,37 @@ export const dashboardService = {
                 const recentFlags = empReports.slice(0, 3).flatMap((r: any) => parseDashboardTags(r));
                 if (recentFlags.includes('ESCALATING_CLAIMS') && !tags.find(t => t.type === 'ESCALATING_CLAIMS')) tags.push({ type: 'ESCALATING_CLAIMS' });
                 if (recentFlags.includes('STAGNANT_LANGUAGE') && !tags.find(t => t.type === 'STAGNANT_LANGUAGE')) tags.push({ type: 'STAGNANT_LANGUAGE' });
+
+                // Evidence line: lowest-scoring criterion from the most recent report that has a breakdown.
+                // reportsData is ordered submission_date desc, so empReports is already latest-first.
+                let reason: { criterionName: string; score: number; reportDate: string } | { text: string } | null = null;
+                const latestWithCriteria = empReports.find((r: any) => Array.isArray(r.report_criterion_scores) && r.report_criterion_scores.length > 0);
+                if (latestWithCriteria) {
+                    const lowest = latestWithCriteria.report_criterion_scores.reduce(
+                        (min: any, c: any) => (c.score != null && (min == null || c.score < min.score) ? c : min),
+                        null as any
+                    );
+                    if (lowest && lowest.score != null) {
+                        reason = { criterionName: lowest.criterion_name, score: lowest.score, reportDate: latestWithCriteria.submission_date };
+                    }
+                }
+                if (!reason) {
+                    // Fallback: score-trend sentence from latest vs previous report.
+                    const latestScore = empReports[0] ? (empReports[0].manager_overall_score ?? empReports[0].evaluation_score ?? null) : null;
+                    const prevScore = empReports[1] ? (empReports[1].manager_overall_score ?? empReports[1].evaluation_score ?? null) : null;
+                    if (latestScore != null && prevScore != null && latestScore < prevScore) {
+                        reason = { text: `Score fell ${prevScore.toFixed(1)} → ${latestScore.toFixed(1)} over last 2 reports` };
+                    } else if (missedCount > 0) {
+                        reason = { text: `Missed ${missedCount} reporting period${missedCount === 1 ? '' : 's'}` };
+                    }
+                }
+
                 return {
                     id: emp.id,
                     name: emp.name,
                     title: emp.role,
                     tags,
+                    reason,
                     reviewHref: `/employees/${emp.id}`,
                     latestDrop: emp.score,
                 };
@@ -2301,6 +2327,7 @@ export const dashboardService = {
             goalName: r.goals?.name || null,
             projectName: r.goals?.projects?.name || null,
             date: r.submission_date,
+            submittedAt: r.submitted_at ?? r.created_at ?? null,
             score: r.manager_overall_score ?? r.evaluation_score ?? null,
             tags: parseDashboardTags(r),
             reviewed: r.reviewed_by != null || r.manager_overall_score != null,

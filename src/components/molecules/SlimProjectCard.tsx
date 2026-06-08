@@ -1,10 +1,10 @@
 'use client'
 
-import { colors, radius, animation, typography, getScoreColor, shadows } from '@/design-system'
+import { colors, radius, animation, typography, getScoreColor, getScoreBarFill } from '@/design-system'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { Icon } from '@/components/atoms/Icon'
 import React from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface SlimProjectCardProps {
@@ -16,6 +16,7 @@ interface SlimProjectCardProps {
   reportCount: number
   emoji?: string
   basePath?: string
+  isLast?: boolean
 }
 
 export function SlimProjectCard({
@@ -26,28 +27,30 @@ export function SlimProjectCard({
   score,
   reportCount,
   emoji,
-  basePath = '/projects'
+  basePath = '/projects',
+  isLast = false,
 }: SlimProjectCardProps) {
   const searchParams = useSearchParams()
-  const view = searchParams.get('view') || 'org'
+  const [hovered, setHovered] = React.useState(false)
   const emojiValue = emoji || '🖥️'
   const scoreColor = getScoreColor(score)
 
   return (
     <Link href={`${basePath}/${id}?${searchParams.toString()}`} style={{ textDecoration: 'none' }}>
       <div
-        className="slim-project-card"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
-          background: colors.surface,
-          border: `1px solid ${colors.border}`,
-          borderRadius: radius.xl,
-          padding: '10px 14px',
+          padding: '14px 10px',
+          margin: '0 -10px',
+          borderRadius: 8,
+          borderBottom: isLast ? 'none' : `1px solid ${colors.border}`,
+          boxShadow: hovered ? 'inset 0 0 0 1px rgba(255,255,255,0.09)' : 'none',
+          transition: `box-shadow ${animation.fast}`,
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
           cursor: 'pointer',
-          transition: `all ${animation.base}`,
-          minHeight: '64px',
         }}
       >
         <div style={{
@@ -65,13 +68,13 @@ export function SlimProjectCard({
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ 
-            fontFamily: typography.fonts.display, 
-            fontSize: '13px', 
-            fontWeight: 700, 
-            color: colors.text, 
-            whiteSpace: 'nowrap', 
-            overflow: 'hidden', 
+          <div style={{
+            fontFamily: typography.fonts.display,
+            fontSize: '13px',
+            fontWeight: 700,
+            color: colors.text,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
             textOverflow: 'ellipsis',
             marginBottom: '2px'
           }}>
@@ -85,27 +88,27 @@ export function SlimProjectCard({
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
           {typeof score === 'number' && !isNaN(score) && (
             <div style={{ textAlign: 'right' }}>
-              <div style={{ 
-                fontFamily: typography.fonts.numeric, 
-                fontSize: '14px', 
-                fontWeight: 900, 
+              <div style={{
+                fontFamily: typography.fonts.numeric,
+                fontSize: '14px',
+                fontWeight: 900,
                 color: scoreColor,
                 lineHeight: 1
               }}>
                 {score.toFixed(1)}
               </div>
-              <div style={{ 
-                height: '3px', 
-                width: '32px', 
-                background: colors.surface3, 
-                borderRadius: '2px', 
+              <div style={{
+                height: '3px',
+                width: '32px',
+                background: colors.surface3,
+                borderRadius: '2px',
                 marginTop: '4px',
                 overflow: 'hidden'
               }}>
-                <div style={{ 
-                  height: '100%', 
-                  width: `${score * 10}%`, 
-                  background: scoreColor 
+                <div style={{
+                  height: '100%',
+                  width: `${score * 10}%`,
+                  background: getScoreBarFill(score)
                 }} />
               </div>
             </div>
@@ -115,15 +118,6 @@ export function SlimProjectCard({
             <Icon name="chevronRight" size={14} />
           </div>
         </div>
-
-        <style jsx>{`
-          .slim-project-card:hover {
-            border-color: ${colors.accent}40 !important;
-            background: ${colors.surface2} !important;
-            transform: translateX(2px);
-            box-shadow: ${shadows.cardHover};
-          }
-        `}</style>
       </div>
     </Link>
   )

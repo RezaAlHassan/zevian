@@ -12,6 +12,8 @@ interface BaseProps {
   goalName?: string
   projectName?: string
   date: string
+  /** Full timestamp used for the hover tooltip; falls back to `date` when absent. */
+  timestamp?: string | null
 }
 
 interface MissedProps extends BaseProps {
@@ -66,19 +68,15 @@ function relativeTime(iso: string): { label: string; color: string } {
 function exactTime(iso: string): string {
   try {
     const date = new Date(iso)
-    const diffHours = (Date.now() - date.getTime()) / 3600000
     const datePart = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    if (diffHours < 24) {
-      const timePart = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-      return `${datePart} · ${timePart}`
-    }
-    return datePart
+    const timePart = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    return `${datePart} · ${timePart}`
   } catch {
     return iso
   }
 }
 
-function RelativeDate({ iso }: { iso: string }) {
+function RelativeDate({ iso, exactIso }: { iso: string; exactIso?: string | null }) {
   const [hovered, setHovered] = React.useState(false)
   const { label, color } = relativeTime(iso)
   return (
@@ -105,7 +103,7 @@ function RelativeDate({ iso }: { iso: string }) {
           pointerEvents: 'none',
           zIndex: 50,
         }}>
-          {exactTime(iso)}
+          {exactTime(exactIso || iso)}
         </span>
       )}
     </span>
@@ -196,7 +194,7 @@ export function RecentReportItem(props: Props) {
             </div>
           </div>
         </div>
-        <div style={{ flexShrink: 0 }}><RelativeDate iso={props.date} /></div>
+        <div style={{ flexShrink: 0 }}><RelativeDate iso={props.date} exactIso={props.timestamp} /></div>
       </div>
     )
   }
@@ -275,7 +273,7 @@ export function RecentReportItem(props: Props) {
           {(props.goalName || props.projectName) && (
             <span style={{ fontSize: '12px', color: colors.text3 }}>·</span>
           )}
-          <RelativeDate iso={props.date} />
+          <RelativeDate iso={props.date} exactIso={props.timestamp} />
         </div>
 
         {integrityTags.length > 0 && (

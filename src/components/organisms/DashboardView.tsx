@@ -3,8 +3,9 @@
 import React from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { colors, layout, radius, typography, getScoreColor, shadows, animation } from '@/design-system'
+import { colors, layout, radius, typography, getScoreColor, getScoreBarFill, shadows, animation } from '@/design-system'
 import { Avatar, StatusPill } from '@/components/atoms'
+import { Icon } from '@/components/atoms/Icon'
 import { Card } from '@/components/molecules/Card'
 import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import { AIOrganizationSummaryCard } from '@/components/molecules/AIOrganizationSummaryCard'
@@ -114,11 +115,14 @@ function KpiCard({
   )
 }
 
-function FilterChip({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function FilterChip({ active, label, onClick, count }: { active: boolean; label: string; onClick: () => void; count?: number }) {
   return (
     <button
       onClick={onClick}
       style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
         padding: '7px 12px',
         borderRadius: '999px',
         border: `1px solid ${active ? colors.accent : colors.border}`,
@@ -130,6 +134,24 @@ function FilterChip({ active, label, onClick }: { active: boolean; label: string
       }}
     >
       {label}
+      {count != null && count > 0 && (
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: '16px',
+          height: '16px',
+          padding: '0 5px',
+          borderRadius: '999px',
+          fontSize: '10px',
+          fontWeight: 800,
+          lineHeight: 1,
+          color: active ? colors.accent : colors.text2,
+          background: active ? 'rgba(91,127,255,0.18)' : colors.surface3,
+        }}>
+          {count}
+        </span>
+      )}
     </button>
   )
 }
@@ -242,6 +264,7 @@ export function DashboardView({ teamStats, organization }: Props) {
     (teamStats?.metricStats || []).some((metric: any) => (metric.avg ?? 10) < 7)
   )
   const [hoveredPerfId, setHoveredPerfId] = React.useState<string | null>(null)
+  const [unscoredGoalsOpen, setUnscoredGoalsOpen] = React.useState(false)
 
   const paramsString = searchParams.toString()
   const appendParams = React.useCallback((href: string) => {
@@ -301,6 +324,19 @@ export function DashboardView({ teamStats, organization }: Props) {
 
     return filtered.slice(0, 8)
   }, [recentReports, reportFilter, reportingPeriods])
+
+  const reportFilterCounts = React.useMemo(() => {
+    const FLAG_TYPES = ['PROMPT_INJECTION', 'ESCALATING_CLAIMS', 'STAGNANT_LANGUAGE', 'KEYWORD_STUFFING', 'PADDING']
+    return {
+      'needs-review': recentReports.filter((r: any) => !r.reviewed).length,
+      flagged: recentReports.filter((r: any) => (r.tags ?? []).some((t: string) => FLAG_TYPES.includes(t))).length,
+      late: recentReports.filter((r: any) => (r.tags ?? []).includes('LATE')).length,
+      missed: reportingPeriods.filter((p: any) => p.status === 'missed').length,
+    }
+  }, [recentReports, reportingPeriods])
+
+  const scoredGoals = goals.filter((g: any) => (g.reports ?? 0) > 0)
+  const unscoredGoals = goals.filter((g: any) => (g.reports ?? 0) === 0)
 
   const unhealthyMetrics = metricStats.filter((metric: any) => (metric.avg ?? 10) < 7)
   const showOrgMetrics = metricStats.length > 0
@@ -387,15 +423,33 @@ export function DashboardView({ teamStats, organization }: Props) {
                         return <InlineTag key={`${employee.id}-${index}`} label={formatted.label} tone={formatted.tone} />
                       })}
                     </div>
+                    {employee.reason && (
+                      <div style={{ fontSize: '12px', color: colors.text3, marginTop: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {'criterionName' in employee.reason ? (
+                          <>
+                            Lowest: {employee.reason.criterionName}{' '}
+                            <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 700, color: getScoreColor(employee.reason.score) }}>{employee.reason.score.toFixed(1)}</span>
+                            <span style={{ color: colors.text3 }}> · {new Date(employee.reason.reportDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                          </>
+                        ) : (
+                          employee.reason.text
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                  {typeof employee.latestDrop === 'number' && (
-                    <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, color: getScoreColor(employee.latestDrop), fontSize: '22px', lineHeight: 1 }}>
-                      {employee.latestDrop.toFixed(1)}
-                    </span>
-                  )}
-                  <StatusPill status="review" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                    {typeof employee.latestDrop === 'number' && (
+                      <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, color: getScoreColor(employee.latestDrop), fontSize: '22px', lineHeight: 1 }}>
+                        {employee.latestDrop.toFixed(1)}
+                      </span>
+                    )}
+                    <StatusPill status="review" />
+                  </div>
+                  <div style={{ color: colors.text3, opacity: 0.5, display: 'flex' }}>
+                    <Icon name="chevronRight" size={14} />
+                  </div>
                 </div>
               </Link>
             ))}
@@ -456,10 +510,10 @@ export function DashboardView({ teamStats, organization }: Props) {
           >
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
               <FilterChip active={reportFilter === 'all'} label="All" onClick={() => setReportFilter('all')} />
-              <FilterChip active={reportFilter === 'needs-review'} label="Needs Review" onClick={() => setReportFilter('needs-review')} />
-              <FilterChip active={reportFilter === 'flagged'} label="Flagged" onClick={() => setReportFilter('flagged')} />
-              <FilterChip active={reportFilter === 'late'} label="Late" onClick={() => setReportFilter('late')} />
-              <FilterChip active={reportFilter === 'missed'} label="Missed" onClick={() => setReportFilter('missed')} />
+              <FilterChip active={reportFilter === 'needs-review'} label="Needs Review" count={reportFilterCounts['needs-review']} onClick={() => setReportFilter('needs-review')} />
+              <FilterChip active={reportFilter === 'flagged'} label="Flagged" count={reportFilterCounts.flagged} onClick={() => setReportFilter('flagged')} />
+              <FilterChip active={reportFilter === 'late'} label="Late" count={reportFilterCounts.late} onClick={() => setReportFilter('late')} />
+              <FilterChip active={reportFilter === 'missed'} label="Missed" count={reportFilterCounts.missed} onClick={() => setReportFilter('missed')} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {filteredReportRows.length > 0 ? filteredReportRows.map((item: any, index: number) => (
@@ -486,6 +540,7 @@ export function DashboardView({ teamStats, organization }: Props) {
                     goalName={item.goalName}
                     projectName={item.projectName}
                     date={item.date}
+                    timestamp={item.submittedAt}
                     score={item.score}
                     tags={item.tags}
                     reviewed={item.reviewed}
@@ -551,17 +606,22 @@ export function DashboardView({ teamStats, organization }: Props) {
                       <div style={{ fontSize: '12px', color: colors.text3, marginTop: '4px' }}>{metaLine}</div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                    {employee.score != null && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, color: scoreColor, fontSize: '15px', lineHeight: 1 }}>{employee.score.toFixed(1)}</span>
-                        {trendArrow && <span style={{ fontSize: '11px', fontWeight: 700, color: trendColor, lineHeight: 1 }}>{trendArrow}</span>}
-                      </div>
-                    )}
-                    <StatusPill status={employee.status}>
-                      {employee.status === 'no-data' ? 'Building Baseline' : undefined}
-                    </StatusPill>
-                    {employee.trustSignal?.label && <InlineTag label={employee.trustSignal.label} tone={employee.trustSignal.color === 'green' ? 'green' : employee.trustSignal.color === 'amber' ? 'amber' : 'neutral'} />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                      {employee.score != null && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, color: scoreColor, fontSize: '15px', lineHeight: 1 }}>{employee.score.toFixed(1)}</span>
+                          {trendArrow && <span style={{ fontSize: '11px', fontWeight: 700, color: trendColor, lineHeight: 1 }}>{trendArrow}</span>}
+                        </div>
+                      )}
+                      <StatusPill status={employee.status}>
+                        {employee.status === 'no-data' ? 'Building Baseline' : undefined}
+                      </StatusPill>
+                      {employee.trustSignal?.label && <InlineTag label={employee.trustSignal.label} tone={employee.trustSignal.color === 'green' ? 'green' : employee.trustSignal.color === 'amber' ? 'amber' : 'neutral'} />}
+                    </div>
+                    <div style={{ color: colors.text3, opacity: hoveredPerfId === employee.id ? 0.9 : 0.4, transition: `opacity ${animation.base}`, display: 'flex' }}>
+                      <Icon name="chevronRight" size={14} />
+                    </div>
                   </div>
                 </Link>
               )
@@ -629,48 +689,51 @@ export function DashboardView({ teamStats, organization }: Props) {
         )}
       </Card>
 
-      {showOrgMetrics && (
-        <Card
-          title="Org Metrics"
-          icon="chart"
-          chip={
-            unhealthyMetrics.length === 0
-              ? <InlineTag label="● All healthy" tone="green" />
-              : <InlineTag label={`⚠ ${unhealthyMetrics.length} metric${unhealthyMetrics.length === 1 ? '' : 's'} need attention`} tone="amber" />
-          }
-          action={
-            <button onClick={() => setOrgMetricsExpanded((v: boolean) => !v)} style={{ background: 'transparent', border: 'none', color: colors.text3, cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>
-              {orgMetricsExpanded ? 'collapse ▴' : 'expand ▾'}
-            </button>
-          }
-        >
-          {orgMetricsExpanded && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {metricStats.map((metric: any) => {
-                const tone = scoreBand(metric.avg)
-                const color = tone === 'green' ? colors.green : tone === 'amber' ? colors.warn : tone === 'red' ? colors.danger : colors.text3
-                const trendLabel = metric.trend === 'up' ? '↑ improving' : metric.trend === 'down' ? '↓ declining' : '→ stable'
-                return (
-                  <div key={metric.id} style={{ display: 'grid', gridTemplateColumns: '180px 52px 1fr 110px', gap: '12px', alignItems: 'center' }}>
-                    <div style={{ fontSize: '13px', color: colors.text }}>{metric.name}</div>
-                    <div style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, color }}>{metric.avg?.toFixed(1)}</div>
-                    <div style={{ height: '10px', borderRadius: '999px', background: colors.surface2, overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.max(0, Math.min(100, (metric.avg ?? 0) * 10))}%`, height: '100%', background: color }} />
+      <div style={{ display: 'grid', gridTemplateColumns: showOrgMetrics ? 'minmax(0, 1fr) minmax(0, 1fr)' : '1fr', gap: '16px', alignItems: 'start' }}>
+        {showOrgMetrics && (
+          <Card
+            title="Org Metrics"
+            icon="chart"
+            chip={
+              unhealthyMetrics.length === 0
+                ? <InlineTag label="● All healthy" tone="green" />
+                : <InlineTag label={`⚠ ${unhealthyMetrics.length} metric${unhealthyMetrics.length === 1 ? '' : 's'} need attention`} tone="amber" />
+            }
+            action={
+              <button onClick={() => setOrgMetricsExpanded((v: boolean) => !v)} style={{ background: 'transparent', border: 'none', color: colors.text3, cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}>
+                {orgMetricsExpanded ? 'collapse ▴' : 'expand ▾'}
+              </button>
+            }
+          >
+            {orgMetricsExpanded && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {metricStats.map((metric: any) => {
+                  const color = getScoreColor(metric.avg)
+                  const trendLabel = metric.trend === 'up' ? '↑ improving' : metric.trend === 'down' ? '↓ declining' : '→ stable'
+                  return (
+                    <div key={metric.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '13px', color: colors.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{metric.name}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                          <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, color }}>{metric.avg?.toFixed(1)}</span>
+                          <span style={{ fontSize: '11px', color: metric.trend === 'down' ? colors.warn : colors.text3 }}>{trendLabel}</span>
+                        </span>
+                      </div>
+                      <div style={{ height: '7px', borderRadius: '999px', background: colors.surface2, overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.max(0, Math.min(100, (metric.avg ?? 0) * 10))}%`, height: '100%', background: getScoreBarFill(metric.avg) }} />
+                      </div>
                     </div>
-                    <div style={{ fontSize: '12px', color: metric.trend === 'down' ? colors.warn : colors.text3, textAlign: 'right' }}>{trendLabel}</div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </Card>
-      )}
+                  )
+                })}
+              </div>
+            )}
+          </Card>
+        )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '16px', alignItems: 'start' }}>
         <Card title="Scorecard Alignment" icon="target">
-          {goals.length > 0 ? (
+          {scoredGoals.length > 0 || unscoredGoals.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {goals.map((goal: any) => {
+              {scoredGoals.map((goal: any) => {
                 const color = getScoreColor(goal.score)
                 return (
                   <div key={goal.id}>
@@ -679,28 +742,51 @@ export function DashboardView({ teamStats, organization }: Props) {
                       <span style={{ fontFamily: typography.fonts.numeric, fontWeight: 900, color }}>{goal.score.toFixed(1)}</span>
                     </div>
                     <div style={{ height: '7px', background: colors.surface2, borderRadius: '999px', overflow: 'hidden' }}>
-                      <div style={{ width: `${goal.score * 10}%`, height: '100%', background: color }} />
+                      <div style={{ width: `${goal.score * 10}%`, height: '100%', background: getScoreBarFill(goal.score) }} />
                     </div>
                     <div style={{ marginTop: '4px', fontSize: '12px', color: colors.text3 }}>{goal.owner} · {goal.reports} reports</div>
                   </div>
                 )
               })}
+              {scoredGoals.length === 0 && (
+                <div style={{ color: colors.text3, fontSize: '13px' }}>No scored scorecards in this range yet.</div>
+              )}
+              {unscoredGoals.length > 0 && (
+                <div style={{ borderTop: scoredGoals.length > 0 ? `1px solid ${colors.border}` : 'none', paddingTop: scoredGoals.length > 0 ? '14px' : 0 }}>
+                  <button
+                    onClick={() => setUnscoredGoalsOpen(v => !v)}
+                    style={{ background: 'transparent', border: 'none', color: colors.text3, cursor: 'pointer', fontSize: '12px', fontWeight: 700, padding: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    Not yet scored ({unscoredGoals.length}) {unscoredGoalsOpen ? '▴' : '▾'}
+                  </button>
+                  {unscoredGoalsOpen && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
+                      {unscoredGoals.map((goal: any) => (
+                        <div key={goal.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{goal.name}</span>
+                          <span style={{ fontSize: '12px', color: colors.text3, flexShrink: 0 }}>{goal.owner} · No reports yet</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ color: colors.text3, fontSize: '13px' }}>No scorecard alignment data in this range.</div>
           )}
         </Card>
-
-        <Card title="Ongoing Projects" icon="projects">
-          {projects.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {projects.slice(0, 3).map((project: any) => <SlimProjectCard key={project.id} {...project} />)}
-            </div>
-          ) : (
-            <div style={{ color: colors.text3, fontSize: '13px' }}>No active projects to show.</div>
-          )}
-        </Card>
       </div>
+
+      <Card title="Ongoing Projects" icon="projects">
+        {projects.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {projects.slice(0, 3).map((project: any, index: number, arr: any[]) => <SlimProjectCard key={project.id} {...project} isLast={index === arr.length - 1} />)}
+          </div>
+        ) : (
+          <div style={{ color: colors.text3, fontSize: '13px' }}>No active projects to show.</div>
+        )}
+      </Card>
 
       <style jsx>{`
         .hoverable-card {
