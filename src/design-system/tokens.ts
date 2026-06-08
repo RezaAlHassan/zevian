@@ -179,6 +179,19 @@ export function getScoreBarColor(score: number | null | undefined): string {
   return getScoreColor(score)
 }
 
+/**
+ * Muted progress-bar fill. Returns a low-opacity tint of the status color so bars
+ * read as quiet context rather than competing alarms — color hierarchy is reserved
+ * for status pills, the Needs Attention section, and integrity flags. The numeric
+ * score next to the bar keeps its full-saturation getScoreColor() value.
+ */
+export function getScoreBarFill(score: number | null | undefined): string {
+  if (score == null) return colors.surface3
+  if (score >= 7.5) return 'rgba(16,185,129,0.40)'   // green tint
+  if (score >= 6.0) return 'rgba(245,158,11,0.40)'   // amber tint
+  return 'rgba(240,68,56,0.40)'                        // danger tint
+}
+
 export function getScoreStatus(score: number | null | undefined): 'on-track' | 'review' | 'at-risk' | 'no-data' {
   if (score == null) return 'no-data'
   if (score >= 7.5) return 'on-track'
