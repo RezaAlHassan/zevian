@@ -1266,11 +1266,16 @@ export const reportService = {
 
         if (employeeIds.length === 0) return [];
 
+        // The date picker emits an 'all' sentinel for "All Time"; treat it as no filter
+        // so it never reaches Postgres as a timestamp value.
+        if (startDate === 'all') startDate = undefined;
+        if (endDate === 'all') endDate = undefined;
+
         let query = supabase
             .from('reports')
             .select('*, goals(id, name, projects(id, name)), employees!reports_employee_id_fkey(id, name, title, avatar_url), report_criterion_scores(*)')
             .in('employee_id', employeeIds);
-        
+
         if (startDate) {
             query = query.gte('submission_date', startDate);
         }
@@ -1285,6 +1290,10 @@ export const reportService = {
     },
 
     async getEmployeeReports(employeeId: string, startDate?: string, endDate?: string) {
+        // 'all' is the date picker's "All Time" sentinel — clear it before it hits Postgres.
+        if (startDate === 'all') startDate = undefined;
+        if (endDate === 'all') endDate = undefined;
+
         let query = supabase
             .from('reports')
             .select('*, goals(id, name, projects(id, name)), employees!reports_employee_id_fkey(id, name, title, avatar_url), report_criterion_scores(*)')
@@ -1309,7 +1318,7 @@ export const reportService = {
 // ============================================================================
 
 // Helper function to convert database employee to TypeScript Employee
-function dbEmployeeToEmployee(dbEmployee: any): Employee {
+export function dbEmployeeToEmployee(dbEmployee: any): Employee {
     if (dbEmployee.id === 'emp-1774254984062-870') {
         console.log('--- RAW DB EMPLOYEE (Target) ---', JSON.stringify(dbEmployee, null, 2));
     }
@@ -1703,6 +1712,10 @@ export const notificationService = {
 // ============================================================================
 export const dashboardService = {
     async getEmployeeDashboardData(employeeId: string, startDate?: string, endDate?: string) {
+        // 'all' is the date picker's "All Time" sentinel — clear it before it hits Postgres.
+        if (startDate === 'all') startDate = undefined;
+        if (endDate === 'all') endDate = undefined;
+
         // Batch 1: all four queries are independent — run in parallel
         let reportsQuery = supabase
             .from('reports')
@@ -2159,6 +2172,7 @@ export const dashboardService = {
                 score: Number(goalScore.toFixed(1)),
                 owner: topOwner ? topOwner.name : 'Unassigned',
                 reports: goalReports.length,
+                criteriaCount: Array.isArray(g.criteria) ? g.criteria.length : 0,
                 overdue: false,
             };
         }).filter((g: any) => g.reports > 0 || goalsData.length <= 10)

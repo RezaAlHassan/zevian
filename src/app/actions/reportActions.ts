@@ -7,22 +7,18 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { revalidatePath } from 'next/cache'
 import { getPeriodKey } from '@/utils/reportPeriod'
 import { withRetry } from '@/lib/ai/withRetry'
+import { getSessionContext } from '@/lib/auth/session'
 
 export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', startDate?: string, endDate?: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-        if (authError || !user) {
-            console.error('Auth Error:', authError)
+        // Cached identity lookup shared with the layout — no repeat auth/employee round-trips.
+        const ctx = await getSessionContext()
+        if (!ctx) {
             return { error: 'Not authenticated' }
         }
-
-        // Get employee by auth_user_id
-        const employee = await employeeService.getByAuthId(user.id)
-        if (!employee) {
-            return { error: 'Employee record not found' }
-        }
+        const { employee } = ctx
 
         if (employee.role !== 'manager' && employee.role !== 'admin' && !employee.isAccountOwner) {
             // For non-managers, they might only see their own reports

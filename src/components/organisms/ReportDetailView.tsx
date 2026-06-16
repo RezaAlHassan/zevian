@@ -431,17 +431,40 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     </div>
                 )}
 
-                {activeTab === 'content' && (
-                    <div>
-                        <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                            <Icon name="fileText" size={13} color={colors.accent} />
-                            Submitted Content
+                {activeTab === 'content' && (() => {
+                    const raw = report.reportText || ''
+                    const isManagerUpload = raw.startsWith('[Manager upload]')
+                    const displayText = isManagerUpload
+                        ? raw.replace(/^\[Manager upload\]\n?/, '')
+                        : raw
+                    return (
+                        <div>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                                <Icon name="fileText" size={13} color={colors.accent} />
+                                Submitted Content
+                                {isManagerUpload && (
+                                    <span style={{
+                                        fontSize: '10px',
+                                        fontWeight: 700,
+                                        letterSpacing: '0.05em',
+                                        textTransform: 'uppercase',
+                                        color: colors.accent,
+                                        background: colors.accentGlow,
+                                        border: `1px solid ${colors.accentBorder}`,
+                                        padding: '2px 7px',
+                                        borderRadius: '20px',
+                                        marginLeft: '6px',
+                                    }}>
+                                        Manager upload
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '10px', padding: '20px', fontSize: '13.5px', lineHeight: 1.8, color: colors.text, whiteSpace: 'pre-wrap' }}>
+                                {displayText}
+                            </div>
                         </div>
-                        <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '10px', padding: '20px', fontSize: '13.5px', lineHeight: 1.8, color: colors.text, whiteSpace: 'pre-wrap' }}>
-                            {report.reportText}
-                        </div>
-                    </div>
-                )}
+                    )
+                })()}
 
                 {activeTab === 'activity' && (
                     <div>

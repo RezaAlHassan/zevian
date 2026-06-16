@@ -1,6 +1,6 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase/server'
+import { createServerClient, createAdminClient } from '@/lib/supabase/server'
 import { goalService, employeeService } from '@/../databaseService2'
 import { revalidatePath } from 'next/cache'
 
@@ -142,6 +142,90 @@ export async function getEmployeeGoalsAction() {
     } catch (error: any) {
         console.error('getEmployeeGoalsAction Error:', error)
         return { success: false, error: error.message }
+    }
+}
+
+export async function addCriterionToGoalAction(input: {
+    goalId: string
+    name: string
+    importance: 'low' | 'medium' | 'high' | 'critical'
+}): Promise<{ success: true; criteria: { id: string; name: string; weight: number; target_description: string | null }[] } | { error: string }> {
+    try {
+        const supabase = createServerClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Not authenticated' }
+
+        const employee = await employeeService.getByAuthId(user.id)
+        if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) {
+            return { error: 'Unauthorized: Only managers can manage goals' }
+        }
+
+        // Use admin client to read/write criteria directly — avoids the goalService.update
+        // no-op problem where passing only criteria leaves dbUpdates={} and .single() returns PGRST116.
+        const admin = createAdminClient()
+
+        const { data: existingRows, error: fetchErr } = await (admin as any)
+            .from('criteria')
+            .select('id, name, weight, target_description')
+            .eq('goal_id', input.goalId)
+            .order('display_order', { ascending: true })
+        if (fetchErr) throw fetchErr
+        console.log('[addCriterionToGoalAction] existing criteria count:', (existingRows || []).length, 'goalId:', input.goalId)
+
+        // New KPI takes a fixed share based on importance; existing KPIs scale down proportionally.
+        const importanceTargetWeight: Record<string, number> = {
+            low: 10, medium: 15, high: 22, critical: 33,
+        }
+        const newCritWeight = importanceTargetWeight[input.importance] ?? 15
+        const scaleRatio = (100 - newCritWeight) / 100
+
+        const existing = (existingRows || []).map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            weight: Math.round((c.weight || 0) * scaleRatio),
+            target_description: c.target_description ?? null,
+        }))
+
+        const newCrit = {
+            id: `crit-${Math.random().toString(36).slice(2, 7)}`,
+            name: input.name.trim(),
+            weight: newCritWeight,
+            target_description: null,
+        }
+
+        const all = [...existing, newCrit]
+        const sum = all.reduce((s, c) => s + c.weight, 0)
+        if (sum !== 100 && all.length > 0) {
+            all[all.length - 1].weight += (100 - sum)
+        }
+
+        // Delete existing and re-insert (same pattern goalService.update uses for criteria).
+        const { error: deleteErr } = await (admin as any)
+            .from('criteria')
+            .delete()
+            .eq('goal_id', input.goalId)
+        if (deleteErr) throw deleteErr
+
+        const { error: insertErr } = await (admin as any)
+            .from('criteria')
+            .insert(all.map((c, idx) => ({
+                id: c.id,
+                goal_id: input.goalId,
+                name: c.name,
+                weight: c.weight,
+                display_order: idx,
+                target_description: c.target_description,
+            })))
+        if (insertErr) throw insertErr
+
+        console.log('[addCriterionToGoalAction] saved', all.length, 'criteria, new KPI:', input.name)
+        revalidatePath('/goals')
+        revalidatePath('/upload')
+
+        return { success: true, criteria: all }
+    } catch (error: any) {
+        console.error('addCriterionToGoalAction Error:', error)
+        return { error: error.message || 'Failed to add KPI' }
     }
 }
 

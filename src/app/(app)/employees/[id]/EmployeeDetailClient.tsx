@@ -9,7 +9,6 @@ import { ScoreDisplay, ScoreBar, MiniBar } from '@/components/atoms/Score'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import { EmployeeDashboardView } from '@/components/organisms/EmployeeDashboardView'
-import { AISummaryCard } from '@/components/molecules/AISummaryCard'
 import { calculateReportStatus, isLateSubmission } from '@/lib/utils/reportStatus'
 import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -123,11 +122,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
         />
       </header>
 
-      <div style={{ padding: '0 28px 60px' }}>
-        <div style={{ padding: '24px 0 20px' }}>
-          <AISummaryCard employeeId={id} employeeName={employee.name} startDate={startDate} endDate={endDate} />
-        </div>
-
+      <div style={{ padding: '24px 28px 60px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
           <div style={{ display: 'flex', gap: '32px', borderBottom: `1px solid ${colors.border}` }}>
             {([

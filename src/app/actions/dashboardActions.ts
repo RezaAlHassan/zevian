@@ -1,33 +1,25 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
-import { dashboardService, employeeService, organizationService, customMetricService, goalService, reportService, notificationService, leaveService } from '@/../databaseService2'
+import { dashboardService, employeeService, organizationService, goalService, reportService, notificationService, leaveService } from '@/../databaseService2'
 import { CustomMetric } from '@/types'
 import { computeTrustSignal } from '@/utils/trustSignal'
+import { getSessionContext } from '@/lib/auth/session'
 
 export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?: string, endDate?: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-        if (authError || !user) {
-            console.error('Auth Error:', authError)
+        // Single cached round-trip: validated user + employee + organization + active
+        // custom metrics. Shared with the layout, so the auth + identity lookup isn't repeated.
+        const ctx = await getSessionContext()
+        if (!ctx) {
             return { error: 'Not authenticated' }
         }
-
-        // Get employee by auth_user_id
-        const employee = await employeeService.getByAuthId(user.id)
-        if (!employee || !employee.organizationId) {
+        const { employee, organization } = ctx
+        if (!employee.organizationId) {
             return { error: 'Employee or Organization not found' }
         }
-
-        const [organization, customMetrics] = await Promise.all([
-            organizationService.getById(employee.organizationId),
-            customMetricService.getByOrganizationId(employee.organizationId),
-        ])
-
-        // Only include active metrics
-        organization.customMetrics = customMetrics.filter((m: CustomMetric) => m.isActive)
 
         if (employee.role === 'manager' || employee.role === 'admin') {
             // Senior roles (owner, admin, or org-wide permission) default to org view;

@@ -1,45 +1,40 @@
 import { AppShellServer } from '@/components/organisms/AppShellServer'
-import { createServerClient } from '@/lib/supabase/server'
+import { getCachedUser, getSessionContext } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCachedUser()
 
   if (!user) {
     redirect('/login')
   }
 
-  // Single query: employee + permissions + org name in one round trip
-  const { data: row } = await supabase
-    .from('employees')
-    .select('id, name, role, organization_id, is_account_owner, is_active, employee_permissions(*), organizations(name)')
-    .eq('auth_user_id', user.id)
-    .maybeSingle()
+  // Cached, request-shared identity lookup (employee + permissions + organization).
+  // The page's server action resolves the same context, so this round-trip runs once.
+  const ctx = await getSessionContext()
 
-  if (!row) {
+  if (!ctx) {
     return <AppShellServer profile={null}>{children}</AppShellServer>
   }
 
-  if (row.is_active === false) {
+  const { employee, organization } = ctx
+
+  if (employee.isActive === false) {
     redirect('/login')
   }
 
-  if (row.role === 'employee') {
+  if (employee.role === 'employee') {
     redirect('/my-dashboard')
   }
 
-  const perms = Array.isArray(row.employee_permissions) ? row.employee_permissions[0] : row.employee_permissions
-  const org = Array.isArray(row.organizations) ? row.organizations[0] : row.organizations
-
   const profile = {
-    id: row.id,
-    full_name: row.name,
-    role: row.role ?? 'employee',
-    organization_id: row.organization_id || '',
-    organizations: org ? { name: org.name } : null,
-    canManageSettings: row.is_account_owner || (perms?.can_manage_settings ?? false),
-    canViewOrganizationWide: row.is_account_owner || (perms?.can_view_organization_wide ?? false),
+    id: employee.id,
+    full_name: employee.name,
+    role: employee.role ?? 'employee',
+    organization_id: employee.organizationId || '',
+    organizations: organization ? { name: organization.name } : null,
+    canManageSettings: employee.isAccountOwner || (employee.permissions?.canManageSettings ?? false),
+    canViewOrganizationWide: employee.isAccountOwner || (employee.permissions?.canViewOrganizationWide ?? false),
   }
 
   return <AppShellServer profile={profile}>{children}</AppShellServer>

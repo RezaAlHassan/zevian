@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
-import { createServerClient } from '@/lib/supabase/server'
 import { EmployeesView } from '@/components/organisms/EmployeesView'
 import { getEmployeesAction } from '@/app/actions/employeeActions'
+import { getCachedUser } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = { title: 'Employees' }
@@ -12,8 +12,7 @@ export default async function EmployeesPage({
 }: {
     searchParams: { view?: string }
 }) {
-    const supabase = createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCachedUser()
 
     if (!user) {
         redirect('/login')

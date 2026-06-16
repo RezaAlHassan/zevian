@@ -4,20 +4,16 @@ import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { employeeService, reportService, goalService } from '@/../databaseService2'
 import { computeTrustSignal } from '@/utils/trustSignal'
+import { getSessionContext } from '@/lib/auth/session'
 
 export async function getEmployeesAction(view?: 'org' | 'direct') {
     try {
-        const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-        if (authError || !user) {
+        // Cached identity lookup shared with the layout — no repeat auth/employee round-trips.
+        const ctx = await getSessionContext()
+        if (!ctx) {
             return { error: 'Not authenticated' }
         }
-
-        const employee = await employeeService.getByAuthId(user.id)
-        if (!employee) {
-            return { error: 'Employee record not found' }
-        }
+        const { employee } = ctx
 
         const isSenior = employee.isAccountOwner ||
             employee.role === 'admin' ||
