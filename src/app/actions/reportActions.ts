@@ -31,18 +31,8 @@ export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', 
             (employee.permissions?.canViewOrganizationWide ?? false)
         const safeView = (!isSenior && view === 'org') ? 'direct' : view
 
-        const reports: any[] = await reportService.getManagerReports(employee.id, safeView, employee.organizationId, startDate, endDate)
-
-        // Calculate KPIs
-        const totalReports = reports.length
-        const scoredReports = reports.filter((r: any) => r.evaluationScore !== null)
-        const avgScore = scoredReports.length > 0
-            ? scoredReports.reduce((acc: number, r: any) => acc + (r.evaluationScore || 0), 0) / scoredReports.length
-            : 0
-        const pendingReview = reports.filter((r: any) => !r.reviewedBy).length
-        const overrides = reports.filter((r: any) => r.managerOverallScore !== null).length
-
-        // Fetch missed and excused periods for the Missed filter in ReportsView
+        // Missed/excused periods for the Missed filter in ReportsView. Independent of the
+        // reports query, so we run both in parallel rather than back-to-back.
         let periodsQuery = (supabase as any)
             .from('reporting_periods')
             .select('*, goals(id, name, projects(name, report_frequency)), employees!inner(id, name, manager_id, organization_id)')
@@ -55,7 +45,19 @@ export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', 
             periodsQuery = periodsQuery.eq('employees.manager_id', employee.id)
         }
 
-        const { data: rawPeriods } = await periodsQuery
+        const [reports, { data: rawPeriods }] = await Promise.all([
+            reportService.getManagerReports(employee.id, safeView, employee.organizationId, startDate, endDate) as Promise<any[]>,
+            periodsQuery,
+        ])
+
+        // Calculate KPIs
+        const totalReports = reports.length
+        const scoredReports = reports.filter((r: any) => r.evaluationScore !== null)
+        const avgScore = scoredReports.length > 0
+            ? scoredReports.reduce((acc: number, r: any) => acc + (r.evaluationScore || 0), 0) / scoredReports.length
+            : 0
+        const pendingReview = reports.filter((r: any) => !r.reviewedBy).length
+        const overrides = reports.filter((r: any) => r.managerOverallScore !== null).length
         const periods = (rawPeriods || []).map((p: any) => ({
             ...p,
             isMissed: true,

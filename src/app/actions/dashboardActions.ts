@@ -154,16 +154,17 @@ export async function getEmployeeDashboardDataByIdAction(employeeId: string, sta
 export async function getEmployeeDetailedDataAction(employeeId: string, startDate?: string, endDate?: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-        if (authError || !user) {
-            console.error('Auth Error:', authError)
+        // Single cached round-trip: validated user + caller employee + organization
+        // (with active custom metrics). Shared with the layout, so the auth + identity
+        // lookup isn't repeated — replaces auth.getUser + getByAuthId + organizationService.getById.
+        const ctx = await getSessionContext()
+        if (!ctx) {
             return { error: 'Not authenticated' }
         }
-
-        // Get the caller's employee profile
-        const caller = await employeeService.getByAuthId(user.id)
-        if (!caller || !caller.organizationId) {
+        const caller = ctx.employee
+        const organization = ctx.organization
+        if (!caller.organizationId) {
             return { error: 'Caller profile or organization not found' }
         }
 
@@ -174,14 +175,10 @@ export async function getEmployeeDetailedDataAction(employeeId: string, startDat
             return { error: 'Not authorized' }
         }
 
-        // Get target employee to verify organization match
-        const targetEmployee = await employeeService.getById(employeeId)
-        if (!targetEmployee || !targetEmployee.organizationId || targetEmployee.organizationId !== caller.organizationId) {
-            return { error: 'Target employee not found or organization mismatch' }
-        }
-
-        // Fetch everything in parallel
-        const [dashboardData, allGoals, allReportsData, allNotifications, leaves, periodsData] = await Promise.all([
+        // Fetch the target employee alongside the rest of the page data in one parallel
+        // batch (was a separate sequential round-trip before the Promise.all).
+        const [targetEmployee, dashboardData, allGoals, allReportsData, allNotifications, leaves, periodsData] = await Promise.all([
+            employeeService.getById(employeeId),
             dashboardService.getEmployeeDashboardData(employeeId, startDate, endDate),
             goalService.getByEmployeeId(employeeId),
             reportService.getEmployeeReports(employeeId, startDate, endDate),
@@ -190,8 +187,11 @@ export async function getEmployeeDetailedDataAction(employeeId: string, startDat
             supabase.from('reporting_periods').select('*').eq('employee_id', employeeId).in('status', ['pending', 'submitted', 'missed']).gte('period_end', new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString()).order('period_end', { ascending: true })
         ])
 
-        const organization = await organizationService.getById(caller.organizationId)
-        
+        // Verify the target belongs to the caller's organization (RLS also enforces this).
+        if (!targetEmployee || !targetEmployee.organizationId || targetEmployee.organizationId !== caller.organizationId) {
+            return { error: 'Target employee not found or organization mismatch' }
+        }
+
         // Attach periods for dashboard Next Report Due widget
         ;(dashboardData as any).upcomingPeriods = periodsData.data || []
 

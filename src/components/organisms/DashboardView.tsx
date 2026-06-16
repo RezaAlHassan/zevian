@@ -40,20 +40,56 @@ function KpiCard({
     tone === 'red' ? colors.danger :
     colors.text
 
+  const [hovered, setHovered] = React.useState(false)
+  const clickable = !!onClick
+
   return (
     <div
       onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick!() } } : undefined}
+      onMouseEnter={clickable ? () => setHovered(true) : undefined}
+      onMouseLeave={clickable ? () => setHovered(false) : undefined}
+      onFocus={clickable ? () => setHovered(true) : undefined}
+      onBlur={clickable ? () => setHovered(false) : undefined}
       style={{
+        position: 'relative',
         background: colors.surface,
-        border: `1px solid ${colors.border}`,
+        border: `1px solid ${clickable && hovered ? colors.borderHover : colors.border}`,
         borderRadius: radius.xl,
         padding: '18px 20px',
-        cursor: onClick ? 'pointer' : 'default',
+        cursor: clickable ? 'pointer' : 'default',
         boxSizing: 'border-box',
+        transition: `border-color ${animation.fast}`,
+        outline: 'none',
       }}
     >
+      {clickable && (
+        <span
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: '14px',
+            right: '16px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            fontSize: '10.5px',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            color: colors.accent,
+            opacity: hovered ? 1 : 0,
+            transform: hovered ? 'translateX(0)' : 'translateX(2px)',
+            transition: `opacity ${animation.fast}, transform ${animation.fast}`,
+            pointerEvents: 'none',
+          }}
+        >
+          <Icon name="sparkles" size={11} />
+          Ask
+        </span>
+      )}
       <div style={{
         fontSize: '11px',
         fontWeight: 700,
