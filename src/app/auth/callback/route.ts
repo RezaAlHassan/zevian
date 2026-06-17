@@ -7,7 +7,11 @@ export async function GET(request: Request) {
     const code = searchParams.get('code')
     const token_hash = searchParams.get('token_hash')
     const type = searchParams.get('type') as any
-    const next = searchParams.get('next') ?? '/onboarding'
+    // Only honor an explicit `next`. When absent, we resolve the destination
+    // from the user's onboarding state *after* auth (see resolveDestination),
+    // so existing accounts aren't dumped back into the onboarding wizard.
+    const explicitNext = searchParams.get('next')
+    const next = explicitNext ?? '/onboarding'
 
     console.log('--- AUTH CALLBACK ---', {
         hasCode: !!code,
@@ -55,6 +59,31 @@ export async function GET(request: Request) {
         }
     )
 
+    // After successful auth, if no explicit `next` was requested, route the user
+    // based on whether they've already onboarded — otherwise existing accounts get
+    // sent back through the wizard. Returns a redirect that carries the auth cookies
+    // Supabase just wrote onto `response`.
+    const finalize = async () => {
+        if (explicitNext) return response
+
+        const { data: { user } } = await supabase.auth.getUser()
+        let dest = '/onboarding'
+        if (user) {
+            const { data: employee } = await supabase
+                .from('employees')
+                .select('role, onboarding_completed')
+                .eq('auth_user_id', user.id)
+                .maybeSingle()
+            if (employee && (employee as any).onboarding_completed) {
+                dest = (employee as any).role === 'employee' ? '/my-dashboard' : '/dashboard'
+            }
+        }
+
+        const finalResponse = NextResponse.redirect(new URL(dest, origin))
+        response.cookies.getAll().forEach(c => finalResponse.cookies.set(c.name, c.value, c))
+        return finalResponse
+    }
+
     // Handle PKCE code exchange
     if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -62,8 +91,8 @@ export async function GET(request: Request) {
             console.error('Code exchange failed:', error.message)
             return NextResponse.redirect(`${origin}/login?error=exchange_failed`)
         }
-        console.log('--- AUTH SUCCESS: Code exchanged, redirecting to', next, '---')
-        return response
+        console.log('--- AUTH SUCCESS: Code exchanged ---')
+        return finalize()
     }
 
     // Handle OTP/magic link
@@ -73,8 +102,8 @@ export async function GET(request: Request) {
             console.error('OTP verification failed:', error.message)
             return NextResponse.redirect(`${origin}/login?error=otp_failed`)
         }
-        console.log('--- AUTH SUCCESS: OTP verified, redirecting to', next, '---')
-        return response
+        console.log('--- AUTH SUCCESS: OTP verified ---')
+        return finalize()
     }
 
     return NextResponse.redirect(`${origin}/login?error=auth_failed`)
