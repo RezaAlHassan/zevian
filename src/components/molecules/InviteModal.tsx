@@ -78,19 +78,23 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
     }, [isOpen])
 
     const loadData = async () => {
-        const res = await getInviteModalDataAction()
-        
-        if (res.success) {
-            if (res.managers) {
-                setManagerList(res.managers as Manager[])
-                if (res.managers.length > 0) {
-                    setManagerId(res.managers[0].id)
+        try {
+            const res = await getInviteModalDataAction()
+
+            if (res?.success) {
+                if (res.managers) {
+                    setManagerList(res.managers as Manager[])
+                    if (res.managers.length > 0) {
+                        setManagerId(res.managers[0].id)
+                    }
                 }
+                if (res.goals) setGoalList(res.goals as any[])
+                if (res.projects) setProjectList(res.projects as any[])
+            } else {
+                console.error("Failed to load invite data:", res?.error)
             }
-            if (res.goals) setGoalList(res.goals as any[])
-            if (res.projects) setProjectList(res.projects as any[])
-        } else {
-            console.error("Failed to load invite data:", res.error)
+        } catch (err) {
+            console.error("Failed to load invite data:", err)
         }
     }
 
@@ -210,21 +214,29 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
 
         const assignments = role === 'manager' ? projects : goals
 
-        const res = await inviteEmployeesAction({
-            emails,
-            role,
-            managerId,
-            assignments,
-            permissionTemplate,
-            customPermissions
-        })
+        try {
+            const res = await inviteEmployeesAction({
+                emails,
+                role,
+                managerId,
+                assignments,
+                permissionTemplate,
+                customPermissions
+            })
 
-        setIsSubmitting(false)
-
-        if (res.success) {
-            setStep(4) // success step
-        } else {
-            setErrorMsg(res.error || 'Failed to send invitations.')
+            if (res?.success) {
+                setStep(4) // success step
+            } else {
+                setErrorMsg(res?.error || 'Failed to send invitations. Please try again.')
+            }
+        } catch (err) {
+            // A server action can fail at the framework level (cold start, timeout,
+            // redeploy, transient network error) and resolve to undefined or reject.
+            // Surface it instead of letting an uncaught TypeError break the page.
+            console.error('inviteEmployeesAction failed:', err)
+            setErrorMsg('Something went wrong sending the invitation. Please try again.')
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
