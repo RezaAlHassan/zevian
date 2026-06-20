@@ -1,6 +1,7 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
+import { getAuthUser } from '@/lib/auth/session'
 import { leaveService, employeeService } from '@/../databaseService2'
 import { revalidatePath } from 'next/cache'
 
@@ -13,9 +14,9 @@ export async function grantLeaveAction(data: {
 }) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { error: 'Not authenticated' }
         }
 

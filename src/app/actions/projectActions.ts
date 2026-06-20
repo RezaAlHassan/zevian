@@ -1,6 +1,7 @@
 'use server'
 
 import { createServerClient, createAdminClient } from '@/lib/supabase/server'
+import { getAuthUser } from '@/lib/auth/session'
 import { projectService, employeeService } from '@/../databaseService2'
 import { revalidatePath } from 'next/cache'
 import { GoogleGenerativeAI } from '@google/generative-ai'
@@ -9,7 +10,7 @@ import { withRetry } from '@/lib/ai/withRetry'
 export async function upsertProjectAction(formData: any) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -54,7 +55,7 @@ export async function upsertProjectAction(formData: any) {
 export async function deleteProjectAction(projectId: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -79,7 +80,7 @@ export async function deleteProjectAction(projectId: string) {
 export async function updateProjectStatusAction(projectId: string, status: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -114,7 +115,7 @@ export async function updateProjectStatusAction(projectId: string, status: strin
 export async function updateProjectMembersAction(projectId: string, memberIds: string[]) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -148,7 +149,7 @@ export async function updateProjectMembersAction(projectId: string, memberIds: s
 export async function getProjectsAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -170,7 +171,7 @@ export async function getProjectsAction() {
 export async function refreshProjectMemoryAction(projectId: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -256,7 +257,7 @@ ${reportsSummary}`
 export async function updateProjectMemoryAction(projectId: string, memory: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -276,9 +277,9 @@ export async function updateProjectMemoryAction(projectId: string, memory: strin
 export async function getEmployeeProjectsAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { success: false, error: 'Not authenticated' }
         }
 

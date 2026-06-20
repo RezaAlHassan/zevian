@@ -67,7 +67,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                 zIndex: 90,
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: colors.text3 }}>
-                    <Link href={`${basePath}?${searchParams.toString()}`} style={{ color: colors.text2, textDecoration: 'none' }}>Scorecards</Link>
+                    <Link href={`${basePath}?${searchParams.toString()}`} style={{ color: colors.text2, textDecoration: 'none' }}>KPIs</Link>
                     <span style={{ color: colors.text3 }}>/</span>
                     <span style={{ color: colors.text, fontWeight: 500 }}>{goal.name}</span>
                 </div>
@@ -81,14 +81,14 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                 icon="check"
                                 style={{ background: colors.green }}
                                 onClick={handleComplete}
-                            >Complete Scorecard</Button>
+                            >Complete KPI</Button>
                         )}
                         <Button
                             variant="secondary"
                             size="sm"
                             icon="edit"
                             onClick={() => setIsEditOpen(true)}
-                        >Edit Scorecard</Button>
+                        >Edit KPI</Button>
                     </div>
                 )}
             </header>
@@ -150,7 +150,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                         </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '11px', color: colors.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>Scorecard Score</div>
+                        <div style={{ fontSize: '11px', color: colors.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>KPI Score</div>
                         <ScoreDisplay score={goal.avgScore} size="lg" />
                     </div>
                 </div>
@@ -159,7 +159,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '24px' }}>
                     {[
                         { label: 'Total Reports', value: reports.length, icon: 'fileText' as const, meta: 'Submissions' },
-                        { label: 'KPIs', value: goal.criteria?.length || 0, icon: 'list' as const, meta: 'Dimensions' },
+                        { label: 'Criteria', value: goal.criteria?.length || 0, icon: 'list' as const, meta: 'Dimensions' },
                         { label: 'Assigned To', value: members.length, icon: 'users' as const, meta: 'Members' },
                         { label: 'Deadline', value: goal.deadline ? new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No limit', icon: 'calendar' as const, meta: 'Target date' },
                     ].map(kpi => (
@@ -183,7 +183,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                         {/* Criteria Analysis */}
                         <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
                             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, fontWeight: 600, fontSize: '14px', color: colors.text }}>
-                                KPI Breakdown
+                                Criteria Breakdown
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '20px' }}>
                                 {goal.criteria?.map((crit: any, i: number) => {
@@ -285,7 +285,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                         {/* Sidebar Info */}
                         <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
                             <div style={{ padding: '12px 16px', borderBottom: `1px solid ${colors.border}`, fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                                Scorecard Info
+                                KPI Info
                             </div>
                              {[
                                  { k: 'Frequency', v: goal.project?.reportFrequency || (goal.project as any)?.frequency || goal.project?.report_frequency || 'Weekly', i: 'clock' },

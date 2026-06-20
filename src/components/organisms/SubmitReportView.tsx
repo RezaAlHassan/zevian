@@ -136,7 +136,7 @@ export function SubmitReportView() {
 
     const renderStep1 = () => (
         <div style={{ maxWidth: '800px', margin: '0 auto', animation: 'fadeUp 0.4s ease' }}>
-            <h2 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px' }}>Which scorecard are you reporting for?</h2>
+            <h2 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px' }}>Which KPI are you reporting for?</h2>
             <p style={{ color: colors.text3, fontSize: '15px', marginBottom: '32px' }}>Select the primary objective you've been focused on this week.</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>

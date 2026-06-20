@@ -1,16 +1,18 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
+import { getAuthUser } from '@/lib/auth/session'
 import { organizationService, employeeService, customMetricService } from '@/../databaseService2'
+import { revalidateOrgCache } from '@/lib/cache/orgCache'
 import { revalidatePath } from 'next/cache'
 
 export async function getOrganizationAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
-            console.error('Auth Error:', authError)
+        if (!user) {
+            console.error('Auth Error: not authenticated')
             return { error: 'Not authenticated' }
         }
 
@@ -30,9 +32,9 @@ export async function getOrganizationAction() {
 export async function updateOrganizationAction(updates: any) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { error: 'Not authenticated' }
         }
 
@@ -48,6 +50,7 @@ export async function updateOrganizationAction(updates: any) {
 
         const updatedOrg = await organizationService.update(employee.organizationId, updates)
 
+        revalidateOrgCache(employee.organizationId)
         revalidatePath('/organization')
         return { data: updatedOrg, success: true }
     } catch (error) {
@@ -59,9 +62,9 @@ export async function updateOrganizationAction(updates: any) {
 export async function getOrganizationEmployeesAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { error: 'Not authenticated' }
         }
 
@@ -81,9 +84,9 @@ export async function getOrganizationEmployeesAction() {
 export async function getCustomMetricsAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { error: 'Not authenticated' }
         }
 
@@ -103,9 +106,9 @@ export async function getCustomMetricsAction() {
 export async function createCustomMetricAction(metricData: { name: string, description?: string, isActive?: boolean }) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { error: 'Not authenticated' }
         }
 
@@ -124,7 +127,8 @@ export async function createCustomMetricAction(metricData: { name: string, descr
             description: metricData.description,
             isActive: metricData.isActive ?? true
         })
-        
+
+        revalidateOrgCache(employee.organizationId)
         revalidatePath('/organization')
         return { data: newMetric, success: true }
     } catch (error) {
@@ -135,9 +139,9 @@ export async function createCustomMetricAction(metricData: { name: string, descr
 export async function updateCustomMetricAction(id: string, updates: any) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { error: 'Not authenticated' }
         }
 
@@ -151,7 +155,8 @@ export async function updateCustomMetricAction(id: string, updates: any) {
         }
 
         const updatedMetric = await customMetricService.update(id, updates)
-        
+
+        revalidateOrgCache(employee.organizationId)
         revalidatePath('/organization')
         return { data: updatedMetric, success: true }
     } catch (error) {
@@ -163,9 +168,9 @@ export async function updateCustomMetricAction(id: string, updates: any) {
 export async function deleteCustomMetricAction(id: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { error: 'Not authenticated' }
         }
 
@@ -179,7 +184,8 @@ export async function deleteCustomMetricAction(id: string) {
         }
 
         await customMetricService.delete(id)
-        
+
+        revalidateOrgCache(employee.organizationId)
         revalidatePath('/organization')
         return { success: true }
     } catch (error) {

@@ -2,17 +2,17 @@ import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { ProjectDetailView } from '@/components/organisms/ProjectDetailView'
 import { notFound } from 'next/navigation'
-import { projectService, goalService, employeeService } from '@/../databaseService2'
+import { projectService, goalService } from '@/../databaseService2'
+import { getCachedEmployee } from '@/lib/auth/session'
 
 export const metadata: Metadata = { title: 'Project Details | Zevian' }
 
 export default async function EmployeeProjectPage({ params }: { params: { id: string } }) {
     const supabase = createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) notFound()
 
+    // Caller identity (request-cached) resolved alongside the page data.
     const [employee, data, { data: employeesData }] = await Promise.all([
-        employeeService.getByAuthId(user.id),
+        getCachedEmployee(),
         projectService.getById(params.id),
         supabase.from('employees').select('id, name, role').order('name')
     ]);

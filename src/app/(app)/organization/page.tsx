@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
-import { createServerClient } from '@/lib/supabase/server'
 import { employeeService, organizationService, customMetricService, managerSettingsService } from '@/../databaseService2'
 import { OrganizationView } from '@/components/organisms/OrganizationView'
+import { getSessionContext } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = { title: 'Organization Settings' }
@@ -12,17 +12,14 @@ export default async function OrganizationPage({
 }: {
     searchParams: { view?: string; tab?: string }
 }) {
-    const supabase = createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // Reuses the (app) layout's request-cached identity — no extra auth or employee hop.
+    const ctx = await getSessionContext()
 
-    if (!user) {
+    if (!ctx) {
         redirect('/login')
     }
 
-    const employee = await employeeService.getByAuthId(user.id)
-    if (!employee) {
-        redirect('/login')
-    }
+    const employee = ctx.employee
 
     const canViewOrg = employee.isAccountOwner ||
         employee.role === 'admin' ||

@@ -1,6 +1,7 @@
 'use server'
 
 import { createServerClient, createAdminClient } from '@/lib/supabase/server'
+import { getAuthUser } from '@/lib/auth/session'
 import { employeeService, goalService, reportService } from '@/../databaseService2'
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import { withRetry } from '@/lib/ai/withRetry'
@@ -64,7 +65,7 @@ async function hydrateCitations(reportIds: string[]): Promise<AskCitation[]> {
                 return {
                     reportId: id,
                     employeeName: r.employees?.name || 'Unknown',
-                    goalName: r.goals?.name || 'Unknown scorecard',
+                    goalName: r.goals?.name || 'Unknown KPI',
                     date: r.submitted_for_date || r.submission_date?.slice(0, 10) || 'unknown date',
                 }
             })
@@ -101,8 +102,8 @@ export interface AskSession {
 export async function getAskSessionAction(): Promise<AskSession | null> {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return null
+        const user = await getAuthUser()
+        if (!user) return null
 
         const me = await employeeService.getByAuthId(user.id)
         if (!me) return null
@@ -143,8 +144,8 @@ export async function getAskSessionAction(): Promise<AskSession | null> {
 export async function getAskContextAction(): Promise<{ success: true; data: AskContext } | { error: string }> {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return { error: 'Not authenticated' }
+        const user = await getAuthUser()
+        if (!user) return { error: 'Not authenticated' }
 
         const me = await employeeService.getByAuthId(user.id)
         if (!me) return { error: 'Employee record not found' }
@@ -197,8 +198,8 @@ export async function askQuestionAction(input: {
 }): Promise<{ success: true; answer: string; resolvedScope: AskScope; citations: AskCitation[] } | { error: string }> {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return { error: 'Not authenticated' }
+        const user = await getAuthUser()
+        if (!user) return { error: 'Not authenticated' }
 
         // ── Cache: serve a recent identical question without re-calling Gemini ──
         // Key = same question text + same scope (vs. the resolved_scope we logged), within
@@ -463,7 +464,7 @@ Respond with the structured fields: "answer" (the answer text) and "citedReportI
                 return {
                     reportId: id,
                     employeeName: r.employees?.name || employeeNameMap[r.employeeId] || r.employeeId,
-                    goalName: r.goals?.name || 'Unknown scorecard',
+                    goalName: r.goals?.name || 'Unknown KPI',
                     date: r.submittedForDate || r.submissionDate?.slice(0, 10) || 'unknown date',
                 }
             })

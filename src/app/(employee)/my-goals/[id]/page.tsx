@@ -2,16 +2,16 @@ import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { GoalDetailView } from '@/components/organisms/GoalDetailView'
 import { notFound } from 'next/navigation'
-import { projectService, goalService, reportService, employeeService } from '@/../databaseService2'
+import { projectService, goalService, reportService } from '@/../databaseService2'
+import { getCachedEmployee } from '@/lib/auth/session'
 
-export const metadata: Metadata = { title: 'Scorecard Details | Zevian' }
+export const metadata: Metadata = { title: 'KPI Details | Zevian' }
 
 export default async function EmployeeGoalPage({ params }: { params: { id: string } }) {
     const supabase = createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) notFound()
 
-    const employee = await employeeService.getByAuthId(user.id)
+    // Request-cached: local JWT verification + employee lookup, shared with the layout.
+    const employee = await getCachedEmployee()
     if (!employee) notFound()
 
     let goal = null;

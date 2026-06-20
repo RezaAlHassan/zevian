@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { GoalsView } from '@/components/organisms/GoalsView'
 import { getEmployeeGoalsAction } from '@/app/actions/goalActions'
 
-export const metadata: Metadata = { title: 'Scorecards | Zevian' }
+export const metadata: Metadata = { title: 'KPIs | Zevian' }
 
 export default async function EmployeeGoalsPage() {
     const supabase = createServerClient()

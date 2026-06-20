@@ -4,7 +4,7 @@ import { GoalDetailView } from '@/components/organisms/GoalDetailView'
 import { notFound } from 'next/navigation'
 import { projectService, goalService, reportService } from '@/../databaseService2'
 
-export const metadata: Metadata = { title: 'Scorecard Details' }
+export const metadata: Metadata = { title: 'KPI Details' }
 
 export default async function GoalPage({ params }: { params: { id: string } }) {
     const supabase = createServerClient()

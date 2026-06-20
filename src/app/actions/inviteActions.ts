@@ -1,6 +1,7 @@
 'use server'
 
 import { createServerClient, createAdminClient } from '@/lib/supabase/server'
+import { getAuthUser } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
 import { invitationService, employeeService, goalService, projectService } from '@/../databaseService2'
 import { sendEmail } from '@/lib/email/emailService'
@@ -10,7 +11,7 @@ import React from 'react'
 export async function getInviteModalDataAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { success: false, error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -55,9 +56,9 @@ export async function inviteEmployeesAction(data: {
 }) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { success: false, error: 'Not authenticated' }
         }
 
@@ -141,6 +142,23 @@ export async function inviteEmployeesAction(data: {
     }
 }
 
+
+export async function getInviteStatusAction(token: string): Promise<{
+    state: 'valid' | 'accepted' | 'expired' | 'invalid'
+    email?: string
+}> {
+    try {
+        if (!token) return { state: 'invalid' }
+        const invitation = await invitationService.getByToken(token)
+        if (!invitation) return { state: 'invalid' }
+        if (invitation.status === 'accepted') return { state: 'accepted', email: invitation.email }
+        if (new Date(invitation.expiresAt) < new Date()) return { state: 'expired', email: invitation.email }
+        return { state: 'valid', email: invitation.email }
+    } catch (error: any) {
+        console.error('getInviteStatusAction error', error)
+        return { state: 'invalid' }
+    }
+}
 
 export async function acceptInviteAction(token: string, data: { name: string, title: string, dept: string, password: string }) {
     try {

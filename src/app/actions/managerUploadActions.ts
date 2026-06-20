@@ -1,6 +1,7 @@
 'use server'
 
 import { createServerClient, createAdminClient } from '@/lib/supabase/server'
+import { getAuthUser } from '@/lib/auth/session'
 import {
     employeeService,
     goalService,
@@ -221,8 +222,8 @@ async function requireManager() {
     // couldn't write back new cookies), fall back to getSession() which reads the
     // JWT from the HttpOnly cookie — safe because middleware validates every request.
     let authUserId: string | null = null
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (!authError && user) {
+    const user = await getAuthUser()
+    if (user) {
         authUserId = user.id
     } else {
         const { data: { session } } = await supabase.auth.getSession()
@@ -739,7 +740,7 @@ Return ONLY this JSON (no markdown, no preamble):
         return {
             ok: true,
             evaluationScore: Number(finalScore.toFixed(2)),
-            evaluationReasoning: parsed.overall_reasoning || 'Scored from manager-uploaded KPI data.',
+            evaluationReasoning: parsed.overall_reasoning || 'Scored from manager-uploaded criteria data.',
             criterionScores,
         }
     } catch (err: any) {

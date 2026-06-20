@@ -1,6 +1,7 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
+import { getAuthUser } from '@/lib/auth/session'
 import { employeeService } from '@/../databaseService2'
 import { revalidatePath } from 'next/cache'
 
@@ -8,7 +9,7 @@ type Section = 'lexicon' | 'priorities' | 'benchmarks' | 'constraints' | 'genera
 
 async function getAuthorizedEmployee() {
     const supabase = createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getAuthUser()
     if (!user) return { error: 'Not authenticated' as const, employee: null, supabase: null }
     const employee = await employeeService.getByAuthId(user.id)
     if (!employee || (employee.role !== 'manager' && !employee.isAccountOwner)) {

@@ -1,13 +1,14 @@
 'use server'
 
 import { createServerClient, createAdminClient } from '@/lib/supabase/server'
+import { getAuthUser } from '@/lib/auth/session'
 import { goalService, employeeService } from '@/../databaseService2'
 import { revalidatePath } from 'next/cache'
 
 export async function upsertGoalAction(formData: any) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -56,7 +57,7 @@ export async function upsertGoalAction(formData: any) {
 export async function deleteGoalAction(goalId: string, projectId?: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -82,7 +83,7 @@ export async function deleteGoalAction(goalId: string, projectId?: string) {
 export async function updateGoalStatusAction(goalId: string, status: string, projectId?: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         await goalService.update(goalId, { status } as any)
@@ -99,7 +100,7 @@ export async function updateGoalStatusAction(goalId: string, status: string, pro
 export async function getGoalsAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const goals = await goalService.getAll()
@@ -112,9 +113,9 @@ export async function getGoalsAction() {
 export async function getEmployeeGoalsAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { success: false, error: 'Not authenticated' }
         }
 
@@ -152,7 +153,7 @@ export async function addCriterionToGoalAction(input: {
 }): Promise<{ success: true; criteria: { id: string; name: string; weight: number; target_description: string | null }[] } | { error: string }> {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
@@ -225,14 +226,14 @@ export async function addCriterionToGoalAction(input: {
         return { success: true, criteria: all }
     } catch (error: any) {
         console.error('addCriterionToGoalAction Error:', error)
-        return { error: error.message || 'Failed to add KPI' }
+        return { error: error.message || 'Failed to add criterion' }
     }
 }
 
 export async function updateGoalMembersAction(goalId: string, memberIds: string[], projectId?: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
         if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)

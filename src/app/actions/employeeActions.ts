@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { employeeService, reportService, goalService } from '@/../databaseService2'
 import { computeTrustSignal } from '@/utils/trustSignal'
-import { getSessionContext } from '@/lib/auth/session'
+import { getSessionContext, getAuthUser } from '@/lib/auth/session'
 
 export async function getEmployeesAction(view?: 'org' | 'direct') {
     try {
@@ -89,9 +89,9 @@ export async function getEmployeesAction(view?: 'org' | 'direct') {
 export async function getManagersAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { error: 'Not authenticated' }
         }
 
@@ -106,7 +106,7 @@ export async function getManagersAction() {
 export async function updateEmployeeProfileAction(id: string, updates: { name?: string; title?: string; dept?: string }) {
     try {
         const supabase = createServerClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
         if (!user) {
             return { success: false, error: 'Not authenticated' }
@@ -145,9 +145,9 @@ export async function updatePasswordAction(password: string) {
 export async function deactivateEmployeeAction(employeeId: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) return { success: false, error: 'Not authenticated' }
+        if (!user) return { success: false, error: 'Not authenticated' }
 
         const currentUser = await employeeService.getByAuthId(user.id)
         if (!currentUser || (currentUser.role !== 'manager' && !currentUser.isAccountOwner)) {
@@ -166,9 +166,9 @@ export async function deactivateEmployeeAction(employeeId: string) {
 export async function reactivateEmployeeAction(employeeId: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) return { success: false, error: 'Not authenticated' }
+        if (!user) return { success: false, error: 'Not authenticated' }
 
         const currentUser = await employeeService.getByAuthId(user.id)
         if (!currentUser || (currentUser.role !== 'manager' && !currentUser.isAccountOwner)) {
@@ -187,9 +187,9 @@ export async function reactivateEmployeeAction(employeeId: string) {
 export async function updateEmployeeManagerAction(employeeId: string, managerId: string | null) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { success: false, error: 'Not authenticated' }
         }
 
@@ -215,9 +215,9 @@ export async function updateEmployeePermissionsAction(id: string, permissions: a
         console.log(`[PERM_UPDATE] Permissions requested:`, JSON.stringify(permissions, null, 2));
 
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             console.warn('[PERM_UPDATE] Not authenticated');
             return { success: false, error: 'Not authenticated' }
         }

@@ -1,8 +1,7 @@
 import { getReportDetailAction } from '@/app/actions/reportActions'
 import { ReportDetailView } from '@/components/organisms/ReportDetailView'
 import { notFound } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
-import { employeeService } from '@/../databaseService2'
+import { getSessionContext } from '@/lib/auth/session'
 
 export const metadata = {
     title: 'Report Detail | Zevian',
@@ -25,12 +24,11 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
         notFound()
     }
 
-    // Check permissions
-    const supabase = createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // Check permissions — reuse the (app) layout's request-cached identity.
+    const ctx = await getSessionContext()
     let canOverride = true
-    if (user) {
-        const currentEmployee = await employeeService.getByAuthId(user.id)
+    if (ctx) {
+        const currentEmployee = ctx.employee
         if (currentEmployee && currentEmployee.role === 'manager' && !currentEmployee.isAccountOwner) {
             canOverride = !!currentEmployee.permissions?.canOverrideAIScores
         }

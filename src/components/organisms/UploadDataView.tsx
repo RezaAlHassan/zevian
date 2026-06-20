@@ -73,7 +73,7 @@ export function UploadDataView({ goals, loadError }: Props) {
             const text = await file.text()
             const parsed = parseCSV(text)
             if (parsed.headers.length < 3) {
-                setErr('CSV must have at least 3 columns: agent identifier, period date, and one KPI column.')
+                setErr('CSV must have at least 3 columns: agent identifier, period date, and one criterion column.')
                 return
             }
             if (parsed.rows.length === 0) {
@@ -491,7 +491,7 @@ function ConfirmStep({
                 <FixedRow header={headers[1]} label="Period date or date range" />
             </div>
 
-            <SectionLabel>KPI columns ({dataHeaders.length})</SectionLabel>
+            <SectionLabel>Criteria columns ({dataHeaders.length})</SectionLabel>
             <div style={{ display: 'grid', gap: '8px', marginBottom: '20px' }}>
                 {dataHeaders.map((h) => {
                     const entry = mapping.find(m => m.header === h)
@@ -532,7 +532,7 @@ function ConfirmStep({
                                 {criterionOptions.map(name => (
                                     <option key={name} value={name}>{name}</option>
                                 ))}
-                                <option value={ADD_NEW_CRITERION}>+ Add as new KPI…</option>
+                                <option value={ADD_NEW_CRITERION}>+ Add as new criterion…</option>
                             </select>
                         </div>
                     )
@@ -746,10 +746,10 @@ function AddCriterionModal({
                 <div style={{ padding: '18px 20px 14px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <div>
                         <div style={{ fontFamily: typography.fonts.display, fontSize: '15px', fontWeight: 700, color: colors.text }}>
-                            Add new KPI
+                            Add new criterion
                         </div>
                         <div style={{ fontSize: '12px', color: colors.text3, marginTop: '2px', lineHeight: 1.5 }}>
-                            This KPI will be added to the goal and all weights rebalance to 100%.
+                            This criterion will be added to the KPI and all weights rebalance to 100%.
                         </div>
                     </div>
                     <button
@@ -764,7 +764,7 @@ function AddCriterionModal({
                     {/* Name */}
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: 600, color: colors.text2, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: '6px' }}>
-                            KPI name
+                            Criterion name
                         </div>
                         <input
                             autoFocus
@@ -855,7 +855,7 @@ function AddCriterionModal({
                 <div style={{ padding: '12px 20px 18px', display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: `1px solid ${colors.border}` }}>
                     <Button variant="secondary" size="sm" onClick={onCancel} disabled={busy}>Cancel</Button>
                     <Button size="sm" onClick={handleConfirm} loading={busy} disabled={!name.trim() || busy} icon="plus">
-                        Add KPI
+                        Add criterion
                     </Button>
                 </div>
             </div>

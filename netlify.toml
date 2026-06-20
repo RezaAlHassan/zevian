@@ -4,3 +4,16 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# ── Function region (perf) ────────────────────────────────────────────────────
+# Every server render makes Supabase round-trips. If the Netlify functions run in
+# a different region than the Supabase project, each round-trip pays 80–150ms of
+# cross-region latency — multiplied by the number of queries per page.
+#
+# ACTION ITEM (cannot be safely hardcoded here — depends on your Supabase region
+# and Netlify plan): set the functions region to match Supabase.
+#   1. Find your Supabase region: Supabase Dashboard -> Project Settings -> General
+#      -> "Region" (e.g. us-east-1, eu-west-2, ap-southeast-1).
+#   2. Set the matching region in Netlify: Site configuration -> Functions -> Region
+#      (region selection requires a Netlify plan that supports it).
+# Do BOTH the dev and prod sites, since each points at a different Supabase project.

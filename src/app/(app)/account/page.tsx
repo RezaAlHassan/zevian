@@ -1,20 +1,20 @@
 import type { Metadata } from 'next'
 import { AccountView } from '@/components/organisms/AccountView'
-import { createServerClient } from '@/lib/supabase/server'
-import { employeeService } from '@/../databaseService2'
+import { getSessionContext } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = { title: 'Account Settings' }
 
 export default async function AccountPage() {
-    const supabase = createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // Reuses the request-cached identity already resolved by the (app) layout —
+    // no extra auth round-trip or employee lookup on this navigation.
+    const ctx = await getSessionContext()
 
-    if (!user) {
+    if (!ctx) {
         redirect('/login')
     }
 
-    const employee = await employeeService.getByAuthId(user.id)
+    const employee = ctx.employee
 
     return <AccountView role={employee?.role || 'manager'} initialEmployee={employee} />
 }

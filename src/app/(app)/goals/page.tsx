@@ -2,17 +2,16 @@ import type { Metadata } from 'next'
 import { GoalsView } from '@/components/organisms/GoalsView'
 import { goalService, projectService, employeeService } from '@/../databaseService2'
 
-import { createServerClient } from '@/lib/supabase/server'
+import { getSessionContext } from '@/lib/auth/session'
 
-export const metadata: Metadata = { title: 'Scorecards' }
+export const metadata: Metadata = { title: 'KPIs' }
 
 export default async function GoalsPage({ searchParams }: { searchParams: { view?: string } }) {
-  const supabase = createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  // Reuses the (app) layout's request-cached identity — no extra auth or employee hop.
+  const ctx = await getSessionContext()
+  if (!ctx) return null
 
-  const employee = await employeeService.getByAuthId(user.id)
-  if (!employee) return null
+  const employee = ctx.employee
 
   const canViewOrg = employee.isAccountOwner || employee.permissions?.canViewOrganizationWide || employee.role === 'admin'
   const effectiveView = searchParams.view ?? (canViewOrg ? 'org' : 'direct')

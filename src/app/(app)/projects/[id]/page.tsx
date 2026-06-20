@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { ProjectDetailView } from '@/components/organisms/ProjectDetailView'
 import { notFound } from 'next/navigation'
-import { projectService, goalService, employeeService } from '@/../databaseService2'
+import { projectService, goalService } from '@/../databaseService2'
+import { getSessionContext } from '@/lib/auth/session'
 
 export const metadata: Metadata = { title: 'Project Details' }
 
@@ -63,10 +64,10 @@ export default async function ProjectPage({ params }: { params: { id: string } }
         notFound()
     }
 
-    // Fetch employees and current user in parallel
-    const [{ data: employees }, { data: { user } }] = await Promise.all([
+    // Fetch the manager list and the caller's cached identity in parallel.
+    const [{ data: employees }, ctx] = await Promise.all([
         supabase.from('employees').select('id, name, role').eq('role', 'manager').eq('is_active', true).order('name'),
-        supabase.auth.getUser(),
+        getSessionContext(),
     ])
 
     const mappedEmployees = (employees || []).map((e: any) => ({
@@ -75,8 +76,8 @@ export default async function ProjectPage({ params }: { params: { id: string } }
     }))
 
     let readOnly = false
-    if (user) {
-        const currentEmployee = await employeeService.getByAuthId(user.id)
+    if (ctx) {
+        const currentEmployee = ctx.employee
         if (currentEmployee && currentEmployee.role === 'manager' && !currentEmployee.isAccountOwner) {
             readOnly = !currentEmployee.permissions?.canCreateProjects && !currentEmployee.permissions?.canCreateGoals
         }

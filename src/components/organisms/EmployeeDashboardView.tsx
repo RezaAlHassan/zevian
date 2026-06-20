@@ -542,7 +542,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                                 backgroundPosition: 'right 8px center',
                             }}
                         >
-                            <option value="">All Scorecards</option>
+                            <option value="">All KPIs</option>
                             {activeGoals.map((g: any) => (
                                 <option key={g.id} value={g.id}>{g.name}</option>
                             ))}
@@ -827,7 +827,7 @@ function ReportDetailContent({ report }: { report: any }) {
             {report.criterionScores && report.criterionScores.length > 0 && (
                 <div>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
-                        KPI Breakdown
+                        Criteria Breakdown
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {report.criterionScores.map((cs: any, i: number) => {

@@ -1,15 +1,16 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
+import { getAuthUser } from '@/lib/auth/session'
 import { notificationService, employeeService } from '@/../databaseService2'
 import { revalidatePath } from 'next/cache'
 
 export async function getNotificationsAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { success: false, error: 'Not authenticated' }
         }
 

@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { dashboardService, employeeService, organizationService, goalService, reportService, notificationService, leaveService } from '@/../databaseService2'
 import { CustomMetric } from '@/types'
 import { computeTrustSignal } from '@/utils/trustSignal'
-import { getSessionContext } from '@/lib/auth/session'
+import { getSessionContext, getAuthUser } from '@/lib/auth/session'
 
 export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?: string, endDate?: string) {
     try {
@@ -109,10 +109,10 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
 export async function getEmployeeDashboardDataByIdAction(employeeId: string, startDate?: string, endDate?: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
-            console.error('Auth Error:', authError)
+        if (!user) {
+            console.error('Auth Error: not authenticated')
             return { error: 'Not authenticated' }
         }
 
@@ -223,15 +223,15 @@ export async function getEmployeeDetailedDataAction(employeeId: string, startDat
             id: r.id,
             type: 'report',
             title: 'Report Submitted',
-            message: `Submitted report for "${r.goals?.name || 'Scorecard'}"`,
+            message: `Submitted report for "${r.goals?.name || 'KPI'}"`,
             createdAt: r.submissionDate
         }));
 
         const goalActivities = allGoals.map((g: any) => ({
             id: g.id,
             type: 'goal',
-            title: 'Scorecard Assigned',
-            message: `New scorecard assigned: "${g.name}"`,
+            title: 'KPI Assigned',
+            message: `New KPI assigned: "${g.name}"`,
             createdAt: g.createdAt
         }));
 
@@ -287,8 +287,8 @@ export async function getTeamCriterionAvgsAction(
 ): Promise<{ teamAvgs?: { criterionName: string; teamAvg: number }[]; error?: string }> {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return { error: 'Not authenticated' }
+        const user = await getAuthUser()
+        if (!user) return { error: 'Not authenticated' }
 
         const caller = await employeeService.getByAuthId(user.id)
         if (!caller || (caller.role !== 'manager' && caller.role !== 'admin')) {

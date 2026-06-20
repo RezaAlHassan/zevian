@@ -379,7 +379,7 @@ export function DashboardView({ teamStats }: Props) {
   const scoredGoals = goals.filter((g: any) => (g.reports ?? 0) > 0)
   const kpisScored = scoredGoals.reduce((a: number, g: any) => a + (g.criteriaCount ?? 0), 0)
   const avgScoreSubtitle = scoredGoals.length > 0
-    ? `${scoredGoals.length} scorecard${scoredGoals.length === 1 ? '' : 's'} scored, ${kpisScored} KPI${kpisScored === 1 ? '' : 's'} scored`
+    ? `${scoredGoals.length} KPI${scoredGoals.length === 1 ? '' : 's'} scored, ${kpisScored} criteri${kpisScored === 1 ? 'on' : 'a'} scored`
     : 'no scores yet'
 
   return (

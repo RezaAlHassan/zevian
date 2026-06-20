@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { acceptInviteAction } from '@/app/actions/inviteActions'
+import { acceptInviteAction, getInviteStatusAction } from '@/app/actions/inviteActions'
 import { Button } from '@/components/atoms/Button'
 import { createClient } from '@/lib/supabase/client'
 
@@ -19,12 +19,30 @@ function AcceptInviteContent() {
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [status, setStatus] = useState<'loading' | 'valid' | 'accepted' | 'expired' | 'invalid'>('loading')
 
     useEffect(() => {
         if (!token) {
-            setError('Invalid or missing invitation token.')
+            setStatus('invalid')
+            return
         }
-    }, [token])
+
+        let cancelled = false
+
+        // Redirect already-logged-in users straight to their dashboard.
+        const supabase = createClient()
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (!cancelled && user) {
+                router.replace('/dashboard')
+            }
+        })
+
+        getInviteStatusAction(token).then(result => {
+            if (!cancelled) setStatus(result.state)
+        })
+
+        return () => { cancelled = true }
+    }, [token, router])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -66,12 +84,44 @@ function AcceptInviteContent() {
         }
     }
 
-    if (!token) {
+    if (status === 'loading') {
         return (
             <div style={{ padding: '40px', textAlign: 'center' }}>
                 <div style={{ fontSize: '24px', fontWeight: 'bold' }}>Zevian</div>
-                <h2 style={{ marginTop: '20px' }}>Invalid Link</h2>
-                <p>This invitation link is invalid or missing the token.</p>
+                <p style={{ marginTop: '20px', color: 'var(--text-secondary)' }}>Checking your invitation…</p>
+            </div>
+        )
+    }
+
+    if (status !== 'valid') {
+        const messages: Record<string, { heading: string, body: string }> = {
+            invalid: {
+                heading: 'Invalid Link',
+                body: 'This invitation link is invalid or missing the token.'
+            },
+            accepted: {
+                heading: 'Invitation Already Used',
+                body: 'This invitation has already been used. If this is your account, please log in.'
+            },
+            expired: {
+                heading: 'Invitation Expired',
+                body: 'This invitation has expired. Ask your admin to resend it.'
+            }
+        }
+        const { heading, body } = messages[status] ?? messages.invalid
+
+        return (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>Zevian</div>
+                <h2 style={{ marginTop: '20px' }}>{heading}</h2>
+                <p>{body}</p>
+                <Button
+                    variant="primary"
+                    onClick={() => router.push('/login')}
+                    style={{ marginTop: '20px' }}
+                >
+                    Go to Log In
+                </Button>
             </div>
         )
     }

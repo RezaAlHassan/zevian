@@ -1,20 +1,18 @@
 import type { Metadata } from 'next'
 import { AccountView } from '@/components/organisms/AccountView'
-import { createServerClient } from '@/lib/supabase/server'
-import { employeeService } from '@/../databaseService2'
+import { getAuthUser, getCachedEmployee } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = { title: 'Account Settings | Zevian' }
 
 export default async function EmployeeAccountPage() {
-    const supabase = createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getAuthUser()
 
     if (!user) {
         redirect('/login')
     }
 
-    const employee = await employeeService.getByAuthId(user.id)
+    const employee = await getCachedEmployee()
 
     return <AccountView role="employee" initialEmployee={employee} />
 }

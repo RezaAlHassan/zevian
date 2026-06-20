@@ -1,17 +1,17 @@
-import { createServerClient } from '@/lib/supabase/server'
-import { employeeService } from '@/../databaseService2'
+import { getAuthUser, getCachedEmployee } from '@/lib/auth/session'
 import { EmployeeShellServer } from '@/components/organisms/EmployeeShellServer'
 import { redirect } from 'next/navigation'
 
 export default async function EmployeeLayout({ children }: { children: React.ReactNode }) {
-    const supabase = createServerClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // Request-cached: auth (local JWT verification) + employee lookup run once and
+    // are shared with every (employee) page in the same render.
+    const user = await getAuthUser()
 
     if (!user) {
         redirect('/login')
     }
 
-    const employee = await employeeService.getByAuthId(user.id)
+    const employee = await getCachedEmployee()
 
     if (employee?.isActive === false) {
         redirect('/login')

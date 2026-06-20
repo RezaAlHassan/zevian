@@ -36,14 +36,14 @@ function getSuggestions(ctx: AskContext, scope: AskScope): string[] {
         const name = emp?.name || 'this employee'
         return [
             `How is ${name} performing overall?`,
-            `What are ${name}'s weakest KPIs?`,
+            `What are ${name}'s weakest criteria?`,
             `Has ${name} improved compared to earlier?`,
             `What coaching would you suggest for ${name}?`,
         ]
     }
     return [
         'Who has the highest average score this period?',
-        'Which KPIs have the lowest scores across the team?',
+        'Which criteria have the lowest scores across the team?',
         'Who might benefit most from coaching right now?',
         'Give me an overview of team performance.',
     ]
@@ -339,13 +339,13 @@ export function AskView({ initialContext, initialSession }: Props) {
                 {/* Goal selector — only when 1 employee selected */}
                 {selectedEmployee && ctx.goals.length > 0 && (
                     <>
-                        <span style={{ color: colors.text3, fontSize: typography.size.sm }}>scorecard</span>
+                        <span style={{ color: colors.text3, fontSize: typography.size.sm }}>KPI</span>
                         <select
                             value={scope.goalId ?? ''}
                             onChange={e => setScope({ ...scope, goalId: e.target.value || null })}
                             style={selectStyle}
                         >
-                            <option value="">All scorecards</option>
+                            <option value="">All KPIs</option>
                             {ctx.goals.map(g => (
                                 <option key={g.id} value={g.id}>{g.name}</option>
                             ))}

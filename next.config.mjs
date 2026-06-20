@@ -13,6 +13,8 @@ const nextConfig = {
     serverComponentsExternalPackages: [
       '@supabase/supabase-js',
     ],
+    // Tree-shake heavy barrel imports so only the used functions ship to the client.
+    optimizePackageImports: ['date-fns'],
   },
 }
 

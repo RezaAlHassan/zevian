@@ -7,7 +7,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { revalidatePath } from 'next/cache'
 import { getPeriodKey } from '@/utils/reportPeriod'
 import { withRetry } from '@/lib/ai/withRetry'
-import { getSessionContext } from '@/lib/auth/session'
+import { getSessionContext, getAuthUser } from '@/lib/auth/session'
 
 export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', startDate?: string, endDate?: string) {
     try {
@@ -84,9 +84,9 @@ export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', 
 export async function getMyReportsAction(startDate?: string, endDate?: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const user = await getAuthUser()
 
-        if (authError || !user) {
+        if (!user) {
             return { error: 'Not authenticated' }
         }
 
@@ -149,8 +149,8 @@ export async function getMyReportsAction(startDate?: string, endDate?: string) {
 export async function getReportDetailAction(reportId: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return { error: 'Not authenticated' }
+        const user = await getAuthUser()
+        if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
         if (!employee) return { error: 'Employee record not found' }
@@ -177,8 +177,8 @@ export async function getReportDetailAction(reportId: string) {
 export async function getEligibleGoalsAction(employeeId: string, projectId: string, submissionDate: string) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return { error: 'Not authenticated' }
+        const user = await getAuthUser()
+        if (!user) return { error: 'Not authenticated' }
 
         // 1. Get all assigned goals for this employee
         const allGoals = await goalService.getByEmployeeId(employeeId)
@@ -259,8 +259,8 @@ export async function getEligibleGoalsAction(employeeId: string, projectId: stri
 export async function getSubmitReportDataAction() {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return { error: 'Not authenticated' }
+        const user = await getAuthUser()
+        if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
         if (!employee) return { error: 'Employee record not found' }
@@ -345,8 +345,8 @@ export async function submitReportAction(reportData: {
 }) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return { error: 'Not authenticated' }
+        const user = await getAuthUser()
+        if (!user) return { error: 'Not authenticated' }
 
         const nowIso = new Date().toISOString()
         // The date the employee selected (defaults to today)
@@ -649,8 +649,8 @@ export async function setCalibrationAction(
 ) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return { error: 'Not authenticated' }
+        const user = await getAuthUser()
+        if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
         if (!employee || (employee.role !== 'manager' && employee.role !== 'admin')) {
@@ -688,8 +688,8 @@ export async function overrideReportScoreAction(
 ) {
     try {
         const supabase = createServerClient()
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (authError || !user) return { error: 'Not authenticated' }
+        const user = await getAuthUser()
+        if (!user) return { error: 'Not authenticated' }
 
         const employee = await employeeService.getByAuthId(user.id)
         if (!employee || (employee.role !== 'manager' && employee.role !== 'admin')) {

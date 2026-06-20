@@ -1,12 +1,13 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
+import { getAuthUser } from '@/lib/auth/session'
 import { revalidatePath } from 'next/cache'
 import { applyGlobalFrequencyUpdate } from '@/lib/reportingPeriods'
 
 export async function getManagerSettingsAction() {
   const supabase = createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) return { error: 'Not authenticated' }
 
   const { data, error } = await supabase
@@ -27,7 +28,7 @@ export async function updateManagerSettingsAction(updates: {
   report_frequency?: string;
 }) {
   const supabase = createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthUser()
   if (!user) return { error: 'Not authenticated' }
 
   const { error } = await supabase

@@ -121,7 +121,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!confirm('Are you sure you want to delete this scorecard?')) return
+    if (!confirm('Are you sure you want to delete this KPI?')) return
 
     setLoading(id)
     try {
@@ -129,7 +129,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
       if (res.success) {
         router.refresh()
       } else {
-        alert(res.error || 'Failed to delete scorecard')
+        alert(res.error || 'Failed to delete KPI')
       }
     } finally {
       setLoading(null)
@@ -163,7 +163,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
               <Icon name="search" size={13} color={colors.text3} />
               <input
                 type="text"
-                placeholder="Search scorecards..."
+                placeholder="Search KPIs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ background: 'none', border: 'none', outline: 'none', fontSize: '13px', color: colors.text, width: '100%', fontFamily: typography.fonts.body }}
@@ -216,7 +216,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                 <option value="completed">Completed</option>
                 <option value="done">Done</option>
               </optgroup>
-              <option value="all">All Scorecards</option>
+              <option value="all">All KPIs</option>
             </select>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
@@ -247,12 +247,12 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
           {/* Right: Count & View Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="font-numeric" style={{ fontSize: '12.5px', color: colors.text3, fontWeight: 500 }}>
-              {filteredAndSortedGoals.length} scorecards
+              {filteredAndSortedGoals.length} KPIs
             </div>
 
             {!readOnly && (
               <Button variant="primary" size="sm" onClick={() => setIsAddOpen(true)} icon="plus">
-                New Scorecard
+                New KPI
               </Button>
             )}
 
@@ -315,17 +315,17 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
               <Icon name="target" size={24} color={colors.accent} />
             </div>
             <div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: colors.text }}>No scorecards found</div>
-              <div style={{ fontSize: '13.5px', color: colors.text3, marginTop: '4px' }}>Create your first scorecard to start tracking progress.</div>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: colors.text }}>No KPIs found</div>
+              <div style={{ fontSize: '13.5px', color: colors.text3, marginTop: '4px' }}>Create your first KPI to start tracking progress.</div>
             </div>
-            {!readOnly && <Button variant="primary" icon="plus" onClick={() => setIsAddOpen(true)}>Create First Scorecard</Button>}
+            {!readOnly && <Button variant="primary" icon="plus" onClick={() => setIsAddOpen(true)}>Create First KPI</Button>}
           </div>
         ) : viewMode === 'Table' ? (
           <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                  {['Scorecard', 'Project', 'Status', 'KPIs', 'Assigned To', 'Avg Score', showDeadlineOnly ? 'due by' : 'Next Report', ''].map((h, idx) => (
+                  {['KPI', 'Project', 'Status', 'Criteria', 'Assigned To', 'Avg Score', showDeadlineOnly ? 'due by' : 'Next Report', ''].map((h, idx) => (
                     <th key={h} style={{
                       padding: (idx === 0) ? '10px 20px' : '10px 14px',
                       textAlign: 'left',
@@ -502,7 +502,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                   </div>
 
                   <div style={{ marginBottom: '16px' }}>
-                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>KPI weight</div>
+                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Criteria weight</div>
                     <div style={{ display: 'flex', height: '5px', borderRadius: '3px', overflow: 'hidden', gap: '1px' }}>
                       {goal.criteria?.map((crit: any, i: number) => (
                         <div key={crit.id} style={{ width: `${crit.weight}%`, background: i === 0 ? colors.accent : i === 1 ? colors.teal : colors.purple }} />
@@ -545,7 +545,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
             }}
           >
             <Icon name={isCompletedOpen ? 'chevronDown' : 'chevronRight'} size={14} color={colors.text3} />
-            <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text2 }}>Completed Scorecards (<span style={{ fontFamily: typography.fonts.numeric, fontWeight: typography.weight.black, fontVariantNumeric: 'tabular-nums lining-nums' }}>{completedGoalsCount}</span>)</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text2 }}>Completed KPIs (<span style={{ fontFamily: typography.fonts.numeric, fontWeight: typography.weight.black, fontVariantNumeric: 'tabular-nums lining-nums' }}>{completedGoalsCount}</span>)</span>
           </div>
 
           {isCompletedOpen && (

@@ -190,7 +190,7 @@ export async function runMissedReportCheck(employeeId?: string): Promise<{
                   await supabase.from('notifications').insert({
                       employee_id: period.employee_id,
                       type: 'error',
-                      title: 'Scorecard At Risk',
+                      title: 'KPI At Risk',
                       message: `Due to 4 consecutive missed reports, "${goalName}" has been marked At Risk.`,
                       read: false
                   });

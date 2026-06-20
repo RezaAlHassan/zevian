@@ -283,7 +283,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                 <div style={{ padding: '22px 26px 18px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'flex-start', gap: '14px', flexShrink: 0, background: colors.surface, position: 'sticky', top: 0, zIndex: 10 }}>
                     <div style={{ flex: 1 }}>
                         <div style={{ fontFamily: typography.fonts.display, fontSize: '18px', fontWeight: 800, color: colors.text, letterSpacing: '-0.4px' }}>
-                            {goal ? 'Edit Global Scorecard' : 'Create New Scorecard'}
+                            {goal ? 'Edit Global KPI' : 'Create New KPI'}
                         </div>
                         <div style={{ fontSize: '12px', color: colors.text3, marginTop: '2px' }}>
                             Define what success looks like — Zevian will use this to score every report
@@ -350,7 +350,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                     <div style={{ padding: '20px 26px', borderBottom: `1px solid ${colors.border}` }}>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
                             <Icon name="sparkles" size={15} color={colors.accent} />
-                            AI Scorecard Builder
+                            AI KPI Builder
                             <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 7px', borderRadius: '4px', background: colors.accentGlow, color: colors.accent }}>✦ AI</span>
                         </div>
                         <div style={{ background: colors.surface2, border: `1.5px solid ${colors.border}`, borderRadius: '12px', overflow: 'hidden' }}>
@@ -361,7 +361,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                 style={{ width: '100%', padding: '13px 14px', background: 'transparent', border: 'none', outline: 'none', fontFamily: typography.fonts.display, fontSize: '13.5px', color: colors.text, lineHeight: 1.65, resize: 'none', minHeight: '80px' }}
                             />
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px 10px', borderTop: `1px solid ${colors.border}` }}>
-                                <span style={{ fontSize: '11.5px', color: colors.text3, fontStyle: 'italic' }}>Zevian will pre-fill name, KPIs, and instructions.</span>
+                                <span style={{ fontSize: '11.5px', color: colors.text3, fontStyle: 'italic' }}>Zevian will pre-fill name, criteria, and instructions.</span>
                                 <button
                                     onClick={generateWithAI}
                                     disabled={aiPrompt.length < 10 || isGenerating}
@@ -430,7 +430,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                             <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Icon name="target" size={16} color={colors.accent} />
-                                What matters for this scorecard?
+                                What matters for this KPI?
                             </div>
                             {criteria.length > 0 && (
                                 <div style={{ fontSize: '11px', fontWeight: 700, color: criteria.reduce((sum, c) => sum + c.weight, 0) === 100 ? colors.green : colors.accent, background: criteria.reduce((sum, c) => sum + c.weight, 0) === 100 ? `${colors.green}20` : colors.accentGlow, padding: '4px 8px', borderRadius: '12px' }}>
@@ -561,7 +561,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                         <thead>
                                             <tr>
-                                                <th style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', padding: '4px 0', textAlign: 'left' }}>KPI</th>
+                                                <th style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', padding: '4px 0', textAlign: 'left' }}>Criterion</th>
                                                 <th style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', padding: '4px 0', textAlign: 'right' }}>Weight</th>
                                             </tr>
                                         </thead>
@@ -622,7 +622,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                 <div style={{ padding: '16px 26px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexShrink: 0, background: colors.surface, position: 'sticky', bottom: 0, zIndex: 10 }}>
                     {isSaveDisabled && !loading && !isGenerating && (
                         <div style={{ fontSize: '11.5px', color: colors.text3 }}>
-                            {!name ? 'Add a scorecard name' : !selectedProjectId ? 'Select a project' : instructions.length < 10 ? 'Add scorecard instructions (min 10 chars)' : criteria.length === 0 ? 'Add at least one KPI' : ''}
+                            {!name ? 'Add a KPI name' : !selectedProjectId ? 'Select a project' : instructions.length < 10 ? 'Add KPI instructions (min 10 chars)' : criteria.length === 0 ? 'Add at least one criterion' : ''}
                         </div>
                     )}
                     <div style={{ display: 'flex', gap: 10, marginLeft: 'auto' }}>
@@ -634,7 +634,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                             style={{ borderRadius: '9px', fontFamily: typography.fonts.display, boxShadow: isSaveDisabled ? 'none' : '0 0 16px rgba(91,127,255,.25)' }}
                         >
                             <Icon name={loading ? 'refresh' : 'check'} size={14} className={loading ? 'animate-spin' : ''} />
-                            {loading ? 'Saving...' : 'Save Scorecard'}
+                            {loading ? 'Saving...' : 'Save KPI'}
                         </Button>
                     </div>
                 </div>
