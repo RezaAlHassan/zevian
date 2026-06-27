@@ -1319,9 +1319,6 @@ export const reportService = {
 
 // Helper function to convert database employee to TypeScript Employee
 export function dbEmployeeToEmployee(dbEmployee: any): Employee {
-    if (dbEmployee.id === 'emp-1774254984062-870') {
-        console.log('--- RAW DB EMPLOYEE (Target) ---', JSON.stringify(dbEmployee, null, 2));
-    }
     return {
         id: dbEmployee.id,
         organizationId: dbEmployee.organization_id,

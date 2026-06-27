@@ -9,7 +9,13 @@ export const metadata = {
 }
 
 export default async function ReportDetailPage({ params }: { params: { id: string } }) {
-    const result = await getReportDetailAction(params.id)
+    // The report (+ its own permission check) and the caller's identity for the
+    // override gate are independent, so resolve them together instead of back-to-back.
+    // Shared auth is request-cached, so this adds no extra round-trip.
+    const [result, ctx] = await Promise.all([
+        getReportDetailAction(params.id),
+        getSessionContext(),
+    ])
 
     if ('error' in result) {
         return (
@@ -25,7 +31,6 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
     }
 
     // Check permissions — reuse the (app) layout's request-cached identity.
-    const ctx = await getSessionContext()
     let canOverride = true
     if (ctx) {
         const currentEmployee = ctx.employee

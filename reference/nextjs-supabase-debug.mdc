@@ -1,4 +1,4 @@
----
+      ---
 description: Next.js + Supabase: safe data fetching, error visibility, and debugging rules
 globs: **/*.ts, **/*.tsx
 alwaysApply: true

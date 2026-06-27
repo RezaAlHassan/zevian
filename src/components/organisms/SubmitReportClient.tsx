@@ -93,6 +93,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [showScoringInfo, setShowScoringInfo] = useState(false)
 
     // Load eligible goals whenever project or date changes
     useEffect(() => {
@@ -542,7 +543,13 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                 )}
 
                 {/* ── STEP 2: Write Report ── */}
-                {currentStep === 2 && selectedGoalId && !showDueTodayPrompt && (
+                {currentStep === 2 && selectedGoalId && !showDueTodayPrompt && (() => {
+                    const projectName = initialProjects.find(p => p.id === selectedProjectId)?.name
+                    const displayDate = isSequentialMode && prefillDates
+                        ? new Date((prefillDates[currentQueueIndex] ?? todayStr) + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+                    return (
                     <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '16px', overflow: 'hidden', animation: `fadeIn ${animation.fast}`, display: 'flex', flexDirection: 'column' }}>
                         {/* Sequential queue banner */}
                         {isSequentialMode && prefillDates && prefillDates.length > 1 && (
@@ -553,98 +560,203 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                 </span>
                             </div>
                         )}
-                        <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: `1px solid ${colors.border}` }}>
-                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: colors.teal }} />
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '14px', fontWeight: 800, color: colors.text }}>Write Report</div>
-                                <div style={{ fontSize: '12px', color: colors.text3, marginTop: '2px' }}>
-                                    {isSequentialMode && prefillDates ? (
+
+                        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+                            {/* ── 1. Page header ── */}
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                                    <h2 style={{ fontSize: '20px', fontWeight: 800, color: colors.text, margin: 0, letterSpacing: '-0.3px' }}>Submit Report</h2>
+                                    <button
+                                        onClick={() => setShowScoringInfo(v => !v)}
+                                        style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: '5px', flexShrink: 0,
+                                            fontSize: '11px', color: '#5B7FFF',
+                                            background: 'rgba(91,127,255,0.08)', border: '1px solid rgba(91,127,255,0.2)',
+                                            borderRadius: '5px', padding: '3px 9px', cursor: 'pointer'
+                                        }}
+                                    >
+                                        <Icon name="help" size={12} />
+                                        How are reports scored?
+                                    </button>
+                                </div>
+                                <div style={{ fontSize: '12px', color: colors.text3, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                    {projectName && <><span>{projectName}</span><span>·</span></>}
+                                    <span>{selectedGoal?.name}</span>
+                                    <span>·</span>
+                                    <span>{displayDate}</span>
+                                </div>
+
+                                {/* Inline scoring explanation toggle */}
+                                {showScoringInfo && (
+                                    <div style={{ marginTop: '12px', padding: '14px 16px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.lg, animation: `fadeIn ${animation.fast}` }}>
+                                        <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.6, marginBottom: '12px' }}>
+                                            Reports are scored against your goal&apos;s criteria &amp; instructions, your org&apos;s metrics, and past submission history.
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '20px', fontWeight: 900, color: colors.accent, lineHeight: 1 }}>{initialMetrics.length > 0 ? `${goalWeight}%` : '100%'}</div>
+                                                <div style={{ fontSize: '10px', fontWeight: 700, color: colors.accent, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>KPI Alignment</div>
+                                            </div>
+                                            {initialMetrics.length > 0 && (
+                                                <div style={{ flex: 1, background: `${colors.purple}12`, border: `1px solid ${colors.purple}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
+                                                    <div style={{ fontSize: '20px', fontWeight: 900, color: colors.purple, lineHeight: 1 }}>{100 - goalWeight}%</div>
+                                                    <div style={{ fontSize: '10px', fontWeight: 700, color: colors.purple, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Org Metrics</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── 2. You are scored on ── */}
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                                    <Icon name="target" size={13} color={colors.accent} />
+                                    <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: colors.text3 }}>You are scored on</span>
+                                </div>
+                                <div style={{ background: '#151B2A', border: '1px solid #2A3860', borderRadius: '8px', padding: '16px' }}>
+                                    {/* 2a. KPI name + instructions */}
+                                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#F1F5F9' }}>{selectedGoal?.name}</div>
+                                    <div style={{ fontSize: '12px', color: '#8892A4', lineHeight: 1.6, marginTop: '6px' }}>
+                                        {selectedGoal?.instructions || 'No instructions provided.'}
+                                    </div>
+
+                                    {/* 2b. Criteria */}
+                                    {selectedGoal?.criteria && selectedGoal.criteria.length > 0 && (
                                         <>
-                                            Submitting for:{' '}
-                                            <strong style={{ color: colors.text2 }}>
-                                                {new Date((prefillDates[currentQueueIndex] ?? todayStr) + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                                            </strong>
+                                            <div style={{ borderTop: '1px solid #2A3860', margin: '14px 0' }} />
+                                            <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8892A4', marginBottom: '6px' }}>Criteria</div>
+                                            <div>
+                                                {selectedGoal.criteria.map((c: any, i: number) => (
+                                                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '8px 0', borderBottom: i < selectedGoal.criteria.length - 1 ? '1px solid #2A3860' : 'none' }}>
+                                                        <span style={{ fontSize: '12.5px', color: '#cdd5e0' }}>{c.name}</span>
+                                                        {c.weight != null && (
+                                                            <span style={{ fontSize: '11px', fontWeight: 700, color: colors.accent, background: `${colors.accent}18`, borderRadius: '4px', padding: '1px 6px', flexShrink: 0 }}>
+                                                                {c.weight}%
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </>
-                                    ) : (
-                                        <>{eligibleGoals.find(g => g.id === selectedGoalId)?.name} • {selectedDate}</>
+                                    )}
+
+                                    {/* 2c. Org metrics */}
+                                    {initialMetrics.length > 0 && (
+                                        <>
+                                            <div style={{ borderTop: '1px solid #2A3860', margin: '14px 0' }} />
+                                            <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8892A4', marginBottom: '10px' }}>Org metrics — also evaluated</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                {initialMetrics.map((m: any, i: number) => (
+                                                    <div key={m.id || i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                                        <span style={{ flexShrink: 0, marginTop: '1px' }}><Icon name="star" size={13} color={colors.teal} /></span>
+                                                        <div>
+                                                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>{m.name}</div>
+                                                            {m.description && (
+                                                                <div style={{ fontSize: '11px', color: '#8892A4', lineHeight: 1.5, marginTop: '1px' }}>{m.description}</div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Org metrics visibility band — rep must know these before writing */}
-                        {initialMetrics.length > 0 && (
-                            <div style={{ padding: '10px 20px', background: `${colors.purple}08`, borderBottom: `1px solid ${colors.purple}18`, display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>Also scored on</span>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                    {initialMetrics.map((m: any) => (
-                                        <span key={m.id || m.name} style={{ fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '20px', background: `${colors.purple}14`, color: colors.purple, border: `1px solid ${colors.purple}28` }}>
-                                            {m.name}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                            {/* ── 3. Write area label ── */}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: colors.text3, marginBottom: '8px' }}>
+                                    Write your report
+                                </label>
 
-                        <div style={{ flex: 1 }}>
-                            <textarea
-                                autoFocus
-                                value={reportText}
-                                onChange={e => setReportText(e.target.value)}
-                                placeholder="Describe your work, results, and impact. Evidence and metrics strengthen your score..."
-                                style={{
-                                    width: '100%', minHeight: '360px', background: 'transparent', border: 'none', padding: '24px',
-                                    color: colors.text, fontSize: '15px', fontFamily: typography.fonts.body, outline: 'none', resize: 'vertical', lineHeight: 1.7
-                                }}
-                            />
-                        </div>
+                                {/* ── 4. Textarea ── */}
+                                <textarea
+                                    autoFocus
+                                    value={reportText}
+                                    onChange={e => setReportText(e.target.value)}
+                                    placeholder="Describe your work, results, and impact. Evidence and metrics strengthen your score..."
+                                    style={{
+                                        width: '100%', minHeight: '300px', background: colors.bg, border: `1px solid ${colors.border}`,
+                                        borderRadius: radius.lg, padding: '16px', color: colors.text, fontSize: '15px',
+                                        fontFamily: typography.fonts.body, outline: 'none', resize: 'vertical', lineHeight: 1.7
+                                    }}
+                                />
 
-                        <div style={{ padding: '16px 20px', background: colors.surface2, borderTop: `1px solid ${colors.border}` }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                {isSequentialMode && isLateAllowed ? (
-                                    <button
-                                        onClick={() => {
-                                            const nextIndex = currentQueueIndex + 1
-                                            if (prefillDates && nextIndex < prefillDates.length) {
-                                                setCurrentQueueIndex(nextIndex)
-                                                setSelectedDate(prefillDates[nextIndex])
-                                                setReportText('')
-                                                setAnalysisResults(null)
-                                                window.scrollTo({ top: 0, behavior: 'smooth' })
-                                            } else if (prefillIsDueToday) {
-                                                setShowDueTodayPrompt(true)
-                                            } else {
-                                                router.push('/my-reports')
-                                            }
-                                        }}
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: colors.text3, padding: 0 }}
-                                    >
-                                        Skip this date →
-                                    </button>
-                                ) : <span />}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                {/* Character count */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+                                    {isSequentialMode && isLateAllowed ? (
+                                        <button
+                                            onClick={() => {
+                                                const nextIndex = currentQueueIndex + 1
+                                                if (prefillDates && nextIndex < prefillDates.length) {
+                                                    setCurrentQueueIndex(nextIndex)
+                                                    setSelectedDate(prefillDates[nextIndex])
+                                                    setReportText('')
+                                                    setAnalysisResults(null)
+                                                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                                                } else if (prefillIsDueToday) {
+                                                    setShowDueTodayPrompt(true)
+                                                } else {
+                                                    router.push('/my-reports')
+                                                }
+                                            }}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, color: colors.text3, padding: 0 }}
+                                        >
+                                            Skip this date →
+                                        </button>
+                                    ) : <span />}
                                     <span style={{ fontSize: '13px', fontWeight: 700, color: reportText.length >= 50 ? colors.green : colors.text3 }} className="font-numeric">
                                         {reportText.length} / 3,000 chars
                                     </span>
-                                    <Button
-                                        variant="primary"
-                                        disabled={!canAnalyze || isAnalyzing || isSubmitting}
-                                        icon="sparkles"
-                                        onClick={handleAnalyze}
-                                        style={{ boxShadow: canAnalyze ? `0 4px 12px ${colors.accent}40` : 'none' }}
-                                    >
-                                        {isAnalyzing ? 'Analyzing...' : 'Analyze'}
-                                    </Button>
                                 </div>
+                                {reportText.length > 0 && reportText.length < 50 && (
+                                    <div style={{ fontSize: '12px', color: colors.warn, textAlign: 'right', marginTop: '6px', fontWeight: 600 }}>
+                                        Add at least {50 - reportText.length} more characters to analyse.
+                                    </div>
+                                )}
                             </div>
-                            {reportText.length > 0 && reportText.length < 50 && (
-                                <div style={{ fontSize: '12px', color: colors.warn, textAlign: 'right', marginTop: '8px', fontWeight: 600 }}>
-                                    Add at least {50 - reportText.length} more characters to analyze.
+
+                            {/* ── 5. Analyse button ── */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                <button
+                                    onClick={handleAnalyze}
+                                    disabled={!canAnalyze || isAnalyzing || isSubmitting}
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                        background: '#5B7FFF', color: '#fff', fontWeight: 700,
+                                        padding: '8px 16px', borderRadius: '7px', border: 'none',
+                                        fontSize: '13px', fontFamily: typography.fonts.body,
+                                        cursor: (!canAnalyze || isAnalyzing || isSubmitting) ? 'not-allowed' : 'pointer',
+                                        opacity: (!canAnalyze || isAnalyzing || isSubmitting) ? 0.5 : 1,
+                                        boxShadow: canAnalyze && !isAnalyzing && !isSubmitting ? `0 4px 12px ${colors.accent}40` : 'none',
+                                        transition: `all ${animation.fast}`
+                                    }}
+                                >
+                                    <Icon name="sparkles" size={14} color="#fff" />
+                                    {isAnalyzing ? 'Analysing...' : 'Analyse before submitting'}
+                                </button>
+                            </div>
+
+                            {/* ── 6. Submit button ── */}
+                            <Button
+                                variant="primary"
+                                disabled={!analysisResults || isSubmitting || isAnalyzing}
+                                onClick={handleConfirmSubmit}
+                                style={{ width: '100%', justifyContent: 'center' }}
+                            >
+                                {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                            </Button>
+                            {!analysisResults && (
+                                <div style={{ fontSize: '11px', color: colors.text3, textAlign: 'center', marginTop: '-12px' }}>
+                                    Analyse your report before submitting.
                                 </div>
                             )}
                         </div>
                     </div>
-                )}
+                    )
+                })()}
             </div>
 
             {/* ── Sidebar ─────────────────── */}

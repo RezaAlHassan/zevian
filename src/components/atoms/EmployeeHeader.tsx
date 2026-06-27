@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { colors, layout, typography, radius, animation, shadows } from '@/design-system'
 import { Icon, Avatar } from '@/components/atoms'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 interface EmployeeHeaderProps {
@@ -16,6 +16,9 @@ interface EmployeeHeaderProps {
 export function EmployeeHeader({ title, userName = 'User', employeeId = 'N/A' }: EmployeeHeaderProps) {
     const [isAccountOpen, setIsAccountOpen] = useState(false)
     const router = useRouter()
+    const pathname = usePathname()
+    // The submit action lives at the bottom of the form on the submit page itself
+    const isSubmitPage = pathname === '/my-reports/submit'
 
     const handleLogout = async () => {
         const supabase = createClient()
@@ -61,25 +64,27 @@ export function EmployeeHeader({ title, userName = 'User', employeeId = 'N/A' }:
 
             {/* Header Actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: '12px' }}>
-                <Link href="/my-reports/submit" style={{ textDecoration: 'none' }}>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        background: colors.accent,
-                        color: '#fff',
-                        padding: '6px 14px',
-                        borderRadius: radius.md,
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: `all ${animation.fast}`,
-                        boxShadow: `0 2px 4px ${colors.accent}33`
-                    }} className="submit-report-btn">
-                        <Icon name="plus" size={14} color="#fff" />
-                        <span>Submit Report</span>
-                    </div>
-                </Link>
+                {!isSubmitPage && (
+                    <Link href="/my-reports/submit" style={{ textDecoration: 'none' }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            background: colors.accent,
+                            color: '#fff',
+                            padding: '6px 14px',
+                            borderRadius: radius.md,
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: `all ${animation.fast}`,
+                            boxShadow: `0 2px 4px ${colors.accent}33`
+                        }} className="submit-report-btn">
+                            <Icon name="plus" size={14} color="#fff" />
+                            <span>Submit Report</span>
+                        </div>
+                    </Link>
+                )}
 
                 <div className="header-icon-btn">
                     <Icon name="search" size={16} />

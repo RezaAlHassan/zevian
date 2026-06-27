@@ -211,29 +211,21 @@ export async function updateEmployeeManagerAction(employeeId: string, managerId:
 
 export async function updateEmployeePermissionsAction(id: string, permissions: any) {
     try {
-        console.log(`[PERM_UPDATE] Starting for ID: ${id}`);
-        console.log(`[PERM_UPDATE] Permissions requested:`, JSON.stringify(permissions, null, 2));
-
         const supabase = createServerClient()
         const user = await getAuthUser()
 
         if (!user) {
-            console.warn('[PERM_UPDATE] Not authenticated');
             return { success: false, error: 'Not authenticated' }
         }
-        console.log(`[PERM_UPDATE] User authenticated: ${user.id}`);
 
         const currentUser = await employeeService.getByAuthId(user.id)
         if (!currentUser || (currentUser.role !== 'manager' && !currentUser.isAccountOwner)) {
-            console.warn(`[PERM_UPDATE] Unauthorized attempt by user ${user.id}. Role: ${currentUser?.role}, isAccountOwner: ${currentUser?.isAccountOwner}`);
             return { success: false, error: 'Unauthorized' }
         }
-        console.log(`[PERM_UPDATE] User authorized: ${currentUser.id} (Role: ${currentUser.role}, Owner: ${currentUser.isAccountOwner})`);
 
         // Use admin client to bypass RLS for upserting employee_permissions
         const { createAdminClient } = await import('@/lib/supabase/server')
         const adminClient = createAdminClient()
-        console.log('[PERM_UPDATE] Admin client created.');
 
         // Verify employee exists
         const { data: employee, error: empError } = await (adminClient.from('employees') as any)
@@ -242,10 +234,14 @@ export async function updateEmployeePermissionsAction(id: string, permissions: a
             .single()
 
         if (empError) {
-            console.error('[PERM_UPDATE] Employee fetch error:', empError);
             return { success: false, error: 'Employee not found' }
         }
-        console.log(`[PERM_UPDATE] Found employee: ${employee.name} in Org: ${employee.organization_id}`);
+
+        // The admin client bypasses RLS, so org isolation must be enforced here:
+        // a manager/owner may only manage permissions for employees in their own org.
+        if (employee.organization_id !== currentUser.organizationId) {
+            return { success: false, error: 'Unauthorized' }
+        }
 
         const payload = {
             employee_id: id,
@@ -258,29 +254,24 @@ export async function updateEmployeePermissionsAction(id: string, permissions: a
             can_override_ai_scores: !!permissions.canOverrideAIScores,
         }
 
-        console.log(`[PERM_UPDATE] Executing upsert with payload:`, JSON.stringify(payload, null, 2));
-
-        const { data: upsertData, error: permError } = await (adminClient.from('employee_permissions') as any)
+        const { error: permError } = await (adminClient.from('employee_permissions') as any)
             .upsert(payload, { onConflict: 'employee_id' })
             .select()
 
         if (permError) {
-            console.error('[PERM_UPDATE] Upsert error:', permError);
+            console.error('updateEmployeePermissionsAction upsert error:', permError);
             return { success: false, error: 'Database update failed' }
         }
-        
-        console.log('[PERM_UPDATE] Upsert successful. Data returned:', JSON.stringify(upsertData, null, 2));
 
         // Revalidate to ensure UI reflects changes
         revalidatePath('/', 'layout')
         revalidatePath('/dashboard')
         revalidatePath('/organization')
         revalidatePath(`/employees/${id}`)
-        console.log('[PERM_UPDATE] Paths revalidated.');
 
         return { success: true }
     } catch (error) {
-        console.error('[PERM_UPDATE] Unexpected error:', error)
+        console.error('updateEmployeePermissionsAction Error:', error)
         return { success: false, error: 'Internal Error' }
     }
 }

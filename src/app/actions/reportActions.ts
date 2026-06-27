@@ -7,7 +7,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { revalidatePath } from 'next/cache'
 import { getPeriodKey } from '@/utils/reportPeriod'
 import { withRetry } from '@/lib/ai/withRetry'
-import { getSessionContext, getAuthUser } from '@/lib/auth/session'
+import { getSessionContext, getAuthUser, getCachedEmployee } from '@/lib/auth/session'
 
 export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', startDate?: string, endDate?: string) {
     try {
@@ -148,14 +148,14 @@ export async function getMyReportsAction(startDate?: string, endDate?: string) {
 
 export async function getReportDetailAction(reportId: string) {
     try {
-        const supabase = createServerClient()
-        const user = await getAuthUser()
-        if (!user) return { error: 'Not authenticated' }
-
-        const employee = await employeeService.getByAuthId(user.id)
-        if (!employee) return { error: 'Employee record not found' }
-
-        const report = await reportService.getById(reportId)
+        // Caller identity and the report itself are independent — fetch in parallel.
+        // getCachedEmployee is request-memoized, so this shares the layout's identity
+        // lookup instead of issuing a fresh auth + employee round-trip.
+        const [employee, report] = await Promise.all([
+            getCachedEmployee(),
+            reportService.getById(reportId),
+        ])
+        if (!employee) return { error: 'Not authenticated' }
         if (!report) return { error: 'Report not found' }
 
         // Check permission: manager of the employee or the employee themselves
@@ -572,7 +572,73 @@ export async function analyzeReportAction(data: {
             description: m.description || m.desc
         })))
 
+        // ── Prior performance history ─────────────────────────────────────────
+        // Fetch the last 4 scored reports per goal for this employee so the model
+        // can ground reasoning in trends. Non-blocking: a failure falls back to
+        // empty history silently.
+        type PriorEntry = { score: number; feedback: string; date: string }
+        const historyByCriterion = new Map<string, PriorEntry[]>()
+
+        if (employee?.id) {
+            let priorScores: any[] = []
+            try {
+                const goalIds = data.goals.map((g: any) => g.id).filter(Boolean)
+                if (goalIds.length > 0) {
+                    const { data: rows } = await adminClient
+                        .from('reports')
+                        .select(`
+                            id, goal_id, submission_date, evaluation_score,
+                            report_criterion_scores(criterion_name, score, reasoning, evidence)
+                        `)
+                        .eq('employee_id', employee.id)
+                        .in('goal_id', goalIds)
+                        .not('evaluation_score', 'is', null)
+                        .order('submission_date', { ascending: false })
+                        .limit(40) // up to 4 reports × several goals/criteria
+                    priorScores = rows ?? []
+                }
+            } catch { /* silent fallback — prior history is non-essential */ }
+
+            for (const rep of priorScores) {
+                const date = rep.submission_date
+                if (!date) continue
+                for (const cs of rep.report_criterion_scores ?? []) {
+                    if (!cs.criterion_name) continue
+                    const key = `${rep.goal_id}::${cs.criterion_name}`
+                    const existing = historyByCriterion.get(key) ?? []
+                    if (existing.length < 4) {
+                        existing.push({
+                            score: cs.score,
+                            feedback: cs.reasoning ?? cs.evidence ?? '',
+                            date,
+                        })
+                        historyByCriterion.set(key, existing)
+                    }
+                }
+            }
+        }
+
+        const historyBlock = data.goals.map((g: any) => {
+            const critLines = (g.criteria ?? []).map((c: any) => {
+                const entries = historyByCriterion.get(`${g.id}::${c.name}`) ?? []
+                if (entries.length === 0) return null
+                const lines = entries.map((e: PriorEntry) => {
+                    const d = new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    return `    - ${d}: ${e.score}/10 — "${e.feedback}"`
+                }).join('\n')
+                return `  ${c.name}:\n${lines}`
+            }).filter(Boolean)
+            if (critLines.length === 0) return null
+            return `Goal "${g.name}":\n${critLines.join('\n')}`
+        }).filter(Boolean).join('\n\n')
+
+        const historySection = historyBlock
+            ? `PRIOR PERFORMANCE HISTORY (last 4 reports, most recent first):\n${historyBlock}`
+            : `PRIOR PERFORMANCE HISTORY:\nNo prior data — this is the employee's first scored report.`
+
         const prompt = `You are an AI performance analyst. Analyze the following employee report and score it against the selected goals, organizational metrics, and project knowledgebase.
+
+${historySection}
 
 REPORT:
 "${data.reportText}"
@@ -591,6 +657,16 @@ EVALUATION RULES:
 2. The Knowledgebase itself is NOT a separate score; it is the source of truth for lexicons, benchmarks, and constraints that calibrate the other scores.
 3. Provide a brief reasoning for each criteria, the overall goal, and each org metric.
 4. Weights for goal criteria are provided in the goals JSON.
+
+REASONING RULES:
+- Reasoning must be grounded in the current report first. Evidence from this week's submission is always primary.
+- Where prior history exists (see PRIOR PERFORMANCE HISTORY above), reference it to add one of:
+    a) Pattern: 'Third consecutive week below target on X'
+    b) Trend: 'Score improved from 5.5 to 6.0 — first improvement in four weeks'
+    c) Regression: 'Dropped 1.8 points from last week — largest single-week decline on this criterion'
+- Do not reference history where it adds no meaning (e.g. first report, or score is stable and uninteresting).
+- Do not repeat the prior feedback verbatim. One reference to history per criterion is enough.
+- Reasoning is for the manager. Keep it factual and specific. 2-3 sentences maximum.
 
 Return ONLY a JSON object in this format:
 {
@@ -616,7 +692,18 @@ Return ONLY a JSON object in this format:
   "summary": "A 2-3 sentence AI summary of the overall performance."
 }
 
-COACHING NOTE RULE: For any criterion scoring below 7.0, set coaching_note to one sentence of specific, actionable advice directed at the manager (not the employee). It must suggest a concrete action — something to ask, observe, role-play, or review in the next check-in. It must reference the specific gap in that criterion. Never write generic advice like "discuss with the employee". For criteria scoring 7.0 and above, set coaching_note to null. coaching_note applies only to goal criteria — never to orgMetrics.`
+COACHING NOTE RULES:
+- Only generate a coaching_note for criteria scoring below 7.0. For 7.0 and above, coaching_note must be null.
+- The coaching note is for the employee, not the manager. Write it as a direct instruction to the person doing the work.
+- Maximum 2 sentences. No exceptions.
+- Start with the action, not the problem.
+  Wrong: 'Your process adherence was low this week...'
+  Right: 'Block your outreach window as a fixed calendar commitment before the week starts.'
+- Never repeat a number, metric, or fact already in the reasoning. The employee reads both — repetition is noise.
+- If the same gap has appeared in prior weeks, name it: 'This is the third week this gap has appeared — the fix is structural, not effort-based.'
+- Never use: 'going forward', 'it is important to', 'in order to improve', 'moving forward', 'ensure that', 'make sure to', 'you should consider'.
+- One concrete thing. Not a list.
+- coaching_note applies only to goal criteria — never to orgMetrics.`
 
         const result = await withRetry(
             'analyzeReportAction',

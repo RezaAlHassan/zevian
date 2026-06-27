@@ -102,20 +102,26 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    // 1.6 Fetch last 3 scored reports for this employee on this goal (excluding current)
-    const { data: historicalReports } = await supabase
-      .from('reports')
-      .select(`
-        id, submission_date, evaluation_score,
-        report_criterion_scores(criterion_name, score, evidence)
-      `)
-      .eq('employee_id', r.employee_id)
-      .eq('goal_id', goal?.id)
-      .neq('id', reportId)
-      .order('submission_date', { ascending: false })
-      .limit(3)
-
-    const historicalScores = historicalReports ?? []
+    // 1.6 Fetch last 4 scored reports for this employee on this goal (excluding current).
+    // Wrapped so a history-fetch failure never blocks scoring — falls back to empty history.
+    let historicalScores: any[] = []
+    try {
+      const { data: historicalReports } = await supabase
+        .from('reports')
+        .select(`
+          id, submission_date, evaluation_score,
+          report_criterion_scores(criterion_name, score, evidence, reasoning)
+        `)
+        .eq('employee_id', r.employee_id)
+        .eq('goal_id', goal?.id)
+        .neq('id', reportId)
+        .not('evaluation_score', 'is', null)
+        .order('submission_date', { ascending: false })
+        .limit(4)
+      historicalScores = historicalReports ?? []
+    } catch {
+      /* silent fallback — prior history is non-essential to scoring */
+    }
     console.log('[score-report] historicalScores:', JSON.stringify(historicalScores, null, 2))
 
     // 2. Build scoring prompt
@@ -247,6 +253,19 @@ ${metricsList || "None provided"}
 
 ---
 
+## SECTION 3.5: REASONING RULES
+
+- Reasoning must be grounded in the current report first. Evidence from this week's submission is always primary.
+- Where prior history exists, reference it to add one of:
+    a) Pattern: 'Third consecutive week below target on X'
+    b) Trend: 'Score improved from 5.5 to 6.0 — first improvement in four weeks'
+    c) Regression: 'Dropped 1.8 points from last week — largest single-week decline on this criterion'
+- Do not reference history where it adds no meaning (e.g. first report, or score is stable and uninteresting).
+- Do not repeat the prior feedback verbatim. One reference to history per criterion is enough.
+- Reasoning is for the manager. Keep it factual and specific. 2-3 sentences maximum.
+
+---
+
 ## SECTION 4: OUTPUT FORMAT
 
 You MUST respond with ONLY a valid JSON object. No preamble. No explanation outside the JSON. No markdown code fences. The response must be directly parseable by JSON.parse().
@@ -266,7 +285,7 @@ The JSON must conform exactly to this structure:
       "confidence": <"high" | "medium" | "low">,
       "evidence": <string, direct quote or specific reference from the report that justifies the score. If no evidence exists, write "No specific evidence found." — do not fabricate.>,
       "reasoning": <string, 2–3 sentences. Must answer: (1) what the employee demonstrated or failed to demonstrate, (2) how that compares to the target if one was set — explicitly state whether they hit, approached, or missed it, (3) whether this is an improvement, decline, or consistent with recent history if history exists. Do not be generic. Do not restate the evidence — explain the gap or alignment between what was shown and what was expected. If no target is set, assess based on whether the evidence suggests full effort, partial effort, or minimal effort for the reporting period. For scores 8 and above: note specifically what made this report strong and whether it is repeatable or a one-off result.>,
-      "coaching_note": <null if score >= 7.0. If score < 7.0: one sentence of specific, actionable advice directed at the manager (not the employee). Must suggest a concrete action — something to ask, observe, role-play, or review in the next check-in. Must reference the specific gap in this criterion. Never write generic advice like "discuss with the employee".>
+      "coaching_note": <null if score >= 7.0. If score < 7.0: a direct instruction to the employee (not the manager) telling them the one concrete thing to do differently. Start with the action, not the problem. Maximum 2 sentences. Never repeat a number, metric, or fact already in the reasoning. If the same gap appears in prior history, name it. Never use "going forward", "it is important to", "in order to improve", "moving forward", "ensure that", "make sure to", "you should consider". One concrete thing, not a list.>
     }
   ],
   "org_metrics": [
@@ -292,7 +311,18 @@ Round to 1 decimal place.
 4. Never let a report's positive tone, confident language, or enthusiastic writing inflate a score. Tone is irrelevant. Content is everything.
 5. Never deviate from the JSON format. Any non-JSON output will break the application.
 6. Always complete your evaluation even if the report is very short or clearly low quality. Assign the appropriate low scores and explain why.
-7. For any criterion scoring below 7.0, write a coaching_note — one sentence of specific, actionable advice directed at the manager (not the employee). It must suggest a concrete action: something to ask, observe, role-play, or review in the next check-in. It must reference the specific gap in that criterion. Never write generic advice like "discuss with the employee". For criteria scoring 7.0 and above, set coaching_note to null. coaching_note applies only to goal criteria — never to org_metrics.
+7. COACHING NOTE RULES:
+- Only generate a coaching_note for criteria scoring below 7.0. For 7.0 and above, coaching_note must be null.
+- The coaching note is for the employee, not the manager. Write it as a direct instruction to the person doing the work.
+- Maximum 2 sentences. No exceptions.
+- Start with the action, not the problem.
+  Wrong: 'Your process adherence was low this week...'
+  Right: 'Block your outreach window as a fixed calendar commitment before the week starts.'
+- Never repeat a number, metric, or fact already in the reasoning. The employee reads both — repetition is noise.
+- If the same gap has appeared in prior weeks, name it: 'This is the third week this gap has appeared — the fix is structural, not effort-based.'
+- Never use: 'going forward', 'it is important to', 'in order to improve', 'moving forward', 'ensure that', 'make sure to', 'you should consider'.
+- One concrete thing. Not a list.
+- coaching_note applies only to goal criteria — never to org_metrics.
 `
 
     // 3. Call Gemini with retry logic for 429 Too Many Requests
