@@ -32,7 +32,7 @@ export function AIBanner({ message, highlightedText, onActionClick }: AIBannerPr
         padding: '14px 20px',
         background: `linear-gradient(90deg, rgba(91,127,255,0.08), rgba(0,212,170,0.05))`,
         border: '1px solid rgba(91,127,255,0.2)',
-        borderRadius: radius.xl,
+        borderRadius: radius.md,
         marginBottom: '24px',
       }}
     >

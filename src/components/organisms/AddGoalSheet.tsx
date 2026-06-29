@@ -331,7 +331,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                         borderRadius: '8px',
                                         background: colors.surface2,
                                         border: `1.5px solid ${colors.border}`,
-                                        fontSize: '12.5px',
+                                        fontSize: '12px',
                                         fontWeight: 600,
                                         color: colors.text2,
                                         cursor: 'pointer',
@@ -358,10 +358,10 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                 value={aiPrompt}
                                 onChange={(e) => setAiPrompt(e.target.value)}
                                 placeholder="Describe it, we'll structure it… (e.g. 'We are a specialized customer support team...')"
-                                style={{ width: '100%', padding: '13px 14px', background: 'transparent', border: 'none', outline: 'none', fontFamily: typography.fonts.display, fontSize: '13.5px', color: colors.text, lineHeight: 1.65, resize: 'none', minHeight: '80px' }}
+                                style={{ width: '100%', padding: '13px 14px', background: 'transparent', border: 'none', outline: 'none', fontFamily: typography.fonts.display, fontSize: '13px', color: colors.text, lineHeight: 1.65, resize: 'none', minHeight: '80px' }}
                             />
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px 10px', borderTop: `1px solid ${colors.border}` }}>
-                                <span style={{ fontSize: '11.5px', color: colors.text3, fontStyle: 'italic' }}>Zevian will pre-fill name, criteria, and instructions.</span>
+                                <span style={{ fontSize: '11px', color: colors.text3, fontStyle: 'italic' }}>Zevian will pre-fill name, criteria, and instructions.</span>
                                 <button
                                     onClick={generateWithAI}
                                     disabled={aiPrompt.length < 10 || isGenerating}
@@ -373,7 +373,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                         borderRadius: '8px',
                                         background: isGenerating ? colors.accentGlow : colors.surface3,
                                         border: `1px solid ${isGenerating ? colors.accent : colors.border}`,
-                                        fontSize: '12.5px',
+                                        fontSize: '12px',
                                         fontWeight: 700,
                                         color: isGenerating ? colors.accent : colors.text2,
                                         cursor: aiPrompt.length < 10 ? 'not-allowed' : 'pointer',
@@ -405,7 +405,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="e.g., Improve Code Quality"
-                                style={{ width: '100%', padding: '10px 13px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '9px', fontSize: '13.5px', color: colors.text, fontFamily: typography.fonts.display, outline: 'none' }}
+                                style={{ width: '100%', padding: '10px 13px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '9px', fontSize: '13px', color: colors.text, fontFamily: typography.fonts.display, outline: 'none' }}
                             />
                         </div>
                     </div>
@@ -416,12 +416,12 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                             <Icon name="list" size={16} color={colors.accent} />
                             Instructions
                         </div>
-                        <p style={{ fontSize: '12.5px', color: colors.text3, marginBottom: '12px', lineHeight: 1.55 }}>Specific, objective instructions for Zevian to follow during evaluation.</p>
+                        <p style={{ fontSize: '12px', color: colors.text3, marginBottom: '12px', lineHeight: 1.55 }}>Specific, objective instructions for Zevian to follow during evaluation.</p>
                         <textarea
                             value={instructions}
                             onChange={(e) => setInstructions(e.target.value)}
                             placeholder="e.g. Ensure all code is commented..."
-                            style={{ width: '100%', padding: '10px 13px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '9px', fontSize: '13.5px', color: colors.text, fontFamily: typography.fonts.display, outline: 'none', minHeight: '88px', lineBreak: 'anywhere' }}
+                            style={{ width: '100%', padding: '10px 13px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '9px', fontSize: '13px', color: colors.text, fontFamily: typography.fonts.display, outline: 'none', minHeight: '88px', lineBreak: 'anywhere' }}
                         />
                     </div>
 
@@ -438,7 +438,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                 </div>
                             )}
                         </div>
-                        <p style={{ fontSize: '12.5px', color: colors.text3, marginBottom: '14px', lineHeight: 1.55 }}>Add criteria and mark their importance — weights are auto-calculated.</p>
+                        <p style={{ fontSize: '12px', color: colors.text3, marginBottom: '14px', lineHeight: 1.55 }}>Add criteria and mark their importance — weights are auto-calculated.</p>
 
                         {/* Add Crit Row */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: colors.surface2, border: `1.5px solid ${colors.border}`, borderRadius: '10px' }}>
@@ -448,7 +448,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                     onChange={(e) => setNewCritName(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && addCriterion()}
                                     placeholder="e.g., Code Quality..."
-                                    style={{ border: 'none', background: 'transparent', padding: '6px 2px', fontSize: '13.5px', color: colors.text, outline: 'none', fontFamily: typography.fonts.display }}
+                                    style={{ border: 'none', background: 'transparent', padding: '6px 2px', fontSize: '13px', color: colors.text, outline: 'none', fontFamily: typography.fonts.display }}
                                 />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: colors.surface3, borderRadius: '8px', padding: '3px', border: `1px solid ${colors.border}` }}>
                                     {(['low', 'medium', 'high', 'critical'] as const).map(lvl => (
@@ -476,7 +476,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                 </div>
                                 <button
                                     onClick={addCriterion}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', background: colors.accent, border: 'none', fontSize: '12.5px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: typography.fonts.display, boxShadow: '0 0 12px rgba(91,127,255,.2)' }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', background: colors.accent, border: 'none', fontSize: '12px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: typography.fonts.display, boxShadow: '0 0 12px rgba(91,127,255,.2)' }}
                                 >
                                     <Icon name="plus" size={12} />
                                     Add
@@ -548,7 +548,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <div className="font-numeric" style={{ fontSize: '12px', color: colors.text3 }}>100%</div>
-                                        <div onClick={() => setShowWeightsDetail(!showWeightsDetail)} style={{ fontSize: '11.5px', color: colors.accent, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <div onClick={() => setShowWeightsDetail(!showWeightsDetail)} style={{ fontSize: '11px', color: colors.accent, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                             {showWeightsDetail ? 'Hide Details' : 'Show Details'}
                                             <Icon name={showWeightsDetail ? 'chevronUp' : 'chevronDown'} size={12} />
                                         </div>
@@ -568,13 +568,13 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                         <tbody>
                                             {criteria.map((c, i) => (
                                                 <tr key={c.id} style={{ borderBottom: i === criteria.length - 1 ? 'none' : `1px solid ${colors.border}` }}>
-                                                    <td style={{ fontSize: '12.5px', padding: '5px 0', color: colors.text2 }}>{c.name}</td>
-                                                    <td className="font-numeric" style={{ fontSize: '12.5px', padding: '5px 0', textAlign: 'right', fontWeight: 600, color: colors.accent }}>{c.weight}%</td>
+                                                    <td style={{ fontSize: '12px', padding: '5px 0', color: colors.text2 }}>{c.name}</td>
+                                                    <td className="font-numeric" style={{ fontSize: '12px', padding: '5px 0', textAlign: 'right', fontWeight: 600, color: colors.accent }}>{c.weight}%</td>
                                                 </tr>
                                             ))}
                                             <tr style={{ fontWeight: 700, color: colors.text }}>
-                                                <td style={{ fontSize: '12.5px', padding: '5px 0' }}>Total</td>
-                                                <td className="font-numeric" style={{ fontSize: '12.5px', padding: '5px 0', textAlign: 'right', color: colors.accent }}>100%</td>
+                                                <td style={{ fontSize: '12px', padding: '5px 0' }}>Total</td>
+                                                <td className="font-numeric" style={{ fontSize: '12px', padding: '5px 0', textAlign: 'right', color: colors.accent }}>100%</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -590,7 +590,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                             <select
                                 value={selectedProjectId}
                                 onChange={(e) => setSelectedProjectId(e.target.value)}
-                                style={{ width: '100%', padding: '10px 13px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '9px', fontSize: '13.5px', color: colors.text, fontFamily: typography.fonts.display, outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23545d73' stroke-width='2'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+                                style={{ width: '100%', padding: '10px 13px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '9px', fontSize: '13px', color: colors.text, fontFamily: typography.fonts.display, outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23545d73' stroke-width='2'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                             >
                                 <option value="">-- Select Project --</option>
                                 {projects.map(p => <option key={p.id} value={p.id}>{p.name} · {p.category} · {p.report_frequency}</option>)}
@@ -608,9 +608,9 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                 type="datetime-local"
                                 value={deadline}
                                 onChange={(e) => setDeadline(e.target.value)}
-                                style={{ width: '100%', padding: '10px 13px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '9px', fontSize: '13.5px', color: colors.text, fontFamily: typography.fonts.display, outline: 'none' }}
+                                style={{ width: '100%', padding: '10px 13px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '9px', fontSize: '13px', color: colors.text, fontFamily: typography.fonts.display, outline: 'none' }}
                             />
-                            <div style={{ fontSize: '11.5px', color: colors.text3, marginTop: '5px', lineHeight: 1.55 }}>
+                            <div style={{ fontSize: '11px', color: colors.text3, marginTop: '5px', lineHeight: 1.55 }}>
                                 Optional: Set a target date. Evaluation scores will focus on progress up to this point.
                             </div>
                         </div>
@@ -621,7 +621,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                 {/* Footer */}
                 <div style={{ padding: '16px 26px', borderTop: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexShrink: 0, background: colors.surface, position: 'sticky', bottom: 0, zIndex: 10 }}>
                     {isSaveDisabled && !loading && !isGenerating && (
-                        <div style={{ fontSize: '11.5px', color: colors.text3 }}>
+                        <div style={{ fontSize: '11px', color: colors.text3 }}>
                             {!name ? 'Add a KPI name' : !selectedProjectId ? 'Select a project' : instructions.length < 10 ? 'Add KPI instructions (min 10 chars)' : criteria.length === 0 ? 'Add at least one criterion' : ''}
                         </div>
                     )}

@@ -22,7 +22,7 @@ export function MetricCard({ name, subtitle, score, sparklineData, active = fals
       style={{
         background: active ? 'rgba(91,127,255,0.05)' : colors.surface2,
         border: `1px solid ${active ? 'rgba(91,127,255,0.35)' : colors.border}`,
-        borderRadius: radius.lg,
+        borderRadius: radius.md,
         padding: '14px',
         cursor: onClick ? 'pointer' : 'default',
         transition: `all ${animation.fast}`,
@@ -53,10 +53,10 @@ export function MetricCard({ name, subtitle, score, sparklineData, active = fals
         }} />
       )}
 
-      <div style={{ fontFamily: typography.fonts.display, fontSize: '12.5px', fontWeight: typography.weight.semibold, color: colors.text, marginBottom: '2px' }}>
+      <div style={{ fontFamily: typography.fonts.display, fontSize: '12px', fontWeight: typography.weight.semibold, color: colors.text, marginBottom: '2px' }}>
         {name}
       </div>
-      <div style={{ fontFamily: typography.fonts.display, fontSize: '10.5px', color: colors.text3, marginBottom: '8px' }}>
+      <div style={{ fontFamily: typography.fonts.display, fontSize: '11px', color: colors.text3, marginBottom: '8px' }}>
         {subtitle}
       </div>
 

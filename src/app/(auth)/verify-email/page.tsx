@@ -20,7 +20,7 @@ export default function VerifyEmailPage() {
                 <span style={{ fontFamily: typography.fonts.display, fontWeight: 700, fontSize: '22px', letterSpacing: '-0.3px' }}>Zevian</span>
             </div>
 
-            <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius['2xl'], padding: '48px 32px' }}>
+            <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.lg, padding: '48px 32px' }}>
                 <div style={{
                     width: '64px',
                     height: '64px',

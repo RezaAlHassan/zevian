@@ -93,7 +93,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                 )}
             </header>
 
-            <div style={{ padding: '28px 28px 60px' }}>
+            <div style={{ padding: '24px' }}>
                 {/* Hero */}
                 <div style={{
                     display: 'flex',
@@ -103,12 +103,12 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                     padding: '24px',
                     background: colors.surface,
                     border: `1px solid ${colors.border}`,
-                    borderRadius: radius['3xl']
+                    borderRadius: radius.lg
                 }}>
                     <div style={{
                         width: '52px',
                         height: '52px',
-                        borderRadius: radius['2xl'],
+                        borderRadius: radius.lg,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -163,8 +163,8 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                         { label: 'Assigned To', value: members.length, icon: 'users' as const, meta: 'Members' },
                         { label: 'Deadline', value: goal.deadline ? new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No limit', icon: 'calendar' as const, meta: 'Target date' },
                     ].map(kpi => (
-                        <div key={kpi.label} style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.lg, padding: '14px 16px' }}>
-                            <div style={{ fontSize: '10.5px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '7px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <div key={kpi.label} style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '14px 16px' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '7px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 <Icon name={kpi.icon} size={12} />
                                 {kpi.label}
                             </div>
@@ -181,7 +181,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
                         {/* Criteria Analysis */}
-                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
                             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, fontWeight: 600, fontSize: '14px', color: colors.text }}>
                                 Criteria Breakdown
                             </div>
@@ -197,7 +197,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                         : null;
 
                                     return (
-                                        <div key={crit.id} style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.lg, padding: '16px', position: 'relative' }}>
+                                        <div key={crit.id} style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '16px', position: 'relative' }}>
                                             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: i === 0 ? colors.accent : i === 1 ? colors.teal : colors.purple }} />
                                             <div style={{ fontWeight: 600, fontSize: '13px', color: colors.text, marginBottom: '2px' }}>{crit.name}</div>
                                             <div style={{ fontSize: '11px', color: colors.text3, marginBottom: '12px' }}>Weight: <span className="font-numeric" style={{ fontWeight: typography.weight.heavy }}>{crit.weight}%</span></div>
@@ -219,7 +219,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                         </div>
 
                         {/* Recent Reports */}
-                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
                             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div style={{ fontWeight: 600, fontSize: '14px', color: colors.text }}>Recent Reports ({reports.length})</div>
                                 {reports.length > 3 && (
@@ -252,10 +252,10 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                                     {getInitials(report.employees?.name || 'Unknown')}
                                                 </div>
                                                 <div style={{ flex: 1 }}>
-                                                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: colors.text }}>
+                                                    <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>
                                                         {(() => { const d = report.submittedForDate || report.submissionDate; return new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })()}
                                                     </div>
-                                                    <div style={{ fontSize: '11.5px', color: colors.text3 }}>by {report.employees?.name || 'Unknown'}</div>
+                                                    <div style={{ fontSize: '11px', color: colors.text3 }}>by {report.employees?.name || 'Unknown'}</div>
                                                 </div>
                                                 <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                     <ScoreDisplay score={report.managerOverallScore ?? report.evaluationScore} size="sm" />
@@ -283,7 +283,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         {/* Sidebar Info */}
-                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
                             <div style={{ padding: '12px 16px', borderBottom: `1px solid ${colors.border}`, fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                                 KPI Info
                             </div>
@@ -292,16 +292,16 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                  { k: 'Created', v: goal.createdAt ? new Date(goal.createdAt).toLocaleDateString() : '—', i: 'calendar' },
                              ].map(item => (
                                  <div key={item.k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: `1px solid ${colors.border}` }}>
-                                     <div style={{ fontSize: '12.5px', color: colors.text3, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                     <div style={{ fontSize: '12px', color: colors.text3, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                          <Icon name={item.i as any} size={13} /> {item.k}
                                      </div>
-                                     <div style={{ fontSize: '12.5px', fontWeight: 500, color: colors.text2 }}>{item.v}</div>
+                                     <div style={{ fontSize: '12px', fontWeight: 500, color: colors.text2 }}>{item.v}</div>
                                  </div>
                              ))}
                         </div>
 
                         {/* Assigned Members */}
-                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
                             <div style={{ padding: '12px 16px', borderBottom: `1px solid ${colors.border}`, fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <span>Assigned Members (<span className="font-numeric" style={{ fontWeight: typography.weight.black }}>{members.length}</span>)</span>
                                 {!readOnly && (

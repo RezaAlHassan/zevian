@@ -51,7 +51,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = '540px' }: 
                         maxHeight: 'calc(100vh - 48px)', 
                         background: colors.surface, 
                         border: `1px solid ${colors.border}`, 
-                        borderRadius: radius.xl, 
+                        borderRadius: radius.md, 
                         display: 'flex', 
                         flexDirection: 'column', 
                         boxShadow: shadows.cardHover,

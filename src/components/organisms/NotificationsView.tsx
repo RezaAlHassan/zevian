@@ -173,7 +173,7 @@ export function NotificationsView() {
                                         background: n.isRead ? colors.surface : 'rgba(91,127,246,0.03)',
                                         border: `1px solid ${n.isRead ? colors.border : 'rgba(91,127,246,0.2)'}`,
                                         borderLeft: n.isRead ? `1px solid ${colors.border}` : `3px solid ${colors.accent}`,
-                                        borderRadius: radius.xl,
+                                        borderRadius: radius.md,
                                         transition: `all ${animation.fast}`,
                                         position: 'relative'
                                     }}
@@ -193,7 +193,7 @@ export function NotificationsView() {
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                                            <div style={{ fontSize: '14.5px', fontWeight: 700, color: colors.text }}>{n.title}</div>
+                                            <div style={{ fontSize: '14px', fontWeight: 700, color: colors.text }}>{n.title}</div>
                                             <div style={{ fontSize: '11px', color: colors.text3, textAlign: 'right' }}>
                                                 <div>{new Date(n.createdAt).toLocaleDateString()}</div>
                                                 <div style={{ opacity: 0.8 }}>{new Date(n.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>

@@ -94,7 +94,7 @@ export function Sparkline({ scores, weeks, height = 60, tooltips, onBarClick }: 
                                     border: `1px solid ${colors.border}`,
                                     borderRadius: radius.md,
                                     padding: '8px 12px',
-                                    fontSize: '11.5px',
+                                    fontSize: '11px',
                                     whiteSpace: 'nowrap',
                                     zIndex: 100,
                                     boxShadow: '0 4px 16px rgba(0,0,0,0.4)',

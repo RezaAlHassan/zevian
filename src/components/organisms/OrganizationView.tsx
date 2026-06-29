@@ -246,7 +246,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
             </nav>
 
             {/* Content Area */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px 60px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
                 {activeTab === 'general' && (
                     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         <Card title="General Information" icon="settings">
@@ -332,7 +332,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                             onChange={(e) => setSubmissionPolicy(prev => ({ ...prev, reportFrequency: e.target.value as any }))}
                                             style={{ 
                                                 padding: '6px 12px', background: colors.surface2, border: `1px solid ${colors.border}`, 
-                                                borderRadius: '6px', fontSize: '12.5px', color: colors.text, outline: 'none'
+                                                borderRadius: '6px', fontSize: '12px', color: colors.text, outline: 'none'
                                             }}
                                         >
                                             <option value="daily">Daily</option>
@@ -484,7 +484,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                     >
                                         <div style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>{m.cat}</div>
                                         <div style={{ fontSize: '14px', fontWeight: 700, color: selectedMetrics.includes(m.id) ? colors.accent : colors.text }}>{m.name}</div>
-                                        <div style={{ fontSize: '11.5px', color: colors.text3, lineHeight: 1.4, marginTop: '4px' }}>{m.desc}</div>
+                                        <div style={{ fontSize: '11px', color: colors.text3, lineHeight: 1.4, marginTop: '4px' }}>{m.desc}</div>
                                         <div style={{
                                             width: '18px', height: '18px', borderRadius: '50%', border: `1.5px solid ${colors.border}`,
                                             marginLeft: 'auto', marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -581,7 +581,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                                 
                                                 <div style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>CUSTOM</div>
                                                 <div style={{ fontSize: '14px', fontWeight: 700, color: m.isActive ? colors.teal : colors.text }}>{m.name}</div>
-                                                <div style={{ fontSize: '11.5px', color: colors.text3, lineHeight: 1.4, marginTop: '4px', paddingRight: '20px' }}>{m.description || 'No description provided.'}</div>
+                                                <div style={{ fontSize: '11px', color: colors.text3, lineHeight: 1.4, marginTop: '4px', paddingRight: '20px' }}>{m.description || 'No description provided.'}</div>
                                                 <div style={{ marginTop: 'auto', paddingTop: '12px', fontSize: '10px', color: m.isActive ? colors.teal : colors.text3, fontWeight: 600 }}>
                                                     {m.isActive ? 'Active for new reports' : 'Inactive'}
                                                 </div>
@@ -601,7 +601,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                             const target = localEmployees.find(e => e.id === deactivateConfirmId)
                             return (
                                 <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, padding: '28px', width: '380px', boxShadow: shadows.cardHover }}>
+                                    <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '28px', width: '380px', boxShadow: shadows.cardHover }}>
                                         <div style={{ fontSize: '16px', fontWeight: 700, color: colors.text, marginBottom: '8px' }}>Deactivate {target?.name}?</div>
                                         <div style={{ fontSize: '13px', color: colors.text3, lineHeight: 1.6, marginBottom: '24px' }}>
                                             They will lose access immediately. Historical reports and scores are preserved. You can reactivate them at any time from the Inactive tab.

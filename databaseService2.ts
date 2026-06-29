@@ -2269,6 +2269,18 @@ export const dashboardService = {
                 const diff = latestScore - prevScore;
                 scoreDirection = diff > 0.3 ? 'up' : diff < -0.3 ? 'down' : 'flat';
             }
+            const latestReport = sortedReports[0]
+                ? {
+                    id: sortedReports[0].id,
+                    date: sortedReports[0].submission_date,
+                    submittedAt: sortedReports[0].submitted_at ?? sortedReports[0].created_at ?? null,
+                    goalName: sortedReports[0].goals?.name || null,
+                    projectName: sortedReports[0].goals?.projects?.name || null,
+                    score: sortedReports[0].manager_overall_score ?? sortedReports[0].evaluation_score ?? null,
+                    reviewed: sortedReports[0].reviewed_by != null || sortedReports[0].manager_overall_score != null,
+                    overridden: sortedReports[0].manager_overall_score != null,
+                }
+                : null;
             return {
                 ...emp,
                 reportCount: empReports.length,
@@ -2276,6 +2288,7 @@ export const dashboardService = {
                 periodCount: empCurrent.expected,
                 submissionRate,
                 scoreDirection,
+                latestReport,
             };
         });
 
@@ -2401,24 +2414,57 @@ export const dashboardService = {
         const teamIds = new Set(enrichedTeamPerformance.map((e: any) => e.id));
         const windowStartMs = startDate ? new Date(startDate).getTime() : -Infinity;
         const windowEndMs = endDate ? new Date(endDate).getTime() : Infinity;
-        const windowedSubmissionStats = (rows: any[]) => {
+        const windowedCycleStats = (rows: any[]) => {
             const byKey: Record<string, boolean> = {}; // period slot -> submitted? (dedupes duplicate rows)
+            const byHealthKey: Record<string, 'onTime' | 'late' | 'missed' | 'excused'> = {};
+            const rank: Record<'onTime' | 'late' | 'missed' | 'excused', number> = { missed: 0, late: 1, onTime: 2, excused: 3 };
+            const expectedEmployees = new Set<string>();
+            const reportingEmployees = new Set<string>();
             for (const p of rows) {
-                if (p.status === 'void' || p.status === 'excused') continue;
+                if (p.status === 'void') continue;
                 const endT = new Date(p.period_end).getTime();
                 if (endT > nowMs) continue;                       // not due yet
                 if (endT < windowStartMs || endT > windowEndMs) continue; // outside selected range
                 const key = `${p.employee_id}|${p.goal_id}|${p.period_end}`;
-                byKey[key] = byKey[key] || p.report_id != null;
+                if (p.status !== 'excused') {
+                    byKey[key] = byKey[key] || p.report_id != null;
+                    expectedEmployees.add(p.employee_id);
+                    if (p.report_id != null) reportingEmployees.add(p.employee_id);
+                }
+
+                const status: 'onTime' | 'late' | 'missed' | 'excused' =
+                    p.status === 'excused' ? 'excused'
+                        : p.report_id != null && (p.status === 'late' || p.late_submitted) ? 'late'
+                            : p.report_id != null ? 'onTime'
+                                : 'missed';
+                if (!byHealthKey[key] || rank[status] > rank[byHealthKey[key]]) byHealthKey[key] = status;
             }
             const keys = Object.keys(byKey);
             const submitted = keys.filter(k => byKey[k]).length;
             const expected = keys.length;
-            return { expected, submitted, pct: expected > 0 ? Math.round((submitted / expected) * 100) : null };
+            const healthKeys = Object.keys(byHealthKey);
+            const onTime = healthKeys.filter(k => byHealthKey[k] === 'onTime').length;
+            const late = healthKeys.filter(k => byHealthKey[k] === 'late').length;
+            const missed = healthKeys.filter(k => byHealthKey[k] === 'missed').length;
+            const excused = healthKeys.filter(k => byHealthKey[k] === 'excused').length;
+            const healthy = onTime + late + excused;
+            const total = healthKeys.length;
+            const coverageExpected = expectedEmployees.size;
+            const coverageReporting = reportingEmployees.size;
+            return {
+                submission: { expected, submitted, pct: expected > 0 ? Math.round((submitted / expected) * 100) : null },
+                coverage: {
+                    expected: coverageExpected,
+                    reporting: coverageReporting,
+                    notReporting: Math.max(0, coverageExpected - coverageReporting),
+                    pct: coverageExpected > 0 ? Math.round((coverageReporting / coverageExpected) * 100) : null
+                },
+                health: { total, healthy, onTime, late, missed, excused, pct: total > 0 ? Math.round((healthy / total) * 100) : null },
+            };
         };
-        const teamWindow = windowedSubmissionStats(periodsData.filter((p: any) => teamIds.has(p.employee_id)));
-        const totalPeriods = teamWindow.expected;
-        const submittedPeriodCount = teamWindow.submitted;
+        const teamWindow = windowedCycleStats(periodsData.filter((p: any) => teamIds.has(p.employee_id)));
+        const totalPeriods = teamWindow.submission.expected;
+        const submittedPeriodCount = teamWindow.submission.submitted;
 
         return {
             totalReports,
@@ -2439,7 +2485,9 @@ export const dashboardService = {
                 reportsDelta: null,
                 teamAvgScore: totalReports > 0 ? Number(avgScore.toFixed(1)) : null,
                 teamAvgDelta: null,
-                submissionRate: { submitted: submittedPeriodCount, expected: totalPeriods, pct: teamWindow.pct },
+                teamCoverage: teamWindow.coverage,
+                reportingHealth: teamWindow.health,
+                submissionRate: { submitted: submittedPeriodCount, expected: totalPeriods, pct: teamWindow.submission.pct },
                 contributorCount,
                 needsReviewCount,
             },

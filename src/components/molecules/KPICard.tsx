@@ -7,7 +7,7 @@ import React from 'react'
 interface KPICardProps {
   label: string
   icon: IconName
-  value?: string | number
+  value?: React.ReactNode
   delta?: { value: number; direction: 'up' | 'down' }
   deltaLabel?: React.ReactNode
   variant?: 'default' | 'green' | 'warn' | 'danger' | 'accent'
@@ -36,7 +36,7 @@ export function KPICard({
       style={{
         background: colors.surface,
         border: `1px solid ${colors.border}`,
-        borderRadius: radius.xl,
+        borderRadius: radius.md,
         padding: '18px 20px',
         transition: `border-color ${animation.fast}`,
         cursor: 'default',
@@ -45,7 +45,7 @@ export function KPICard({
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
         <Icon name={icon} size={13} />
         <span style={{
-          fontSize: '11.5px',
+          fontSize: '11px',
           fontWeight: typography.weight.semibold,
           color: colors.text3,
           letterSpacing: '0.05em',
@@ -106,7 +106,7 @@ export function KPICard({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '3px',
-            fontSize: '11.5px',
+            fontSize: '11px',
             fontWeight: typography.weight.semibold,
             padding: '2px 7px',
             borderRadius: '5px',

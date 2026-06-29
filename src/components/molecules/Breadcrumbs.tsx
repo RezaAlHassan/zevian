@@ -75,7 +75,7 @@ const linkStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    fontSize: '11.5px',
+    fontSize: '11px',
     fontWeight: 500,
     color: colors.text3,
     textDecoration: 'none',

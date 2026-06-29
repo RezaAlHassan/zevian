@@ -336,7 +336,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                 <StepTracker steps={STEPS} currentStep={currentStep} />
 
                 {error && (
-                    <div style={{ padding: '12px 16px', background: `${colors.warn}10`, border: `1px solid ${colors.warn}30`, borderRadius: radius.lg, color: colors.warn, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ padding: '12px 16px', background: `${colors.warn}10`, border: `1px solid ${colors.warn}30`, borderRadius: radius.md, color: colors.warn, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <Icon name="alert" size={16} color={colors.warn} />
                         {error}
                     </div>
@@ -369,7 +369,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                     key={p.id}
                                     onClick={() => setSelectedProjectId(p.id)}
                                     style={{
-                                        display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: radius.lg,
+                                        display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px', borderRadius: radius.md,
                                         background: selectedProjectId === p.id ? `${colors.accent}12` : colors.bg,
                                         border: `1.5px solid ${selectedProjectId === p.id ? colors.accent : colors.border}`,
                                         cursor: 'pointer', transition: `all ${animation.fast}`,
@@ -417,7 +417,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                             <div style={{ fontSize: '13px', fontWeight: 800, color: colors.warn, marginBottom: '2px' }}>
                                                 You are submitting for {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                                             </div>
-                                            <div style={{ fontSize: '12.5px', color: `${colors.warn}dd` }}>
+                                            <div style={{ fontSize: '12px', color: `${colors.warn}dd` }}>
                                                 This will be marked as a late submission.
                                             </div>
                                         </div>
@@ -481,7 +481,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                                         {goal.criteria?.length || 0} criteria attached
                                                     </div>
                                                     {goal.description && (
-                                                        <p style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.5, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                        <p style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.5, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                                             {goal.description}
                                                         </p>
                                                     )}
@@ -521,7 +521,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                             <Icon name="check" size={26} />
                         </div>
                         <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: colors.text }}>Late reports cleared</h2>
-                        <p style={{ fontSize: '13.5px', color: colors.text2, marginBottom: '28px', lineHeight: 1.6, maxWidth: '360px', margin: '0 auto 28px' }}>
+                        <p style={{ fontSize: '13px', color: colors.text2, marginBottom: '28px', lineHeight: 1.6, maxWidth: '360px', margin: '0 auto 28px' }}>
                             This goal is also due today. Would you like to submit your report for today as well?
                         </p>
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
@@ -589,17 +589,17 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
 
                                 {/* Inline scoring explanation toggle */}
                                 {showScoringInfo && (
-                                    <div style={{ marginTop: '12px', padding: '14px 16px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.lg, animation: `fadeIn ${animation.fast}` }}>
+                                    <div style={{ marginTop: '12px', padding: '14px 16px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, animation: `fadeIn ${animation.fast}` }}>
                                         <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.6, marginBottom: '12px' }}>
                                             Reports are scored against your goal&apos;s criteria &amp; instructions, your org&apos;s metrics, and past submission history.
                                         </div>
                                         <div style={{ display: 'flex', gap: '8px' }}>
-                                            <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.md, padding: '10px 12px', textAlign: 'center' }}>
                                                 <div style={{ fontSize: '20px', fontWeight: 900, color: colors.accent, lineHeight: 1 }}>{initialMetrics.length > 0 ? `${goalWeight}%` : '100%'}</div>
                                                 <div style={{ fontSize: '10px', fontWeight: 700, color: colors.accent, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>KPI Alignment</div>
                                             </div>
                                             {initialMetrics.length > 0 && (
-                                                <div style={{ flex: 1, background: `${colors.purple}12`, border: `1px solid ${colors.purple}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
+                                                <div style={{ flex: 1, background: `${colors.purple}12`, border: `1px solid ${colors.purple}30`, borderRadius: radius.md, padding: '10px 12px', textAlign: 'center' }}>
                                                     <div style={{ fontSize: '20px', fontWeight: 900, color: colors.purple, lineHeight: 1 }}>{100 - goalWeight}%</div>
                                                     <div style={{ fontSize: '10px', fontWeight: 700, color: colors.purple, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Org Metrics</div>
                                                 </div>
@@ -630,7 +630,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                             <div>
                                                 {selectedGoal.criteria.map((c: any, i: number) => (
                                                     <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '8px 0', borderBottom: i < selectedGoal.criteria.length - 1 ? '1px solid #2A3860' : 'none' }}>
-                                                        <span style={{ fontSize: '12.5px', color: '#cdd5e0' }}>{c.name}</span>
+                                                        <span style={{ fontSize: '12px', color: '#cdd5e0' }}>{c.name}</span>
                                                         {c.weight != null && (
                                                             <span style={{ fontSize: '11px', fontWeight: 700, color: colors.accent, background: `${colors.accent}18`, borderRadius: '4px', padding: '1px 6px', flexShrink: 0 }}>
                                                                 {c.weight}%
@@ -679,7 +679,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                     placeholder="Describe your work, results, and impact. Evidence and metrics strengthen your score..."
                                     style={{
                                         width: '100%', minHeight: '300px', background: colors.bg, border: `1px solid ${colors.border}`,
-                                        borderRadius: radius.lg, padding: '16px', color: colors.text, fontSize: '15px',
+                                        borderRadius: radius.md, padding: '16px', color: colors.text, fontSize: '15px',
                                         fontFamily: typography.fonts.body, outline: 'none', resize: 'vertical', lineHeight: 1.7
                                     }}
                                 />
@@ -780,16 +780,16 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                         Reports are scored against your goal's criteria &amp; instructions, your org's metrics, and past submission history.
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px' }}>
-                                        <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
+                                        <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.md, padding: '10px 12px', textAlign: 'center' }}>
                                             <div style={{ fontSize: '20px', fontWeight: 900, color: colors.accent, lineHeight: 1 }}>{initialMetrics.length > 0 ? `${goalWeight}%` : '100%'}</div>
                                             <div style={{ fontSize: '10px', fontWeight: 700, color: colors.accent, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>KPI Alignment</div>
-                                            <div style={{ fontSize: '10.5px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>Criteria &amp; instructions</div>
+                                            <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>Criteria &amp; instructions</div>
                                         </div>
                                         {initialMetrics.length > 0 && (
-                                            <div style={{ flex: 1, background: `${colors.purple}12`, border: `1px solid ${colors.purple}30`, borderRadius: radius.lg, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ flex: 1, background: `${colors.purple}12`, border: `1px solid ${colors.purple}30`, borderRadius: radius.md, padding: '10px 12px', textAlign: 'center' }}>
                                                 <div style={{ fontSize: '20px', fontWeight: 900, color: colors.purple, lineHeight: 1 }}>{100 - goalWeight}%</div>
                                                 <div style={{ fontSize: '10px', fontWeight: 700, color: colors.purple, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Org Metrics</div>
-                                                <div style={{ fontSize: '10.5px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>{initialMetrics.length} metric{initialMetrics.length !== 1 ? 's' : ''} active</div>
+                                                <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>{initialMetrics.length} metric{initialMetrics.length !== 1 ? 's' : ''} active</div>
                                             </div>
                                         )}
                                     </div>
@@ -846,16 +846,16 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                                     <strong>KPI:</strong> <br />
                                                     {selectedGoal.name}
                                                 </div>
-                                                <div style={{ fontSize: '11.5px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Instructions</div>
-                                                <div style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.6, marginBottom: '12px' }}>
+                                                <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Instructions</div>
+                                                <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.6, marginBottom: '12px' }}>
                                                     {selectedGoal.instructions || 'No instructions provided.'}
                                                 </div>
                                                 {selectedGoal.criteria && selectedGoal.criteria.length > 0 && (
                                                     <>
-                                                        <div style={{ fontSize: '11.5px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Criteria</div>
+                                                        <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Criteria</div>
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                             {selectedGoal.criteria.map((c: any, i: number) => (
-                                                                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12.5px', color: colors.text2, padding: '4px 0', borderBottom: `1px solid ${colors.border}` }}>
+                                                                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: colors.text2, padding: '4px 0', borderBottom: `1px solid ${colors.border}` }}>
                                                                     <span>{c.name}</span>
                                                                     {c.weight != null && (
                                                                         <span style={{ fontSize: '11px', fontWeight: 700, color: colors.accent, background: `${colors.accent}18`, borderRadius: '4px', padding: '1px 6px', marginLeft: '8px', flexShrink: 0 }}>
@@ -880,7 +880,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                         {initialMetrics.map((m: any, i: number) => (
                                             <div key={m.id || i} style={{ paddingTop: i === 0 ? '0' : '10px', paddingBottom: '10px', borderBottom: i < initialMetrics.length - 1 ? `1px solid ${colors.border}` : 'none' }}>
-                                                <div style={{ fontSize: '12.5px', fontWeight: 800, color: colors.text2, marginBottom: '2px' }}>{m.name}</div>
+                                                <div style={{ fontSize: '12px', fontWeight: 800, color: colors.text2, marginBottom: '2px' }}>{m.name}</div>
                                                 <div style={{ fontSize: '12px', color: colors.text3, lineHeight: 1.5 }}>{m.description || 'No description.'}</div>
                                             </div>
                                         ))}

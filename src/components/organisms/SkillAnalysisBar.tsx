@@ -194,7 +194,7 @@ export function SkillAnalysisBar({ criteriaData, allReports, viewMode, selectedG
                             <div style={{
                                 background: colors.bg,
                                 border: `1px solid ${colors.border}`,
-                                borderRadius: radius.lg,
+                                borderRadius: radius.md,
                                 margin: '2px 4px 8px',
                                 overflow: 'hidden',
                             }}>

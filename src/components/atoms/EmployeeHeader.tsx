@@ -137,7 +137,7 @@ export function EmployeeHeader({ title, userName = 'User', employeeId = 'N/A' }:
                             width: '200px',
                             background: colors.surface,
                             border: `1px solid ${colors.border}`,
-                            borderRadius: radius.xl,
+                            borderRadius: radius.md,
                             boxShadow: shadows.cardHover,
                             zIndex: 101,
                             padding: '8px',

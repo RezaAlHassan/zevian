@@ -121,7 +121,7 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
 
                         {/* Search + Inline results */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>Add Employee</label>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>Add Employee</label>
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -142,7 +142,7 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
                                         background: 'none',
                                         border: 'none',
                                         outline: 'none',
-                                        fontSize: '13.5px',
+                                        fontSize: '13px',
                                         color: colors.text,
                                         fontFamily: typography.fonts.body,
                                     }}
@@ -199,7 +199,7 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
                                     </div>
                                 )}
                                 {filteredEmployees.length > 6 && (
-                                    <div style={{ fontSize: '11.5px', color: colors.text3, textAlign: 'center', padding: '6px 0' }}>
+                                    <div style={{ fontSize: '11px', color: colors.text3, textAlign: 'center', padding: '6px 0' }}>
                                         +{filteredEmployees.length - 6} more — type to filter
                                     </div>
                                 )}
@@ -208,7 +208,7 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
 
                         {/* Assigned Members */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>
                                 Assigned Members <span className="font-numeric" style={{ color: colors.text3, fontWeight: 500 }}>({members.length})</span>
                             </label>
                             {members.length === 0 ? (
@@ -224,7 +224,7 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
                                             gap: '12px',
                                             padding: '10px 12px',
                                             background: colors.accentGlow,
-                                            borderRadius: radius.lg,
+                                            borderRadius: radius.md,
                                             border: `1px solid ${colors.accentBorder}`,
                                         }}>
                                             <div style={{

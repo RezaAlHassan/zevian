@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { colors, layout, componentTokens, typography, animation, radius } from '@/design-system'
+import { colors, layout, componentTokens, typography, animation, radius, zIndex } from '@/design-system'
 import { Header, EmployeeHeader } from '@/components/atoms'
 import { Icon } from '@/components/atoms/Icon'
 import { useState } from 'react'
@@ -61,9 +61,9 @@ export function EmployeeShellClient({ userName, employeeId, orgName, children }:
     return (
         <>
             {/* ── Sidebar ──────────────────────────── */}
-            <aside style={t.root}>
+            <aside style={{ ...t.root, position: 'fixed', left: 0, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', zIndex: zIndex.sidebar }}>
                 {/* Logo */}
-                <div style={{ ...t.logo, padding: '12px 20px' }}>
+                <div style={{ ...t.logo, display: 'flex', alignItems: 'center', padding: '12px 20px' }}>
                     <img src="/logo.png" alt="Zevian" style={{ height: '32px', width: 'auto', display: 'block' }} />
                 </div>
 
@@ -73,7 +73,7 @@ export function EmployeeShellClient({ userName, employeeId, orgName, children }:
                 </div>
 
                 {/* Main nav */}
-                <nav style={t.nav}>
+                <nav style={{ ...t.nav, flex: 1 }}>
                     <div style={t.navLabel}>Workspace</div>
                     {NAV_ITEMS.map(item => {
                         const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -82,6 +82,8 @@ export function EmployeeShellClient({ userName, employeeId, orgName, children }:
                                 <div
                                     className={`nav-item ${isActive ? 'active' : ''}`}
                                     style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         ...t.navItem.base,
                                         ...(isActive ? t.navItem.active : {}),
                                         position: 'relative'
@@ -104,6 +106,8 @@ export function EmployeeShellClient({ userName, employeeId, orgName, children }:
                                 <div
                                     className={`nav-item ${isActive ? 'active' : ''}`}
                                     style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         ...t.navItem.base,
                                         ...(isActive ? t.navItem.active : {}),
                                     }}

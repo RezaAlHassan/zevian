@@ -180,7 +180,7 @@ export function RecentReportItem(props: Props) {
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
           <Avatar name={props.employeeName} size="md" style={{ background: getAvatarBg(props.employeeName), color: '#C8D4E8' }} />
           <div>
-            <div style={{ fontSize: '13.5px', fontWeight: 700, color: colors.text }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>
               {props.employeeName}
               {props.employeeTitle && <span style={{ fontWeight: 400, color: colors.text3 }}> · {props.employeeTitle}</span>}
             </div>
@@ -234,7 +234,7 @@ export function RecentReportItem(props: Props) {
               onMouseEnter={() => setNameHovered(true)}
               onMouseLeave={() => setNameHovered(false)}
               style={{
-                fontSize: '13.5px',
+                fontSize: '13px',
                 fontWeight: 700,
                 color: colors.text,
                 textDecoration: nameHovered && !!employeeId ? 'underline' : 'none',
@@ -245,7 +245,7 @@ export function RecentReportItem(props: Props) {
               {props.employeeName}
             </span>
             {props.employeeTitle && (
-              <span style={{ fontSize: '13.5px', fontWeight: 400, color: colors.text3 }}>· {props.employeeTitle}</span>
+              <span style={{ fontSize: '13px', fontWeight: 400, color: colors.text3 }}>· {props.employeeTitle}</span>
             )}
             {(() => {
               const badge = BADGE[badgeState]

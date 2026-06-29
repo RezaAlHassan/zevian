@@ -30,7 +30,7 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
             const effectiveView = view ?? (isSenior ? 'org' : 'direct')
             // Enforce: non-senior managers cannot use org view even if ?view=org is in the URL
             const safeView = (!isSenior && effectiveView === 'org') ? 'direct' : effectiveView
-            // Manager dashboard defaults to the last 7 days when no range is selected.
+            // Manager dashboard defaults to the last 30 days (one month) when no range is selected.
             // An explicit 'all' sentinel (from the date picker's "All Time") clears the filter.
             let effStart = startDate
             let effEnd = endDate
@@ -38,7 +38,7 @@ export async function getDashboardDataAction(view?: 'org' | 'direct', startDate?
                 effStart = undefined
                 effEnd = undefined
             } else if (!startDate && !endDate) {
-                effStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+                effStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
                 effEnd = new Date().toISOString()
             }
             // Pass the org + active custom metrics we already fetched so the service can skip

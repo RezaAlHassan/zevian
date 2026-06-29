@@ -64,11 +64,11 @@ export function LoginForm() {
         <Image src="/logo.png" alt="Zevian" height={40} width={100} style={{ width: 'auto' }} priority />
       </div>
 
-      <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius['2xl'], padding: '32px' }}>
+      <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.lg, padding: '32px' }}>
         <h1 style={{ fontFamily: typography.fonts.display, fontSize: '20px', fontWeight: 800, marginBottom: '6px', letterSpacing: '-0.3px' }}>
           Welcome back
         </h1>
-        <p style={{ fontSize: '13.5px', color: colors.text3, marginBottom: '28px' }}>
+        <p style={{ fontSize: '13px', color: colors.text3, marginBottom: '28px' }}>
           Sign in to your workspace
         </p>
 
@@ -82,7 +82,7 @@ export function LoginForm() {
               type="email" required
               value={email} onChange={e => setEmail(e.target.value)}
               placeholder="you@company.com"
-              style={{ width: '100%', padding: '10px 12px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, fontSize: '13.5px', color: colors.text, outline: 'none' }}
+              style={{ width: '100%', padding: '10px 12px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, fontSize: '13px', color: colors.text, outline: 'none' }}
             />
           </div>
 
@@ -95,7 +95,7 @@ export function LoginForm() {
               type="password" required
               value={password} onChange={e => setPassword(e.target.value)}
               placeholder="••••••••"
-              style={{ width: '100%', padding: '10px 12px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, fontSize: '13.5px', color: colors.text, outline: 'none' }}
+              style={{ width: '100%', padding: '10px 12px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, fontSize: '13px', color: colors.text, outline: 'none' }}
             />
           </div>
 
@@ -108,7 +108,7 @@ export function LoginForm() {
 
           <button
             type="submit" disabled={loading}
-            style={{ width: '100%', padding: '11px', background: colors.accent, border: 'none', borderRadius: radius.md, fontSize: '13.5px', fontWeight: 700, color: '#fff', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: `all ${animation.fast}`, boxShadow: shadows.accentGlow, fontFamily: typography.fonts.body }}
+            style={{ width: '100%', padding: '11px', background: colors.accent, border: 'none', borderRadius: radius.md, fontSize: '13px', fontWeight: 700, color: '#fff', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: `all ${animation.fast}`, boxShadow: shadows.accentGlow, fontFamily: typography.fonts.body }}
           >
             {loading ? 'Signing in…' : 'Sign In'}
           </button>

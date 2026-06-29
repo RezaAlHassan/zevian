@@ -152,7 +152,7 @@ export function ManagePermissionsModal({
                     overflowY: 'auto',
                     background: colors.surface,
                     border: `1px solid ${colors.border}`,
-                    borderRadius: radius['2xl'],
+                    borderRadius: radius.lg,
                     padding: '32px',
                     boxShadow: shadows.cardHover,
                     animation: 'modalSlideUp 0.3s cubic-bezier(0.22, 0.68, 0, 1) both'
@@ -196,7 +196,7 @@ export function ManagePermissionsModal({
                                         padding: '16px',
                                         background: template === t.id ? colors.accentGlow : colors.surface2,
                                         border: `1px solid ${template === t.id ? colors.accent : colors.border}`,
-                                        borderRadius: radius.xl,
+                                        borderRadius: radius.md,
                                         cursor: 'pointer',
                                         transition: `all ${animation.fast}`,
                                         display: 'flex',
@@ -214,7 +214,7 @@ export function ManagePermissionsModal({
                                         </div>
                                         {template === t.id && <Icon name="check" size={14} color={colors.accent} />}
                                     </div>
-                                    <div style={{ fontSize: '11.5px', color: colors.text3, lineHeight: 1.4 }}>
+                                    <div style={{ fontSize: '11px', color: colors.text3, lineHeight: 1.4 }}>
                                         {t.desc}
                                     </div>
                                 </div>
@@ -253,7 +253,7 @@ export function ManagePermissionsModal({
                                             padding: '12px',
                                             background: colors.surface2,
                                             border: `1px solid ${colors.border}`,
-                                            borderRadius: radius.lg,
+                                            borderRadius: radius.md,
                                             cursor: 'pointer',
                                             transition: `all ${animation.fast}`
                                         }}
@@ -275,7 +275,7 @@ export function ManagePermissionsModal({
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ 
-                                                fontSize: '13.5px', 
+                                                fontSize: '13px', 
                                                 fontWeight: 600, 
                                                 color: perm.danger ? colors.warn : colors.text,
                                                 marginBottom: '2px',
@@ -286,7 +286,7 @@ export function ManagePermissionsModal({
                                                 {perm.label}
                                                 {perm.danger && <Icon name="alert" size={12} color={colors.warn} />}
                                             </div>
-                                            <div style={{ fontSize: '11.5px', color: colors.text3 }}>{perm.desc}</div>
+                                            <div style={{ fontSize: '11px', color: colors.text3 }}>{perm.desc}</div>
                                         </div>
                                     </div>
                                 ))}

@@ -64,7 +64,7 @@ export function KnowledgeBaseView({ projectName, projectId, pins }: Props) {
                 <Button variant="primary" size="sm" icon="plus">New Pin</Button>
             </header>
 
-            <div style={{ padding: '28px 28px 60px', maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
                 <div style={{ marginBottom: '32px' }}>
                     <h1 style={{
                         fontFamily: typography.fonts.display,
@@ -95,7 +95,7 @@ export function KnowledgeBaseView({ projectName, projectId, pins }: Props) {
                                     padding: '10px 12px',
                                     borderRadius: radius.md,
                                     cursor: 'pointer',
-                                    fontSize: '13.5px',
+                                    fontSize: '13px',
                                     fontWeight: activeTab === s.id ? 600 : 500,
                                     color: activeTab === s.id ? colors.accent : colors.text2,
                                     background: activeTab === s.id ? colors.accentGlow : 'transparent',
@@ -115,7 +115,7 @@ export function KnowledgeBaseView({ projectName, projectId, pins }: Props) {
                                 <div key={pin.id} style={{
                                     background: colors.surface,
                                     border: `1px solid ${colors.border}`,
-                                    borderRadius: radius.xl,
+                                    borderRadius: radius.md,
                                     padding: '20px',
                                     position: 'relative'
                                 }}>
@@ -132,7 +132,7 @@ export function KnowledgeBaseView({ projectName, projectId, pins }: Props) {
                                     }}>
                                         {pin.section}
                                     </div>
-                                    <div style={{ fontSize: '14.5px', color: colors.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                                    <div style={{ fontSize: '14px', color: colors.text, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                                         {pin.content}
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', marginTop: '16px', justifyContent: 'flex-end', borderTop: `1px solid ${colors.border}`, paddingTop: '12px' }}>
@@ -144,7 +144,7 @@ export function KnowledgeBaseView({ projectName, projectId, pins }: Props) {
                         ) : (
                             <div style={{
                                 border: `1.5px dashed ${colors.borderDashed}`,
-                                borderRadius: radius.xl,
+                                borderRadius: radius.md,
                                 padding: '60px 20px',
                                 display: 'flex',
                                 flexDirection: 'column',

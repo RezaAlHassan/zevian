@@ -80,7 +80,7 @@ export function SlimProjectCard({
           }}>
             {name}
           </div>
-          <div style={{ fontSize: '10.5px', color: colors.text3, fontWeight: 500 }}>
+          <div style={{ fontSize: '11px', color: colors.text3, fontWeight: 500 }}>
             {category} · {reportCount} reports
           </div>
         </div>

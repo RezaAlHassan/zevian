@@ -171,7 +171,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
                 {allGoals.map((goal: any, i: number) => (
                   <div key={i} className="goal-card" style={{
                     background: colors.surface, border: `1px solid ${colors.border}`,
-                    borderRadius: radius.xl, padding: '24px', transition: `all ${animation.fast}`, cursor: 'pointer',
+                    borderRadius: radius.md, padding: '24px', transition: `all ${animation.fast}`, cursor: 'pointer',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                       <div>
@@ -210,7 +210,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
                   <select
                     value={reportStatusFilter}
                     onChange={e => setReportStatusFilter(e.target.value)}
-                    style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12.5px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
+                    style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
                   >
                     <option value="all">All Statuses</option>
                     <option value="pending">Pending</option>
@@ -219,13 +219,13 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
                     <option value="late">Late</option>
                     <option value="on-leave">On Leave</option>
                   </select>
-                  <div className="font-numeric" style={{ marginLeft: 'auto', fontSize: '12.5px', color: colors.text3, fontWeight: 500 }}>
+                  <div className="font-numeric" style={{ marginLeft: 'auto', fontSize: '12px', color: colors.text3, fontWeight: 500 }}>
                     {filteredReports.length} report{filteredReports.length !== 1 ? 's' : ''}
                   </div>
                 </div>
 
                 {/* Table */}
-                <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${colors.border}`, background: 'rgba(255,255,255,0.02)' }}>
@@ -267,7 +267,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
                               <span style={{ padding: '3px 8px', background: colors.surface3, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: colors.text2 }}>{projectName}</span>
                             </td>
                             <td style={{ padding: '14px 14px' }}>
-                              <div style={{ fontSize: '12.5px', color: colors.text, fontWeight: 500 }}>{dateDisplay}</div>
+                              <div style={{ fontSize: '12px', color: colors.text, fontWeight: 500 }}>{dateDisplay}</div>
                               {isLate && (
                                 <div style={{ fontSize: '11px', color: colors.warn, marginTop: '2px' }}>Late submission</div>
                               )}
@@ -328,7 +328,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
                   return (
                     <div key={i} style={{
                       background: colors.surface, border: `1px solid ${colors.border}`,
-                      borderRadius: radius.lg, padding: '16px 20px',
+                      borderRadius: radius.md, padding: '16px 20px',
                       display: 'flex', alignItems: 'center', gap: '16px', transition: 'transform 0.2s',
                     }}>
                       <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: icon.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

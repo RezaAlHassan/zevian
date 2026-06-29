@@ -158,7 +158,7 @@ export function UploadDataView({ goals, loadError }: Props) {
     ]
 
     return (
-        <div style={{ padding: '24px 28px', maxWidth: '980px', margin: '0 auto' }}>
+        <div style={{ padding: '24px', maxWidth: '980px', margin: '0 auto' }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <div>
@@ -189,7 +189,7 @@ export function UploadDataView({ goals, loadError }: Props) {
                 padding: '10px 14px',
                 background: colors.surface,
                 border: `1px solid ${colors.border}`,
-                borderRadius: radius.xl,
+                borderRadius: radius.md,
             }}>
                 {stepperLabels.map(s => {
                     const isCurrent = s.id === step
@@ -350,7 +350,7 @@ function GoalGrid({
                             textAlign: 'left',
                             background: isSelected ? colors.accentGlow : colors.surface,
                             border: `1px solid ${isSelected ? colors.accentBorder : colors.border}`,
-                            borderRadius: radius.xl,
+                            borderRadius: radius.md,
                             padding: '14px 16px',
                             cursor: 'pointer',
                             color: colors.text,
@@ -358,7 +358,7 @@ function GoalGrid({
                         }}
                     >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                            <div style={{ fontSize: '13.5px', fontWeight: typography.weight.semibold }}>
+                            <div style={{ fontSize: '13px', fontWeight: typography.weight.semibold }}>
                                 {g.name}
                             </div>
                             <Badge>{g.reportFrequency}</Badge>
@@ -422,7 +422,7 @@ function UploadStep({
                 style={{
                     border: `1px dashed ${dragOver ? colors.accent : colors.borderDashed}`,
                     background: dragOver ? colors.accentGlow : colors.surface2,
-                    borderRadius: radius.xl,
+                    borderRadius: radius.md,
                     padding: '32px',
                     textAlign: 'center',
                     transition: `all ${animation.fast}`,
@@ -447,7 +447,7 @@ function UploadStep({
                     </Button>
                 </div>
                 {goal.savedMapping && (
-                    <div style={{ marginTop: '14px', fontSize: '11.5px', color: colors.text2 }}>
+                    <div style={{ marginTop: '14px', fontSize: '11px', color: colors.text2 }}>
                         A saved mapping exists for this goal. It will pre-fill the confirmation step.
                     </div>
                 )}
@@ -481,7 +481,7 @@ function ConfirmStep({
 
     return (
         <Card title="Confirm column mapping" subtitle={`${fileName ?? 'uploaded file'} · ${rowCount} rows`} icon="sparkles">
-            <div style={{ color: colors.text2, fontSize: '12.5px', marginBottom: '14px' }}>
+            <div style={{ color: colors.text2, fontSize: '12px', marginBottom: '14px' }}>
                 The first two columns are fixed system fields and can't be changed.
             </div>
 
@@ -565,7 +565,7 @@ function FixedRow({ header, label }: { header: string; label: string }) {
             <div style={{ fontSize: '13px', color: colors.text2 }}>{header}</div>
             <Icon name="chevronRight" size={14} color={colors.text3} />
             <div style={{
-                fontSize: '12.5px',
+                fontSize: '12px',
                 color: colors.text3,
                 fontStyle: 'italic',
             }}>{label}</div>
@@ -584,7 +584,7 @@ function ResultsStep({ results, onDone }: { results: ProcessUploadResult; onDone
                     color: colors.text,
                     padding: '10px 14px',
                     borderRadius: radius.md,
-                    fontSize: '12.5px',
+                    fontSize: '12px',
                     marginBottom: '16px',
                     display: 'flex',
                     alignItems: 'center',
@@ -623,10 +623,10 @@ function ResultsStep({ results, onDone }: { results: ProcessUploadResult; onDone
                                 border: `1px solid ${colors.border}`,
                                 borderRadius: radius.md,
                             }}>
-                                <div style={{ fontSize: '11.5px', color: colors.text3, fontFamily: typography.fonts.mono }}>
+                                <div style={{ fontSize: '11px', color: colors.text3, fontFamily: typography.fonts.mono }}>
                                     Row {r.rowIndex}
                                 </div>
-                                <div style={{ fontSize: '12.5px', color: colors.text }}>
+                                <div style={{ fontSize: '12px', color: colors.text }}>
                                     <span>{r.agentIdentifier || '—'}</span>
                                     <span style={{ color: colors.text3 }}> · {r.periodInput || '—'}</span>
                                     {r.reason && (
@@ -661,11 +661,11 @@ function KpiTile({ label, value, tint }: { label: string; value: number; tint: s
         <div style={{
             background: colors.surface2,
             border: `1px solid ${colors.border}`,
-            borderRadius: radius.xl,
+            borderRadius: radius.md,
             padding: '14px 16px',
         }}>
             <div style={{
-                fontSize: '10.5px',
+                fontSize: '11px',
                 color: colors.text3,
                 fontWeight: typography.weight.semibold,
                 letterSpacing: '0.07em',
@@ -737,7 +737,7 @@ function AddCriterionModal({
                     width: 440,
                     background: colors.surface,
                     border: `1px solid ${colors.border}`,
-                    borderRadius: radius.xl,
+                    borderRadius: radius.md,
                     overflow: 'hidden',
                     boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
                 }}
@@ -777,7 +777,7 @@ function AddCriterionModal({
                                 background: colors.surface2,
                                 border: `1px solid ${colors.border}`,
                                 borderRadius: radius.md,
-                                fontSize: '13.5px',
+                                fontSize: '13px',
                                 color: colors.text,
                                 fontFamily: typography.fonts.display,
                                 outline: 'none',
@@ -806,7 +806,7 @@ function AddCriterionModal({
                                             border: `1.5px solid ${active ? s.border : colors.border}`,
                                             background: active ? s.bg : colors.surface2,
                                             color: active ? s.text : colors.text3,
-                                            fontSize: '11.5px',
+                                            fontSize: '11px',
                                             fontWeight: 600,
                                             cursor: 'pointer',
                                             transition: `all ${animation.fast}`,
@@ -822,7 +822,7 @@ function AddCriterionModal({
 
                     {/* Weight preview */}
                     <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '12px 14px' }}>
-                        <div style={{ fontSize: '10.5px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: '8px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' as const, letterSpacing: '0.07em', marginBottom: '8px' }}>
                             Weight preview after adding
                         </div>
                         {previewRows.map((r, i) => (

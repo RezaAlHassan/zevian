@@ -12,7 +12,7 @@ import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import { Modal } from '@/components/molecules/Modal'
 import { Accordion } from '@/components/molecules/Accordion'
 import { getSkillCategory } from '@/lib/skillThresholds'
-import { Icon, Badge } from '@/components/atoms'
+import { Icon, Badge, NoDataPill } from '@/components/atoms'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getNextDueDate, normalizeFrequency, resolveWorkingDays } from '@/utils/reportScheduling'
 import { computeGoalSubmissionStates } from '@/utils/goalSubmissionState'
@@ -471,8 +471,15 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
     const selfKpis = useMemo(() => [
         {
             label: 'Average score',
-            value: scopedAverageScore,
-            meta: scopedDelta >= 0 ? `+${scopedDelta} vs last report` : `${scopedDelta} vs last report`,
+            // No scored reports yet → show the absence pill instead of a misleading "0".
+            // (1–2 scored reports still show their real average; the trend card separately
+            // notes a baseline needs 3+.)
+            value: filteredScoredReports.length === 0
+                ? <NoDataPill reportCount={filteredReports.length} />
+                : scopedAverageScore,
+            meta: filteredScoredReports.length === 0
+                ? 'No scored reports yet'
+                : scopedDelta >= 0 ? `+${scopedDelta} vs last report` : `${scopedDelta} vs last report`,
             icon: 'star',
             variant: 'accent' as const,
         },
@@ -497,7 +504,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
             icon: 'chart',
             variant: currentStreak >= 4 ? 'green' as const : 'accent' as const,
         },
-    ], [scopedAverageScore, scopedDelta, scopedBestCriterion, nextDueLabel, upcomingItems, currentStreak])
+    ], [scopedAverageScore, scopedDelta, scopedBestCriterion, nextDueLabel, upcomingItems, currentStreak, filteredScoredReports.length, filteredReports.length])
 
     const detailKpis = useMemo(() => [
         {
@@ -587,7 +594,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                 <div style={{
                     background: colors.surface,
                     border: `1px solid ${colors.accentBorder}`,
-                    borderRadius: radius.xl,
+                    borderRadius: radius.md,
                     padding: '16px 20px',
                     display: 'flex',
                     gap: '14px',
@@ -619,7 +626,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                                 </span>
                             )}
                         </div>
-                        <div style={{ fontSize: '13.5px', color: colors.text2, lineHeight: 1.65 }}>
+                        <div style={{ fontSize: '13px', color: colors.text2, lineHeight: 1.65 }}>
                             {lastManagerFeedback.text}
                         </div>
                     </div>
@@ -732,7 +739,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                             action={
                                 <button
                                     onClick={() => router.push('/my-reports')}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11.5px', fontWeight: 700, color: colors.accent, padding: 0 }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, color: colors.accent, padding: 0 }}
                                 >
                                     See all →
                                 </button>
@@ -772,7 +779,7 @@ function ReportDetailContent({ report }: { report: any }) {
     })()
 
     return (
-        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
@@ -801,7 +808,7 @@ function ReportDetailContent({ report }: { report: any }) {
                 <div style={{
                     background: colors.accentGlow,
                     border: `1px solid ${colors.accent}30`,
-                    borderRadius: radius.lg,
+                    borderRadius: radius.md,
                     padding: '12px 16px',
                 }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: colors.accent, textTransform: 'uppercase', marginBottom: '6px' }}>
@@ -818,7 +825,7 @@ function ReportDetailContent({ report }: { report: any }) {
                     <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
                         Evaluation
                     </div>
-                    <div style={{ fontSize: '13.5px', color: colors.text2, lineHeight: 1.7 }}>
+                    <div style={{ fontSize: '13px', color: colors.text2, lineHeight: 1.7 }}>
                         {report.evaluationReasoning}
                     </div>
                 </div>
@@ -836,7 +843,7 @@ function ReportDetailContent({ report }: { report: any }) {
                             return (
                                 <div key={i} style={{
                                     background: colors.surface2,
-                                    borderRadius: radius.lg,
+                                    borderRadius: radius.md,
                                     padding: '12px 14px',
                                     border: `1px solid ${colors.border}`,
                                 }}>
@@ -845,7 +852,7 @@ function ReportDetailContent({ report }: { report: any }) {
                                         <div style={{ fontSize: '14px', fontWeight: 800, color: csColor }}>{csScore.toFixed(1)}</div>
                                     </div>
                                     {cs.reasoning && (
-                                        <div style={{ fontSize: '12.5px', color: colors.text3, lineHeight: 1.6 }}>
+                                        <div style={{ fontSize: '12px', color: colors.text3, lineHeight: 1.6 }}>
                                             {cs.reasoning}
                                         </div>
                                     )}
@@ -860,13 +867,13 @@ function ReportDetailContent({ report }: { report: any }) {
                 <div style={{
                     background: colors.surface2,
                     border: `1px solid ${colors.border}`,
-                    borderRadius: radius.lg,
+                    borderRadius: radius.md,
                     padding: '14px 16px',
                 }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
                         Manager Feedback
                     </div>
-                    <div style={{ fontSize: '13.5px', color: colors.text2, lineHeight: 1.7 }}>
+                    <div style={{ fontSize: '13px', color: colors.text2, lineHeight: 1.7 }}>
                         {report.managerFeedback}
                     </div>
                 </div>

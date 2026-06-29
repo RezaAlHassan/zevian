@@ -63,7 +63,7 @@ export function ProjectCard({
         style={{
           background: colors.surface,
           border: `1px solid ${colors.border}`,
-          borderRadius: radius['2xl'],
+          borderRadius: radius.lg,
           overflow: 'hidden',
           cursor: 'pointer',
           transition: `all ${animation.base}`,

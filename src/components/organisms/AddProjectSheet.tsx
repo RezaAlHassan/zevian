@@ -134,7 +134,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                         {/* Project Name & Key */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px', gap: '12px' }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>
+                                <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>
                                     Project Name <span style={{ color: colors.accent }}>*</span>
                                 </label>
                                 <input
@@ -154,7 +154,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                                 />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>Project Key</label>
+                                <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>Project Key</label>
                                 <input
                                     type="text"
                                     value={key}
@@ -178,7 +178,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
 
                         {/* Description */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>Description</label>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>Description</label>
                             <textarea
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
@@ -199,7 +199,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
 
                         {/* Category Picker */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>Category</label>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>Category</label>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                                 {categories.map(cat => (
                                     <div
@@ -213,14 +213,14 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                                             padding: '12px 8px',
                                             background: selectedCategory === cat.label ? colors.accentGlow : colors.surface2,
                                             border: `1.5px solid ${selectedCategory === cat.label ? colors.accentBorder : colors.border}`,
-                                            borderRadius: radius.lg,
+                                            borderRadius: radius.md,
                                             cursor: 'pointer',
                                             transition: `all ${animation.fast}`,
                                             textAlign: 'center',
                                         }}
                                     >
                                         <span style={{ fontSize: '20px' }}>{cat.emoji}</span>
-                                        <span style={{ fontSize: '11.5px', fontWeight: 600, color: selectedCategory === cat.label ? colors.accent : colors.text2 }}>
+                                        <span style={{ fontSize: '11px', fontWeight: 600, color: selectedCategory === cat.label ? colors.accent : colors.text2 }}>
                                             {cat.label}
                                         </span>
                                     </div>
@@ -232,7 +232,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
 
                         {/* Reporting Frequency */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>Reporting Frequency</label>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>Reporting Frequency</label>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                                 {frequencies.map(freq => (
                                     <div
@@ -247,7 +247,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                                             transition: `all ${animation.fast}`,
                                         }}
                                     >
-                                        <div style={{ fontSize: '12.5px', fontWeight: 600, color: selectedFreq === freq.label ? colors.accent : colors.text2 }}>
+                                        <div style={{ fontSize: '12px', fontWeight: 600, color: selectedFreq === freq.label ? colors.accent : colors.text2 }}>
                                             {freq.label}
                                         </div>
                                         <div style={{ fontSize: '10px', color: selectedFreq === freq.label ? 'rgba(91,127,255,0.6)' : colors.text3, marginTop: '2px' }}>
@@ -261,7 +261,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                         <div style={{ height: '1px', background: colors.border, margin: '4px 0' }} />
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>
                                 Which days should employees submit reports?
                             </label>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
@@ -284,7 +284,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                                                 borderRadius: radius.md,
                                                 cursor: 'pointer',
                                                 transition: `all ${animation.fast}`,
-                                                fontSize: '12.5px',
+                                                fontSize: '12px',
                                                 fontWeight: 600,
                                                 color: selected ? colors.accent : colors.text2,
                                             }}
@@ -303,7 +303,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
 
                         {/* Project Status */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <label style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text }}>Project Status</label>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>Project Status</label>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                                 {[
                                     { id: 'active', label: 'Active', color: colors.accent },
@@ -327,7 +327,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                                         }}
                                     >
                                         <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color }} />
-                                        <div style={{ fontSize: '12.5px', fontWeight: 600, color: status === s.id ? s.color : colors.text2 }}>
+                                        <div style={{ fontSize: '12px', fontWeight: 600, color: status === s.id ? s.color : colors.text2 }}>
                                             {s.label}
                                         </div>
                                     </div>

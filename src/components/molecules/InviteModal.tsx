@@ -286,7 +286,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                         }}>
                                             {step > i ? '✓' : i}
                                         </div>
-                                        <span style={{ fontSize: '11.5px', fontWeight: 700, transition: 'color 0.2s', whiteSpace: 'nowrap', color: step > i ? colors.green : (step === i ? colors.accent : colors.text3) }}>
+                                        <span style={{ fontSize: '11px', fontWeight: 700, transition: 'color 0.2s', whiteSpace: 'nowrap', color: step > i ? colors.green : (step === i ? colors.accent : colors.text3) }}>
                                             {i === 1 ? 'Details' : i === 2 ? 'Assign' : 'Review'}
                                         </span>
                                     </div>
@@ -330,7 +330,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                             style={{ flex: 1, minWidth: '160px', background: 'none', border: 'none', outline: 'none', fontSize: '13px', color: colors.text, padding: '2px 4px' }}
                                         />
                                     </div>
-                                    {emailErr && <div style={{ fontSize: '11.5px', color: colors.danger, marginTop: '5px' }}>{emailErr}</div>}
+                                    {emailErr && <div style={{ fontSize: '11px', color: colors.danger, marginTop: '5px' }}>{emailErr}</div>}
                                 </div>
 
                                 <div style={{ height: '1px', background: colors.border, margin: '16px 0' }} />
@@ -353,7 +353,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                                     <Icon name="user" size={15} color={colors.accent} />
                                                 </div>
                                             </div>
-                                            <div style={{ fontSize: '13.5px', fontWeight: 800, marginBottom: '5px', letterSpacing: '-0.2px', color: !isManager ? colors.accent : colors.text }}>Employee</div>
+                                            <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '5px', letterSpacing: '-0.2px', color: !isManager ? colors.accent : colors.text }}>Employee</div>
                                             <div style={{ fontSize: '12px', color: !isManager ? colors.text2 : colors.text3, lineHeight: 1.55 }}>Submits reports. Views own scores only.</div>
                                         </div>
                                         <div onClick={() => setRole('manager')} style={{
@@ -368,7 +368,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                                     <Icon name="users" size={15} color={'#f97316'} />
                                                 </div>
                                             </div>
-                                            <div style={{ fontSize: '13.5px', fontWeight: 800, marginBottom: '5px', letterSpacing: '-0.2px', color: isManager ? '#f97316' : colors.text }}>Manager</div>
+                                            <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '5px', letterSpacing: '-0.2px', color: isManager ? '#f97316' : colors.text }}>Manager</div>
                                             <div style={{ fontSize: '12px', color: isManager ? colors.text2 : colors.text3, lineHeight: 1.55 }}>Reviews team reports. Can score, override, and invite members.</div>
                                         </div>
                                     </div>
@@ -377,7 +377,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                 {/* Reports To */}
                                 <div>
                                     <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text2, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '7px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        Reports To <span style={{ fontWeight: 400, color: colors.text3, fontSize: '10.5px', textTransform: 'none', letterSpacing: 0 }}>optional</span>
+                                        Reports To <span style={{ fontWeight: 400, color: colors.text3, fontSize: '11px', textTransform: 'none', letterSpacing: 0 }}>optional</span>
                                     </div>
                                     <div style={{ position: 'relative' }}>
                                         <select
@@ -445,7 +445,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                                         background: permissionTemplate === t ? colors.accentGlow : colors.surface2, cursor: 'pointer', transition: 'all 0.15s',
                                                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'
                                                     }}>
-                                                        <div style={{ fontSize: '11.5px', fontWeight: 800, color: permissionTemplate === t ? colors.accent : colors.text, textTransform: 'capitalize' }}>{t.replace('-', ' ')}</div>
+                                                        <div style={{ fontSize: '11px', fontWeight: 800, color: permissionTemplate === t ? colors.accent : colors.text, textTransform: 'capitalize' }}>{t.replace('-', ' ')}</div>
                                                         <div style={{ fontSize: '9px', color: colors.text3, fontWeight: 500 }}>
                                                             {t === 'standard' ? 'Standard Access' : t === 'senior' ? 'Full Control' : 'View Only'}
                                                         </div>
@@ -470,7 +470,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                                             <Icon name={"layoutGrid"} size={15} color={colors.text2} />
                                                         </div>
                                                         <div style={{ fontSize: '13px', fontWeight: 600, flex: 1, color: on ? colors.accent : colors.text }}>{item.name}</div>
-                                                        <div style={{ fontSize: '11.5px', color: colors.text3 }}>{item.reportFrequency}</div>
+                                                        <div style={{ fontSize: '11px', color: colors.text3 }}>{item.reportFrequency}</div>
                                                     </div>
                                                 )
                                             })}
@@ -545,7 +545,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                     </div>
                                 ) : (
                                     <div style={{ marginBottom: '14px' }}>
-                                        <div style={{ fontSize: '10.5px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                             <Icon name="users" size={11} color={colors.accent} />
                                             {emails.length} Recipients
                                         </div>
@@ -555,8 +555,8 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                                     <div style={{ width: '28px', height: '28px', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 700, color: '#fff', flexShrink: 0, background: 'linear-gradient(135deg, #5b7fff, #8b5cf6)' }}>
                                                         {email.slice(0, 2).toUpperCase()}
                                                     </div>
-                                                    <div style={{ fontSize: '12.5px', fontWeight: 600, flex: 1 }}>{email}</div>
-                                                    <span style={{ fontSize: '10.5px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', background: isManager ? 'rgba(249,115,22,0.1)' : colors.accentGlow, color: isManager ? '#f97316' : colors.accent }}>
+                                                    <div style={{ fontSize: '12px', fontWeight: 600, flex: 1 }}>{email}</div>
+                                                    <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', background: isManager ? 'rgba(249,115,22,0.1)' : colors.accentGlow, color: isManager ? '#f97316' : colors.accent }}>
                                                         {isManager ? 'Manager' : 'Employee'}
                                                     </span>
                                                 </div>
@@ -570,19 +570,19 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                     <tbody>
                                         <tr>
                                             <td style={{ fontSize: '12px', color: colors.text3, width: '120px', padding: '9px 12px 9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>Role</td>
-                                            <td style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text, padding: '9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>
+                                            <td style={{ fontSize: '12px', fontWeight: 600, color: colors.text, padding: '9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>
                                                 <span style={{ fontWeight: 700, color: isManager ? '#f97316' : colors.accent }}>{isManager ? 'Manager' : 'Employee'}</span>
                                             </td>
                                         </tr>
                                         <tr>
                                             <td style={{ fontSize: '12px', color: colors.text3, width: '120px', padding: '9px 12px 9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>Reports To</td>
-                                            <td style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text, padding: '9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>
+                                            <td style={{ fontSize: '12px', fontWeight: 600, color: colors.text, padding: '9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>
                                                 {managerList.find(m => m.id === managerId)?.name || 'No manager assigned'}
                                             </td>
                                         </tr>
                                         <tr>
                                             <td style={{ fontSize: '12px', color: colors.text3, width: '120px', padding: '9px 12px 9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>Projects</td>
-                                            <td style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text, padding: '9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>
+                                            <td style={{ fontSize: '12px', fontWeight: 600, color: colors.text, padding: '9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>
                                                 {projects.length ? (
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                                                         {projects.map(id => (
@@ -596,7 +596,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                         </tr>
                                         <tr>
                                             <td style={{ fontSize: '12px', color: colors.text3, width: '120px', padding: '9px 12px 9px 0', verticalAlign: 'top' }}>Goals</td>
-                                            <td style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text, padding: '9px 0', verticalAlign: 'top' }}>
+                                            <td style={{ fontSize: '12px', fontWeight: 600, color: colors.text, padding: '9px 0', verticalAlign: 'top' }}>
                                                 {goals.length ? (
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                                                         {goals.map(id => (
@@ -611,7 +611,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                         {isManager && (
                                             <tr>
                                                 <td style={{ fontSize: '12px', color: colors.text3, width: '120px', padding: '9px 12px 9px 0', verticalAlign: 'top', borderTop: `1px solid ${colors.border}` }}>Permissions</td>
-                                                <td style={{ fontSize: '12.5px', fontWeight: 600, color: colors.text, padding: '9px 0', verticalAlign: 'top', borderTop: `1px solid ${colors.border}` }}>
+                                                <td style={{ fontSize: '12px', fontWeight: 600, color: colors.text, padding: '9px 0', verticalAlign: 'top', borderTop: `1px solid ${colors.border}` }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: colors.accent }}>
                                                         <Icon name="key" size={13} />
                                                         <span style={{ textTransform: 'capitalize' }}>{permissionTemplate.replace('-', ' ')} Template</span>
@@ -629,7 +629,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
 
                                 {errorMsg && <div style={{ padding: '12px', marginBottom: '14px', background: colors.dangerGlow, border: `1px solid ${colors.danger}`, color: colors.danger, fontSize: '13px', borderRadius: '8px' }}>{errorMsg}</div>}
 
-                                <div style={{ padding: '12px 14px', background: 'rgba(91,127,255,0.06)', border: `1px solid ${colors.accentBorder}`, borderRadius: '10px', fontSize: '12.5px', color: colors.text2, lineHeight: 1.65, display: 'flex', gap: '9px' }}>
+                                <div style={{ padding: '12px 14px', background: 'rgba(91,127,255,0.06)', border: `1px solid ${colors.accentBorder}`, borderRadius: '10px', fontSize: '12px', color: colors.text2, lineHeight: 1.65, display: 'flex', gap: '9px' }}>
                                     <Icon name="alert" size={14} color={colors.accent} style={{ flexShrink: 0, marginTop: '2px' }} />
                                     <div>Each invitee will receive a secure activation link. They won&apos;t appear on team dashboards until they accept and set a password. The link expires in <strong>7 days</strong>.</div>
                                 </div>

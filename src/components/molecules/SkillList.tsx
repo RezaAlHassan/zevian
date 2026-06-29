@@ -13,8 +13,8 @@ function SkillBar({ skill }: { skill: SkillItem }) {
     return (
         <div style={{ padding: '5px 8px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ fontSize: '10.5px', fontWeight: 600, color: colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, marginRight: '6px' }}>{skill.name}</span>
-                <span style={{ fontSize: '10.5px', fontWeight: 800, color, flexShrink: 0 }}>{skill.score.toFixed(1)}</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, marginRight: '6px' }}>{skill.name}</span>
+                <span style={{ fontSize: '11px', fontWeight: 800, color, flexShrink: 0 }}>{skill.score.toFixed(1)}</span>
             </div>
             <div style={{ height: '3px', background: colors.surface3, borderRadius: '2px', overflow: 'hidden' }}>
                 <div style={{

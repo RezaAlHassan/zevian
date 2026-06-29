@@ -32,22 +32,22 @@ export function EmployeeRow({ id, name, role, score, status, baselineRequired, c
         padding: '12px 16px',
         borderBottom: `1px solid ${colors.border}`,
         cursor: onClick ? 'pointer' : 'default',
-        borderRadius: radius.lg,
+        borderRadius: radius.md,
         transition: `background ${animation.fast}`,
       }}
     >
       <Avatar name={name} size="lg" />
 
       <div style={{ flex: 1 }}>
-        <div style={{ fontFamily: typography.fonts.display, fontSize: '13.5px', fontWeight: typography.weight.medium, color: colors.text }}>
+        <div style={{ fontFamily: typography.fonts.display, fontSize: '13px', fontWeight: typography.weight.medium, color: colors.text }}>
           {name}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-          <div style={{ fontFamily: typography.fonts.display, fontSize: '11.5px', color: colors.text3 }}>
+          <div style={{ fontFamily: typography.fonts.display, fontSize: '11px', color: colors.text3 }}>
             {role}
           </div>
           {compliance && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10.5px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
               <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: colors.border }} />
               <span style={{ color: colors.text3, fontWeight: 500 }}>{compliance.streakLabel}</span>
               {compliance.currentMissStreak > 0 && (
@@ -74,7 +74,7 @@ export function EmployeeRow({ id, name, role, score, status, baselineRequired, c
         className="font-numeric"
         style={{
           fontWeight: baselineRequired ? 600 : typography.weight.black,
-          fontSize: baselineRequired ? '10.5px' : '18px',
+          fontSize: baselineRequired ? '11px' : '18px',
           letterSpacing: baselineRequired ? '0.5px' : '-0.5px',
           color: baselineRequired ? colors.text3 : scoreColor,
           minWidth: baselineRequired ? 'auto' : '36px',

@@ -165,7 +165,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
               background: colors.surface,
               border: `1px solid ${colors.border}`,
               borderRadius: radius.md,
-              fontSize: '12.5px',
+              fontSize: '12px',
               color: colors.text2,
               cursor: 'pointer',
               fontFamily: typography.fonts.body,
@@ -182,7 +182,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
               background: colors.surface,
               border: `1px solid ${colors.border}`,
               borderRadius: radius.md,
-              fontSize: '12.5px',
+              fontSize: '12px',
               color: colors.text2,
               cursor: 'pointer',
               fontFamily: typography.fonts.body,
@@ -255,7 +255,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
           <div style={{
             background: colors.surface,
             border: `1px solid ${colors.border}`,
-            borderRadius: radius['2xl'],
+            borderRadius: radius.lg,
             padding: '64px 24px',
             display: 'flex',
             flexDirection: 'column',
@@ -265,7 +265,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
             <div style={{
               width: '64px',
               height: '64px',
-              borderRadius: radius.xl,
+              borderRadius: radius.md,
               background: 'rgba(91,127,255,0.08)',
               display: 'flex',
               alignItems: 'center',
@@ -322,7 +322,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
           <div style={{
             background: colors.surface,
             border: `1px solid ${colors.border}`,
-            borderRadius: radius['2xl'],
+            borderRadius: radius.lg,
             overflow: 'hidden'
           }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -364,12 +364,12 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
             </table>
             {filteredProjects.length > PAGE_SIZE && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: `1px solid ${colors.border}` }}>
-                <span style={{ fontSize: '12.5px', color: colors.text3 }}>
+                <span style={{ fontSize: '12px', color: colors.text3 }}>
                   Showing <span style={{ fontWeight: 700, color: colors.text2 }}>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredProjects.length)}</span> of <span style={{ fontWeight: 700, color: colors.text2 }}>{filteredProjects.length}</span>
                 </span>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
-                  <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredProjects.length} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredProjects.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredProjects.length ? 0.4 : 1 }}>Next →</button>
+                  <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
+                  <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredProjects.length} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredProjects.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredProjects.length ? 0.4 : 1 }}>Next →</button>
                 </div>
               </div>
             )}
@@ -388,7 +388,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
                 padding: '12px 16px',
                 background: colors.surface,
                 border: `1px solid ${colors.border}`,
-                borderRadius: radius.lg,
+                borderRadius: radius.md,
                 cursor: 'pointer',
                 transition: `all ${animation.fast}`,
                 color: colors.text2,
@@ -410,7 +410,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
                       padding: '12px 20px',
                       background: colors.surface,
                       border: `1px solid ${colors.border}`,
-                      borderRadius: radius.xl,
+                      borderRadius: radius.md,
                       opacity: 0.8,
                     }}
                   >
@@ -455,7 +455,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
             width: '400px',
             background: colors.surface,
             border: `1px solid ${colors.border}`,
-            borderRadius: radius.xl,
+            borderRadius: radius.md,
             padding: '24px',
             boxShadow: shadows.cardHover,
           }}>
@@ -463,7 +463,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
               <div style={{
                 width: '48px',
                 height: '48px',
-                borderRadius: radius.lg,
+                borderRadius: radius.md,
                 background: confModal.type === 'complete' ? colors.greenGlow : colors.dangerGlow,
                 display: 'flex',
                 alignItems: 'center',
@@ -476,7 +476,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
                 <div style={{ fontSize: '18px', fontWeight: 700, color: colors.text }}>
                   {confModal.type === 'complete' ? 'Complete Project?' : 'Delete Project?'}
                 </div>
-                <div style={{ fontSize: '13.5px', color: colors.text3, marginTop: '8px', lineHeight: 1.5 }}>
+                <div style={{ fontSize: '13px', color: colors.text3, marginTop: '8px', lineHeight: 1.5 }}>
                   Are you sure you want to {confModal.type} <b>{confModal.projectName}</b>? <br />
                   <div style={{ marginTop: '10px', padding: '10px', background: `${colors.danger}10`, border: `1px solid ${colors.danger}20`, borderRadius: radius.md, fontSize: '12px', color: colors.danger }}>
                     <Icon name="alert" size={12} style={{ marginRight: '6px' }} />

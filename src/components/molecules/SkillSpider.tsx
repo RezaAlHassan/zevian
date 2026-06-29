@@ -211,7 +211,7 @@ export function SkillSpider({ skills, size = 280 }: SkillSpiderProps) {
                     gap: '8px',
                 }}>
                     <Icon name="alert" size={13} color={colors.warn} />
-                    <span style={{ fontSize: '11.5px', color: colors.warn, fontWeight: 600, lineHeight: 1.5 }}>
+                    <span style={{ fontSize: '11px', color: colors.warn, fontWeight: 600, lineHeight: 1.5 }}>
                         All criteria scored below 4 — coaching recommended across all dimensions.
                     </span>
                 </div>
@@ -244,7 +244,7 @@ export function SkillSpider({ skills, size = 280 }: SkillSpiderProps) {
                             border: `1px solid ${colors.danger}30`,
                             borderRadius: radius.md,
                         }}>
-                            <span style={{ fontSize: '11.5px', fontWeight: 600, color: colors.text2 }}>{s.name}</span>
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: colors.text2 }}>{s.name}</span>
                             <span style={{
                                 fontSize: '10px',
                                 fontWeight: 700,

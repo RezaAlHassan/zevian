@@ -126,7 +126,7 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
             </div>
 
             {/* Content Area */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px 60px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
                 {activeTab === 'profile' && (
                     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         <Card title="Profile Information" icon="user">
@@ -281,7 +281,7 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
                                 <div style={{ height: '6px', background: colors.surface3, borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
                                     <div style={{ height: '100%', width: '14%', background: `linear-gradient(90deg, ${colors.accent}, ${colors.teal})` }} />
                                 </div>
-                                <div style={{ fontSize: '11.5px', color: colors.text3 }}>7 of 50 available seats used</div>
+                                <div style={{ fontSize: '11px', color: colors.text3 }}>7 of 50 available seats used</div>
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>

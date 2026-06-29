@@ -78,7 +78,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                 {!readOnly && <Button variant="secondary" size="sm" icon="settings" onClick={() => setIsEditOpen(true)}>Settings</Button>}
             </header>
 
-            <div style={{ padding: '28px 28px 60px' }}>
+            <div style={{ padding: '24px' }}>
                 {/* Hero Section */}
                 <div style={{
                     display: 'flex',
@@ -88,13 +88,13 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                     padding: '32px',
                     background: colors.surface,
                     border: `1px solid ${colors.border}`,
-                    borderRadius: radius['3xl'],
+                    borderRadius: radius.lg,
                     boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
                 }}>
                     <div style={{
                         width: '64px',
                         height: '64px',
-                        borderRadius: radius['2xl'],
+                        borderRadius: radius.lg,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -143,7 +143,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                         <section style={{
                             background: colors.surface,
                             border: `1px solid ${colors.border}`,
-                            borderRadius: radius.xl,
+                            borderRadius: radius.md,
                             overflow: 'hidden'
                         }}>
                             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -199,7 +199,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                         <section style={{
                             background: colors.surface,
                             border: `1px solid ${colors.border}`,
-                            borderRadius: radius.xl,
+                            borderRadius: radius.md,
                             overflow: 'hidden'
                         }}>
                             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -241,10 +241,10 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                                     {getInitials(report.employees?.name || 'Unknown')}
                                                 </div>
                                                 <div style={{ flex: 1 }}>
-                                                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: colors.text }}>
+                                                    <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>
                                                         {(() => { const d = report.submittedForDate || report.submissionDate; return new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })()}
                                                     </div>
-                                                    <div style={{ fontSize: '11.5px', color: colors.text3 }}>Goal: {report.goals?.name || 'Goal Update'} • By {report.employees?.name || 'Unknown'}</div>
+                                                    <div style={{ fontSize: '11px', color: colors.text3 }}>Goal: {report.goals?.name || 'Goal Update'} • By {report.employees?.name || 'Unknown'}</div>
                                                 </div>
                                                 <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                     <ScoreDisplay score={report.managerOverallScore ?? report.evaluationScore} size="sm" />
@@ -268,7 +268,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
 
                     <aside style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         {/* Project Info */}
-                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
                             <div style={{ padding: '12px 16px', borderBottom: `1px solid ${colors.border}`, fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                                 Project Info
                             </div>
@@ -277,16 +277,16 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                 { k: 'Created', v: project.createdAt ? new Date(project.createdAt).toLocaleDateString() : '—', i: 'calendar' },
                             ].map(item => (
                                 <div key={item.k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: `1px solid ${colors.border}` }}>
-                                    <div style={{ fontSize: '12.5px', color: colors.text3, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <div style={{ fontSize: '12px', color: colors.text3, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <Icon name={item.i as any} size={13} /> {item.k}
                                     </div>
-                                    <div style={{ fontSize: '12.5px', fontWeight: 500, color: colors.text2 }}>{item.v}</div>
+                                    <div style={{ fontSize: '12px', fontWeight: 500, color: colors.text2 }}>{item.v}</div>
                                 </div>
                             ))}
                         </div>
 
                         {/* Team Section */}
-                        <section style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                        <section style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
                             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div style={{ fontWeight: 600, fontSize: '13px', color: colors.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                     Team Members ({members.length})
@@ -326,7 +326,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                         </section>
 
                         {/* Recent Activity Section */}
-                        <section style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                        <section style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
                             <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, fontSize: '13px', fontWeight: 600, color: colors.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 Recent Activity
                             </div>
@@ -350,7 +350,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                                     marginTop: '2px'
                                                 }} />
                                                 <div>
-                                                    <div style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.5 }}>
+                                                    <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.5 }}>
                                                         <span style={{ fontWeight: 600, color: colors.text }}>{act.user}</span> {act.action}
                                                     </div>
                                                     <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px' }}>

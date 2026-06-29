@@ -112,15 +112,15 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
       {/* KPI Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
         {kpis.map(kpi => (
-          <div key={kpi.label} style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, padding: '16px 18px', transition: `all ${animation.base}` }}>
-            <div style={{ fontSize: '10.5px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div key={kpi.label} style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '16px 18px', transition: `all ${animation.base}` }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Icon name={kpi.icon} size={12} color={colors.text3} />
               {kpi.label}
             </div>
             <div className="font-numeric" style={{ fontSize: '28px', fontWeight: 700, color: kpi.color, letterSpacing: '-1px', lineHeight: 1, marginBottom: '6px' }}>
               {kpi.value}
             </div>
-            <div style={{ fontSize: '11.5px', color: colors.text3 }}>{kpi.sub}</div>
+            <div style={{ fontSize: '11px', color: colors.text3 }}>{kpi.sub}</div>
           </div>
         ))}
       </div>
@@ -140,7 +140,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
           </div>
 
           <select
-            style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12.5px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
+            style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -157,7 +157,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Sort:</span>
             <select
-              style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12.5px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
+              style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
             >
@@ -185,7 +185,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
             }}
           />
 
-          <div className="font-numeric" style={{ fontSize: '12.5px', color: colors.text3, fontWeight: 500 }}>
+          <div className="font-numeric" style={{ fontSize: '12px', color: colors.text3, fontWeight: 500 }}>
             {totalFilteredCount} {isPeriodFilter ? 'periods' : 'reports'}
           </div>
 
@@ -234,7 +234,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
 
       {/* Content Area */}
       {isPeriodFilter ? (
-        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${colors.border}`, background: 'rgba(255,255,255,0.02)' }}>
@@ -276,7 +276,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                       <span style={{ padding: '3px 8px', background: colors.surface3, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: colors.text2 }}>{projectName}</span>
                     </td>
                     <td style={{ padding: '14px 14px' }}>
-                      <div style={{ fontSize: '12.5px', color: isExcused ? colors.text3 : colors.danger, fontWeight: 600 }}>
+                      <div style={{ fontSize: '12px', color: isExcused ? colors.text3 : colors.danger, fontWeight: 600 }}>
                         {dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
                       <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>
@@ -284,7 +284,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                       </div>
                     </td>
                     <td style={{ padding: '14px 14px' }}>
-                      <span style={{ fontSize: '11.5px', color: colors.text3, fontWeight: 600 }}>{freqLabel}</span>
+                      <span style={{ fontSize: '11px', color: colors.text3, fontWeight: 600 }}>{freqLabel}</span>
                     </td>
                     <td style={{ padding: '14px 14px' }}>
                       <StatusPill status={isExcused ? 'excused' : 'missed'} />
@@ -309,7 +309,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
           </table>
         </div>
       ) : viewMode === 'table' ? (
-        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${colors.border}`, background: 'rgba(255,255,255,0.02)' }}>
@@ -350,7 +350,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                             {getInitials(employeeName)}
                           </div>
                           <div>
-                            <div style={{ fontSize: '13.5px', fontWeight: typography.weight.semibold, color: colors.text }}>{employeeName}</div>
+                            <div style={{ fontSize: '13px', fontWeight: typography.weight.semibold, color: colors.text }}>{employeeName}</div>
                             <div style={{ fontSize: '11px', color: colors.text3 }}>{report.employees?.title || 'Team Member'}</div>
                           </div>
                         </div>
@@ -361,7 +361,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                       <span style={{ padding: '3px 8px', background: colors.surface3, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: colors.text2 }}>{projectName}</span>
                     </td>
                     <td style={{ padding: '14px 14px' }}>
-                      <div style={{ fontSize: '12.5px', color: colors.text, fontWeight: 500 }}>
+                      <div style={{ fontSize: '12px', color: colors.text, fontWeight: 500 }}>
                         {new Date(report.submittedForDate || report.submissionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </div>
                       <div style={{ fontSize: '11px', color: colors.text3, marginTop: '2px' }}>
@@ -406,12 +406,12 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
           </table>
           {filteredAndSortedReports.length > PAGE_SIZE && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: `1px solid ${colors.border}` }}>
-              <span style={{ fontSize: '12.5px', color: colors.text3 }}>
+              <span style={{ fontSize: '12px', color: colors.text3 }}>
                 Showing <span style={{ fontWeight: 700, color: colors.text2 }}>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredAndSortedReports.length)}</span> of <span style={{ fontWeight: 700, color: colors.text2 }}>{filteredAndSortedReports.length}</span>
               </span>
               <div style={{ display: 'flex', gap: '6px' }}>
-                <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
-                <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredAndSortedReports.length} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredAndSortedReports.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredAndSortedReports.length ? 0.4 : 1 }}>Next →</button>
+                <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
+                <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredAndSortedReports.length} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredAndSortedReports.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredAndSortedReports.length ? 0.4 : 1 }}>Next →</button>
               </div>
             </div>
           )}
@@ -430,7 +430,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                 key={report.id}
                 onClick={() => report.isOnLeave ? null : router.push(role === 'manager' ? `/reports/${report.id}?${searchParams.toString()}` : `/my-reports/${report.id}?${searchParams.toString()}`)}
                 style={{
-                  background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, padding: '18px',
+                  background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '18px',
                   cursor: report.isOnLeave ? 'default' : 'pointer', transition: `all ${animation.base}`,
                   opacity: report.isOnLeave ? 0.7 : 1
                 }}
@@ -462,7 +462,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                   <StatusPill status={status} score={score} />
                 </div>
 
-                <div style={{ fontSize: '13.5px', fontWeight: 600, color: colors.text2, marginBottom: '6px' }}>{goalName}</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text2, marginBottom: '6px' }}>{goalName}</div>
                 <div style={{ marginBottom: '16px' }}>
                   <span style={{ padding: '3px 8px', background: colors.surface3, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: colors.text3 }}>{projectName}</span>
                 </div>

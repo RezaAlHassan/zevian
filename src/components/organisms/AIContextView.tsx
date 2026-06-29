@@ -74,20 +74,20 @@ export function AIContextView({ project, readOnly = false }: Props) {
                 </div>
             </header>
 
-            <div style={{ maxWidth: '780px', margin: '0 auto', padding: '36px 28px 80px' }}>
+            <div style={{ maxWidth: '780px', margin: '0 auto', padding: '24px' }}>
 
                 {/* Page heading */}
                 <div style={{ marginBottom: '32px' }}>
                     <h1 style={{ fontFamily: typography.fonts.display, fontSize: '24px', fontWeight: 800, color: colors.text, letterSpacing: '-0.4px', marginBottom: '6px' }}>
                         Project Memory
                     </h1>
-                    <p style={{ fontSize: '13.5px', color: colors.text3, lineHeight: 1.6 }}>
+                    <p style={{ fontSize: '13px', color: colors.text3, lineHeight: 1.6 }}>
                         This context is used when scoring every report. Edit it manually or use Update Memory to pull patterns from recent reports.
                     </p>
                 </div>
 
                 {/* Memory card */}
-                <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+                <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
                     <div style={{ padding: '20px 24px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Icon name="sparkles" size={14} color={colors.accent} />
@@ -103,7 +103,7 @@ export function AIContextView({ project, readOnly = false }: Props) {
                     <div style={{ padding: '20px 24px' }}>
                         {readOnly ? (
                             <>
-                                <div style={{ fontSize: '13.5px', color: draft ? colors.text : colors.text3, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                                <div style={{ fontSize: '13px', color: draft ? colors.text : colors.text3, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                                     {draft || 'No memory set yet.'}
                                 </div>
                                 {lastTagDate && (

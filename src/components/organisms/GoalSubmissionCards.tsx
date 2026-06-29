@@ -48,7 +48,7 @@ function LateReportsModal({
         style={{
           background: colors.surface,
           border: `1px solid ${colors.border}`,
-          borderRadius: radius.xl,
+          borderRadius: radius.md,
           width: '100%', maxWidth: '380px',
           overflow: 'hidden',
           boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
@@ -71,7 +71,7 @@ function LateReportsModal({
 
         {/* Date list */}
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '340px', overflowY: 'auto' }}>
-          <div style={{ fontSize: '10.5px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '6px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '6px' }}>
             {state.lateCount} missed {state.lateCount === 1 ? 'report' : 'reports'}
           </div>
           {state.latePeriods.map((date, i) => (
@@ -81,7 +81,7 @@ function LateReportsModal({
                 padding: '10px 14px',
                 background: colors.surface2,
                 border: `1px solid ${colors.border}`,
-                borderRadius: radius.lg,
+                borderRadius: radius.md,
                 fontSize: '13px',
                 color: colors.text2,
                 fontWeight: 500,
@@ -108,7 +108,7 @@ function LateReportsModal({
                   padding: '10px 14px',
                   background: `${colors.accent}10`,
                   border: `1px solid ${colors.accent}35`,
-                  borderRadius: radius.lg,
+                  borderRadius: radius.md,
                   fontSize: '13px',
                   color: colors.text2,
                   fontWeight: 500,
@@ -194,7 +194,7 @@ function GoalCard({
         background: colors.surface,
         border: `1px solid ${colors.border}`,
         borderLeft: `3px solid ${borderColor}`,
-        borderRadius: radius.lg,
+        borderRadius: radius.md,
         padding: '12px 14px',
         display: 'flex',
         flexDirection: 'column',
@@ -297,7 +297,7 @@ function GoalCard({
                 border: `1px solid ${colors.border}`,
                 borderRadius: '6px',
                 cursor: 'pointer',
-                fontSize: '11.5px',
+                fontSize: '11px',
                 fontWeight: 700,
                 color: colors.text2,
                 padding: '4px 10px',
@@ -425,10 +425,10 @@ export function GoalSubmissionCards({
         >
           <Icon name="check" size={18} />
         </div>
-        <div style={{ fontSize: '12.5px', fontWeight: 700, color: colors.text }}>
+        <div style={{ fontSize: '12px', fontWeight: 700, color: colors.text }}>
           You&apos;re all caught up
         </div>
-        <div style={{ fontSize: '11.5px', color: colors.text3 }}>No reports due.</div>
+        <div style={{ fontSize: '11px', color: colors.text3 }}>No reports due.</div>
       </div>
     )
   }

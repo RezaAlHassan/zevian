@@ -96,12 +96,12 @@ export function RegisterForm() {
                 <span style={{ fontWeight: 700, fontSize: '22px' }}>Zevian</span>
             </div>
 
-            <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius['2xl'], padding: '32px' }}>
+            <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.lg, padding: '32px' }}>
                 <h1 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '6px' }}>Create account</h1>
-                <p style={{ fontSize: '13.5px', color: colors.text3, marginBottom: '28px' }}>Join Zevian to start tracking your projects.</p>
+                <p style={{ fontSize: '13px', color: colors.text3, marginBottom: '28px' }}>Join Zevian to start tracking your projects.</p>
 
                 {error && (
-                    <div style={{ padding: '10px 14px', borderRadius: radius.lg, background: '#ff4d4f12', border: '1px solid #ff4d4f30', color: '#ff4d4f', fontSize: '13px', marginBottom: '20px' }}>
+                    <div style={{ padding: '10px 14px', borderRadius: radius.md, background: '#ff4d4f12', border: '1px solid #ff4d4f30', color: '#ff4d4f', fontSize: '13px', marginBottom: '20px' }}>
                         {error}
                     </div>
                 )}
@@ -115,7 +115,7 @@ export function RegisterForm() {
                             onChange={e => setName(e.target.value)}
                             placeholder="Your full name"
                             required
-                            style={{ width: '100%', padding: '10px 14px', borderRadius: radius.lg, border: `1px solid ${colors.border}`, background: colors.bg, fontSize: '14px', color: '#fff', outline: 'none', boxSizing: 'border-box' }}
+                            style={{ width: '100%', padding: '10px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.bg, fontSize: '14px', color: '#fff', outline: 'none', boxSizing: 'border-box' }}
                         />
                     </div>
                     <div style={{ marginBottom: '18px' }}>
@@ -126,7 +126,7 @@ export function RegisterForm() {
                             onChange={e => setEmail(e.target.value)}
                             placeholder="you@company.com"
                             required
-                            style={{ width: '100%', padding: '10px 14px', borderRadius: radius.lg, border: `1px solid ${colors.border}`, background: colors.bg, fontSize: '14px', color: '#fff', outline: 'none', boxSizing: 'border-box' }}
+                            style={{ width: '100%', padding: '10px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.bg, fontSize: '14px', color: '#fff', outline: 'none', boxSizing: 'border-box' }}
                         />
                     </div>
                     <div style={{ marginBottom: '24px' }}>
@@ -138,20 +138,20 @@ export function RegisterForm() {
                             placeholder="••••••••"
                             required
                             minLength={6}
-                            style={{ width: '100%', padding: '10px 14px', borderRadius: radius.lg, border: `1px solid ${colors.border}`, background: colors.bg, fontSize: '14px', color: '#fff', outline: 'none', boxSizing: 'border-box' }}
+                            style={{ width: '100%', padding: '10px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.bg, fontSize: '14px', color: '#fff', outline: 'none', boxSizing: 'border-box' }}
                         />
                     </div>
                     <button
                         type="submit"
                         disabled={loading}
-                        style={{ width: '100%', padding: '12px', borderRadius: radius.lg, background: colors.accent, color: '#fff', fontWeight: 700, fontSize: '14px', border: 'none', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.6 : 1, transition: animation.fast }}
+                        style={{ width: '100%', padding: '12px', borderRadius: radius.md, background: colors.accent, color: '#fff', fontWeight: 700, fontSize: '14px', border: 'none', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.6 : 1, transition: animation.fast }}
                     >
                         {loading ? 'Creating account...' : 'Create account'}
                     </button>
                 </form>
             </div>
 
-            <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '13.5px', color: colors.text3 }}>
+            <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '13px', color: colors.text3 }}>
                 Already have an account?{' '}
                 <Link href="/login" style={{ color: colors.accent, fontWeight: 600, textDecoration: 'none' }}>Sign in</Link>
             </p>

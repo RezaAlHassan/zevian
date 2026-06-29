@@ -36,7 +36,7 @@ export function LateItem({ name, project, daysLate }: LateItemProps) {
 
       <div style={{
         fontFamily: typography.fonts.display,
-        fontSize: '11.5px',
+        fontSize: '11px',
         color: colors.danger,
         fontWeight: typography.weight.semibold,
       }}>

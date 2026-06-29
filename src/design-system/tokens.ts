@@ -20,6 +20,7 @@ export const colors = {
   surface3: '#1e2330',
 
   border: 'rgba(255,255,255,0.07)',
+  borderStrong: 'rgba(255,255,255,0.10)',   // grounded card border — more visible than default, sits below hover
   borderHover: 'rgba(255,255,255,0.13)',
   borderDashed: 'rgba(255,255,255,0.10)',
 
@@ -64,7 +65,6 @@ export const typography = {
     xs: '10px',
     sm: '11px',
     base: '13px',
-    md: '13.5px',
     lg: '14px',
     xl: '16px',
     '2xl': '18px',
@@ -81,13 +81,13 @@ export const typography = {
   },
   score: {
     sm: '16px',
-    md: '20px',
+    md: '22px',
     lg: '28px',
     xl: '36px',
     '2xl': '42px',
   },
   label: {
-    fontSize: '10.5px',
+    fontSize: '11px',
     fontWeight: 700,
     letterSpacing: '0.07em',
     textTransform: 'uppercase' as const,
@@ -101,7 +101,7 @@ export const typography = {
 export const layout = {
   sidebarWidth: '220px',
   headerHeight: '56px',
-  contentPadding: '28px',
+  contentPadding: '24px',
   contentPaddingMobile: '16px',
   modalSheetWidth: '580px',
   modalSheetWidthSm: '520px',
@@ -113,11 +113,8 @@ export const layout = {
 // ─────────────────────────────────────────────
 export const radius = {
   sm: '6px',
-  md: '8px',
-  lg: '10px',
-  xl: '12px',
-  '2xl': '14px',
-  '3xl': '16px',
+  md: '10px',
+  lg: '16px',
   full: '9999px',
 } as const
 
@@ -217,6 +214,24 @@ export function getAvatarGradient(name: string): string {
   return GRADIENTS[Math.abs(hash) % GRADIENTS.length]
 }
 
+// ─────────────────────────────────────────────
+// AI / ASK GRADIENT
+// Ambient accent → teal gradient that signals the conversational/AI surfaces (Ask bar and
+// its suggestion chips). `strong` for the primary input border, `subtle` for secondary
+// affordances so they relate to the bar without competing with it.
+// ─────────────────────────────────────────────
+export const aiGradient = {
+  strong: 'linear-gradient(120deg, rgba(91,127,255,0.55), rgba(0,212,170,0.45))',
+  subtle: 'linear-gradient(120deg, rgba(91,127,255,0.32), rgba(0,212,170,0.26))',
+} as const
+
+// Build the two-layer background that paints a gradient *border* on a single element:
+// surface fill clipped to the padding box, gradient clipped to the border box. Pair with
+// `border: '1px solid transparent'` so the gradient shows evenly on all edges and corners.
+export function gradientBorderBackground(gradient: string, fill: string): string {
+  return `linear-gradient(${fill}, ${fill}) padding-box, ${gradient} border-box`
+}
+
 export function getInitials(name: string): string {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
@@ -224,21 +239,22 @@ export function getInitials(name: string): string {
 // ─────────────────────────────────────────────
 // COMPONENT TOKENS
 // ─────────────────────────────────────────────
+// NOTE: componentTokens hold only *token values* (color, type, spacing, border,
+// radius, fixed sizes, shadow, transition, cursor). Structural layout
+// (display/position/flex/overflow/zIndex) lives in the consuming components, so
+// a component can own its layout without fighting the token object.
 export const componentTokens = {
   sidebar: {
     root: {
-      position: 'fixed' as const, left: 0, top: 0, bottom: 0,
       width: layout.sidebarWidth, background: colors.surface,
       borderRight: `1px solid ${colors.border}`,
-      display: 'flex', flexDirection: 'column' as const, zIndex: zIndex.sidebar,
     },
     logo: {
-      padding: '18px 20px 14px', display: 'flex', alignItems: 'center', gap: '10px',
+      padding: '18px 20px 14px', gap: '10px',
       borderBottom: `1px solid ${colors.border}`,
     },
     logoMark: {
       width: '30px', height: '30px', background: colors.accent, borderRadius: radius.md,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: typography.fonts.display, fontWeight: typography.weight.extrabold,
       fontSize: '14px', color: '#fff', boxShadow: shadows.logoGlow,
     },
@@ -246,26 +262,25 @@ export const componentTokens = {
       fontFamily: typography.fonts.display, fontWeight: typography.weight.bold,
       fontSize: '17px', letterSpacing: '-0.3px', color: colors.text,
     },
-    nav: { padding: '12px 10px', flex: 1 },
+    nav: { padding: '12px 10px' },
     navLabel: {
       fontSize: '10px', fontWeight: typography.weight.semibold, color: colors.text3,
       letterSpacing: '0.08em', textTransform: 'uppercase' as const, padding: '8px 10px 4px',
     },
     navItem: {
       base: {
-        display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px',
+        gap: '10px', padding: '8px 10px',
         borderRadius: radius.md, cursor: 'pointer', color: colors.text2,
-        fontSize: '13.5px', fontWeight: typography.weight.medium,
-        transition: `all ${animation.fast}`, marginBottom: '1px',
-        textDecoration: 'none',
+        fontSize: '13px', fontWeight: typography.weight.medium,
+        transition: `all ${animation.fast}`,
       },
       hover: { background: colors.surface2, color: colors.text },
       active: { background: colors.accentGlow, color: colors.accent, border: `1px solid ${colors.accentBorder}` },
     },
     footer: { padding: '12px 10px', borderTop: `1px solid ${colors.border}` },
     ctaButton: {
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-      width: '100%', padding: '9px', background: colors.accent, border: 'none',
+      gap: '8px',
+      padding: '9px', background: colors.accent, border: 'none',
       borderRadius: radius.md, color: '#fff', fontSize: '13px',
       fontWeight: typography.weight.semibold, cursor: 'pointer',
       boxShadow: '0 0 20px rgba(91,127,255,0.30)', transition: `all ${animation.fast}`,
@@ -273,10 +288,9 @@ export const componentTokens = {
   },
   header: {
     root: {
-      position: 'fixed' as const, left: layout.sidebarWidth, right: 0, top: 0,
-      height: layout.headerHeight, background: 'rgba(10,12,16,0.90)',
+      background: 'rgba(10,12,16,0.90)',
       backdropFilter: 'blur(12px)', borderBottom: `1px solid ${colors.border}`,
-      display: 'flex', alignItems: 'center', padding: '0 24px', gap: '10px', zIndex: zIndex.header,
+      padding: '0 24px', gap: '10px',
     },
     title: {
       fontFamily: typography.fonts.display, fontSize: '16px',
@@ -285,14 +299,12 @@ export const componentTokens = {
     iconButton: {
       width: '34px', height: '34px', background: colors.surface,
       border: `1px solid ${colors.border}`, borderRadius: radius.md,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
       cursor: 'pointer', color: colors.text2,
     },
     avatar: {
       width: '34px', height: '34px',
       background: `linear-gradient(135deg, ${colors.accent}, ${colors.teal})`,
-      borderRadius: radius.md, display: 'flex', alignItems: 'center',
-      justifyContent: 'center', fontWeight: typography.weight.bold,
+      borderRadius: radius.md, fontWeight: typography.weight.bold,
       fontSize: '12px', color: '#fff', cursor: 'pointer',
     },
   },
@@ -310,41 +322,36 @@ export const componentTokens = {
   },
   modal: {
     overlay: {
-      position: 'fixed' as const, inset: 0, background: 'rgba(0,0,0,0.65)',
-      backdropFilter: 'blur(4px)', zIndex: zIndex.modal,
-      display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end',
+      background: 'rgba(0,0,0,0.65)',
+      backdropFilter: 'blur(4px)',
     },
     sheet: {
-      width: layout.modalSheetWidth, height: '100vh',
+      width: layout.modalSheetWidth,
       background: colors.surface, borderLeft: `1px solid ${colors.border}`,
-      display: 'flex', flexDirection: 'column' as const,
     },
     header: {
       padding: '20px 24px 16px', borderBottom: `1px solid ${colors.border}`,
-      display: 'flex', alignItems: 'flex-start', gap: '12px', flexShrink: 0,
-      background: colors.surface, position: 'sticky' as const, top: 0, zIndex: 10,
+      gap: '12px', background: colors.surface,
     },
     title: {
       fontFamily: typography.fonts.display, fontSize: '17px',
       fontWeight: typography.weight.extrabold, color: colors.text, letterSpacing: '-0.3px',
     },
-    subtitle: { fontSize: '12px', color: colors.text3, marginTop: '2px' },
+    subtitle: { fontSize: '12px', color: colors.text3 },
     closeButton: {
       width: '30px', height: '30px', borderRadius: radius.md,
       background: colors.surface2, border: `1px solid ${colors.border}`,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
       cursor: 'pointer', color: colors.text2, transition: `all ${animation.fast}`,
     },
-    bodyNoPadding: { flex: 1, overflowY: 'auto' as const },
+    bodyNoPadding: {},
     footer: {
       padding: '16px 24px', borderTop: `1px solid ${colors.border}`,
-      display: 'flex', justifyContent: 'flex-end', gap: '10px', flexShrink: 0,
-      background: colors.surface, position: 'sticky' as const, bottom: 0, zIndex: 10,
+      gap: '10px', background: colors.surface,
     },
   },
   button: {
     base: {
-      display: 'inline-flex', alignItems: 'center', gap: '7px',
+      gap: '7px',
       padding: '8px 16px', borderRadius: radius.md,
       fontSize: '13px', fontWeight: typography.weight.semibold,
       cursor: 'pointer', transition: `all ${animation.fast}`,
@@ -354,7 +361,7 @@ export const componentTokens = {
       sm: { padding: '6px 12px', fontSize: '12px' },
       md: { padding: '8px 16px', fontSize: '13px' },
       lg: { padding: '10px 20px', fontSize: '14px' },
-      icon: { width: '30px', height: '30px', padding: '0', justifyContent: 'center' as const, borderRadius: radius.md },
+      icon: { width: '30px', height: '30px', padding: '0', borderRadius: radius.md },
     },
     variants: {
       primary: { background: colors.accent, color: '#fff', boxShadow: shadows.accentGlow },
@@ -364,16 +371,16 @@ export const componentTokens = {
   },
   card: {
     root: {
-      background: colors.surface, border: `1px solid ${colors.border}`,
-      borderRadius: radius['2xl'], overflow: 'hidden',
+      background: colors.surface, border: `1px solid ${colors.borderStrong}`,
+      borderRadius: radius.lg,
     },
     header: {
-      padding: '16px 20px 14px', display: 'flex', alignItems: 'center', gap: '10px',
-      borderBottom: `1px solid ${colors.border}`,
+      padding: '16px 20px 14px', gap: '10px',
+      borderBottom: `1px solid ${colors.borderStrong}`,
     },
     title: {
       fontWeight: typography.weight.semibold, fontSize: '14px', color: colors.text,
-      display: 'flex', alignItems: 'center', gap: '8px', flex: 1,
+      gap: '8px',
     },
     action: {
       fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium,
@@ -411,4 +418,28 @@ export const cssVariables = {
   '--color-purple-glow': colors.purpleGlow,
   '--sidebar-width': layout.sidebarWidth,
   '--header-height': layout.headerHeight,
+
+  // ── Semantic layer ──────────────────────────
+  // Maps intent → primitive. Components should prefer these so a single
+  // change here re-themes the product without touching every component.
+  // Text
+  '--color-text-primary': 'var(--color-text)',
+  '--color-text-secondary': 'var(--color-text-2)',
+  '--color-text-muted': 'var(--color-text-3)',
+  // Surfaces (dark theme: higher number = lighter / more raised)
+  '--color-surface-page': 'var(--color-bg)',
+  '--color-surface-card': 'var(--color-surface)',
+  '--color-surface-elevated': 'var(--color-surface-2)',
+  '--color-surface-deep': 'var(--color-surface-3)',
+  // Borders
+  '--color-border-default': 'var(--color-border)',
+  '--color-border-strong': 'var(--color-border-hover)',
+  '--color-border-accent': 'var(--color-accent-border)',
+  // Interactive
+  '--color-interactive': 'var(--color-accent)',
+  '--color-interactive-hover': 'var(--color-accent-hover)',
+  // Semantic states
+  '--color-success': 'var(--color-green)',
+  '--color-warning': 'var(--color-warn)',
+  '--color-error': 'var(--color-danger)',
 } as const

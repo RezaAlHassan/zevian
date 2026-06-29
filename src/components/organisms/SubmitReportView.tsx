@@ -262,8 +262,8 @@ export function SubmitReportView() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <div style={{ width: '4px', height: '16px', borderRadius: '2px', background: item.color }} />
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '12.5px', fontWeight: 800, color: item.color }}>{item.label}</div>
-                                        <div style={{ fontSize: '10.5px', color: colors.text3 }}>{item.sublabel}</div>
+                                        <div style={{ fontSize: '12px', fontWeight: 800, color: item.color }}>{item.label}</div>
+                                        <div style={{ fontSize: '11px', color: colors.text3 }}>{item.sublabel}</div>
                                     </div>
                                 </div>
                                 <div style={{ padding: '8px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: `1px solid ${colors.border}` }}>
@@ -313,7 +313,7 @@ export function SubmitReportView() {
                             title: "Organizational Metrics",
                             content: (
                                 <div style={{ paddingTop: '8px' }}>
-                                    <div style={{ fontSize: '10.5px', color: colors.text3, marginBottom: '10px', lineHeight: 1.4 }}>
+                                    <div style={{ fontSize: '11px', color: colors.text3, marginBottom: '10px', lineHeight: 1.4 }}>
                                         These are evaluated across all your reports.
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -379,7 +379,7 @@ export function SubmitReportView() {
 
             <div style={{ padding: '16px 20px', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                 <Icon name="alert" size={18} color={colors.text3} />
-                <p style={{ fontSize: '12.5px', color: colors.text2, lineHeight: 1.5 }}>Scores are suggestions based on your reported text. You can refine your report text and re-analyze, or submit if you agree with this evaluation.</p>
+                <p style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.5 }}>Scores are suggestions based on your reported text. You can refine your report text and re-analyze, or submit if you agree with this evaluation.</p>
             </div>
         </div>
     )

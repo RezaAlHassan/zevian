@@ -34,7 +34,7 @@ export function InviteEmployeeSheet({ isOpen, onClose }: InviteEmployeeSheetProp
                     maxWidth: '480px',
                     background: colors.surface,
                     border: `1px solid ${colors.border}`,
-                    borderRadius: radius['2xl'],
+                    borderRadius: radius.lg,
                     padding: '32px',
                     boxShadow: shadows.cardHover,
                     animation: 'modalSlideUp 0.3s cubic-bezier(0.22, 0.68, 0, 1) both'
@@ -70,7 +70,7 @@ export function InviteEmployeeSheet({ isOpen, onClose }: InviteEmployeeSheetProp
                                 padding: '12px 14px',
                                 background: colors.surface2,
                                 border: `1px solid ${colors.border}`,
-                                borderRadius: radius.lg,
+                                borderRadius: radius.md,
                                 fontSize: '14px',
                                 color: colors.text,
                                 outline: 'none',
@@ -99,7 +99,7 @@ export function InviteEmployeeSheet({ isOpen, onClose }: InviteEmployeeSheetProp
                                     padding: '16px',
                                     background: role === 'employee' ? colors.accentGlow : colors.surface2,
                                     border: `1px solid ${role === 'employee' ? colors.accent : colors.border}`,
-                                    borderRadius: radius.xl,
+                                    borderRadius: radius.md,
                                     cursor: 'pointer',
                                     transition: `all ${animation.fast}`
                                 }}
@@ -112,7 +112,7 @@ export function InviteEmployeeSheet({ isOpen, onClose }: InviteEmployeeSheetProp
                                 }}>
                                     Employee
                                 </div>
-                                <div style={{ fontSize: '11.5px', color: colors.text3, lineHeight: 1.4 }}>
+                                <div style={{ fontSize: '11px', color: colors.text3, lineHeight: 1.4 }}>
                                     Submits weekly reports. Sees their own scores only.
                                 </div>
                             </div>
@@ -122,7 +122,7 @@ export function InviteEmployeeSheet({ isOpen, onClose }: InviteEmployeeSheetProp
                                     padding: '16px',
                                     background: role === 'manager' ? colors.accentGlow : colors.surface2,
                                     border: `1px solid ${role === 'manager' ? colors.accent : colors.border}`,
-                                    borderRadius: radius.xl,
+                                    borderRadius: radius.md,
                                     cursor: 'pointer',
                                     transition: `all ${animation.fast}`
                                 }}
@@ -135,7 +135,7 @@ export function InviteEmployeeSheet({ isOpen, onClose }: InviteEmployeeSheetProp
                                 }}>
                                     Manager
                                 </div>
-                                <div style={{ fontSize: '11.5px', color: colors.text3, lineHeight: 1.4 }}>
+                                <div style={{ fontSize: '11px', color: colors.text3, lineHeight: 1.4 }}>
                                     Reviews team reports. Can override scores and set goals.
                                 </div>
                             </div>

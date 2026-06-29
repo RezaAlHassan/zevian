@@ -57,7 +57,7 @@ export function ProjectRow({
                 className="project-table-row"
             >
                 <td style={{ padding: '14px', borderBottom: `1px solid ${colors.border}` }}>
-                    <div style={{ fontWeight: typography.weight.semibold, fontSize: '13.5px', color: colors.text, marginBottom: '2px' }}>
+                    <div style={{ fontWeight: typography.weight.semibold, fontSize: '13px', color: colors.text, marginBottom: '2px' }}>
                         {name}
                     </div>
                     <div style={{
@@ -151,7 +151,7 @@ export function ProjectRow({
                     borderBottom: `1px solid ${colors.border}`,
                     color: colors.text2,
                     fontFamily: typography.fonts.mono,
-                    fontSize: '12.5px'
+                    fontSize: '12px'
                 }}>
                     <span style={{ fontFamily: typography.fonts.numeric, fontWeight: typography.weight.black }}>{reportCount}</span>
                 </td>
@@ -171,7 +171,7 @@ export function ProjectRow({
                 <td style={{
                     padding: '14px',
                     borderBottom: `1px solid ${colors.border}`,
-                    fontSize: '12.5px',
+                    fontSize: '12px',
                     color: colors.text3
                 }}>
                     {lastActivity}

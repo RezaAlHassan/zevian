@@ -21,8 +21,8 @@ export function Card({ children, title, subtitle, icon, action, chip, danger, cl
       className={className}
       style={{
         background: colors.surface,
-        border: `1px solid ${colors.border}`,
-        borderRadius: '14px',
+        border: `1px solid ${colors.borderStrong}`,
+        borderRadius: radius.lg,
         overflow: 'hidden',
       }}
     >
@@ -33,7 +33,7 @@ export function Card({ children, title, subtitle, icon, action, chip, danger, cl
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            borderBottom: `1px solid ${colors.border}`,
+            borderBottom: `1px solid ${colors.borderStrong}`,
           }}
         >
           {icon && (

@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { colors, typography, radius } from '@/design-system'
+import { colors, typography, radius, animation, shadows, aiGradient, gradientBorderBackground } from '@/design-system'
+import { Icon } from '@/components/atoms'
 import { askQuestionAction } from '@/app/actions/askActions'
 import type { AskContext, AskScope, AskMessage, AskSession } from '@/app/actions/askActions'
 
@@ -89,47 +90,11 @@ function ScopeLine({ ctx, scope, prominent }: { ctx: AskContext; scope: AskScope
     )
 }
 
-function Citations({ citations }: { citations: NonNullable<AskMessage['citations']> }) {
-    return (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 0 16px 2px', maxWidth: '78%' }}>
-            <span style={{ fontSize: typography.size.xs, color: colors.text3, alignSelf: 'center', marginRight: 2 }}>
-                Based on:
-            </span>
-            {citations.map(c => (
-                <Link
-                    key={c.reportId}
-                    href={`/reports/${c.reportId}`}
-                    style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        padding: '3px 9px',
-                        borderRadius: 20,
-                        border: `1px solid ${colors.border}`,
-                        background: colors.surface,
-                        color: colors.text2,
-                        fontSize: typography.size.xs,
-                        textDecoration: 'none',
-                        transition: 'border-color 0.15s, color 0.15s',
-                    }}
-                >
-                    <svg viewBox="0 0 16 16" fill="none" width={11} height={11} style={{ flexShrink: 0 }}>
-                        <path d="M4 2h5l4 4v8H4z" stroke={colors.text3} strokeWidth="1.3" strokeLinejoin="round" />
-                        <path d="M9 2v4h4" stroke={colors.text3} strokeWidth="1.3" strokeLinejoin="round" />
-                    </svg>
-                    <span>{c.employeeName} · {fmtDate(c.date)}{c.goalName ? ` · ${c.goalName}` : ''}</span>
-                </Link>
-            ))}
-        </div>
-    )
-}
-
-interface MessageBubbleProps {
-    msg: AskMessage
-}
-
-function MessageBubble({ msg }: MessageBubbleProps) {
+// Chat bubble — reference Ask recipe. Model answers carry their citations *inside* the bubble
+// as fileText pills (each links to the cited report), exactly as the reference renders them.
+function MessageBubble({ msg }: { msg: AskMessage }) {
     const isUser = msg.role === 'user'
+    const cites = msg.citations
     return (
         <div style={{
             display: 'flex',
@@ -138,18 +103,153 @@ function MessageBubble({ msg }: MessageBubbleProps) {
         }}>
             <div style={{
                 maxWidth: '78%',
-                padding: '10px 14px',
+                padding: '11px 15px',
                 borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                 background: isUser ? colors.accent : colors.surface2,
                 color: colors.text,
-                fontSize: typography.size.base,
+                fontSize: '13.5px',
                 lineHeight: 1.6,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 border: isUser ? 'none' : `1px solid ${colors.border}`,
             }}>
                 {msg.text}
+                {cites && cites.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                        <span style={{ fontSize: '10.5px', color: colors.text3, alignSelf: 'center' }}>Based on:</span>
+                        {cites.map(c => (
+                            <Link
+                                key={c.reportId}
+                                href={`/reports/${c.reportId}`}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    padding: '3px 9px',
+                                    borderRadius: radius.full,
+                                    border: `1px solid ${colors.border}`,
+                                    background: colors.surface,
+                                    color: colors.text2,
+                                    fontSize: '10.5px',
+                                    textDecoration: 'none',
+                                }}
+                            >
+                                <Icon name="fileText" size={10} color={colors.text3} />
+                                <span>{c.employeeName} · {fmtDate(c.date)}{c.goalName ? ` · ${c.goalName}` : ''}</span>
+                            </Link>
+                        ))}
+                    </div>
+                )}
             </div>
+        </div>
+    )
+}
+
+// The conversational input — the reference AskBar: a pill with a real accent→teal gradient
+// border (subtle at rest, strong + glow on focus), a teal sparkles glyph, and an accent send
+// button. Suggestions echo the same gradient at lower intensity. Wraps a textarea so the
+// product keeps multi-line + Enter-to-send / Shift+Enter behaviour.
+function AskBar({ value, onChange, onSubmit, suggestions, loading, textareaRef }: {
+    value: string
+    onChange: (v: string) => void
+    onSubmit: (v: string) => void
+    suggestions?: string[]
+    loading?: boolean
+    textareaRef?: React.RefObject<HTMLTextAreaElement>
+}) {
+    const [focus, setFocus] = useState(false)
+    const canSend = !!value.trim() && !loading
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: 10,
+                padding: '12px 14px',
+                border: '1px solid transparent',
+                borderRadius: radius.lg,
+                background: gradientBorderBackground(focus ? aiGradient.strong : aiGradient.subtle, colors.surface),
+                boxShadow: focus ? '0 0 24px rgba(91,127,255,0.12)' : 'none',
+                transition: `box-shadow ${animation.base}`,
+            }}>
+                <span style={{ display: 'flex', flexShrink: 0, paddingBottom: 5 }}>
+                    <Icon name="sparkles" size={18} color={colors.teal} />
+                </span>
+                <textarea
+                    ref={textareaRef}
+                    value={value}
+                    onChange={e => onChange(e.target.value)}
+                    onFocus={() => setFocus(true)}
+                    onBlur={() => setFocus(false)}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSubmit(value) }
+                    }}
+                    placeholder="Ask anything about your team…"
+                    rows={1}
+                    disabled={loading}
+                    style={{
+                        flex: 1,
+                        background: 'none',
+                        border: 'none',
+                        outline: 'none',
+                        resize: 'none',
+                        color: colors.text,
+                        fontSize: '14px',
+                        lineHeight: 1.6,
+                        fontFamily: 'inherit',
+                        maxHeight: 120,
+                        overflow: 'auto',
+                    }}
+                    onInput={e => {
+                        const el = e.target as HTMLTextAreaElement
+                        el.style.height = 'auto'
+                        el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+                    }}
+                />
+                <button
+                    onClick={() => onSubmit(value)}
+                    disabled={!canSend}
+                    aria-label="Ask"
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 32,
+                        height: 32,
+                        flexShrink: 0,
+                        borderRadius: radius.md,
+                        background: canSend ? colors.accent : colors.surface3,
+                        border: 'none',
+                        cursor: canSend ? 'pointer' : 'not-allowed',
+                        boxShadow: canSend ? shadows.accentGlow : 'none',
+                    }}
+                >
+                    <Icon name="arrowUp" size={16} color={canSend ? '#fff' : colors.text3} />
+                </button>
+            </div>
+            {suggestions && suggestions.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {suggestions.map(s => (
+                        <button
+                            key={s}
+                            onClick={() => onSubmit(s)}
+                            style={{
+                                padding: '6px 12px',
+                                borderRadius: radius.full,
+                                border: '1px solid transparent',
+                                background: gradientBorderBackground(aiGradient.subtle, colors.surface),
+                                color: colors.text2,
+                                fontSize: '12px',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                transition: `color ${animation.fast}`,
+                            }}
+                        >
+                            {s}
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     )
 }
@@ -266,13 +366,6 @@ export function AskView({ initialContext, initialSession }: Props) {
         }
     }, [searchParams, submit, router, pathname])
 
-    function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            submit(question)
-        }
-    }
-
     const selectedEmployee = scope.employeeIds.length === 1
         ? ctx.employees.find(e => e.id === scope.employeeIds[0])
         : null
@@ -376,87 +469,54 @@ export function AskView({ initialContext, initialSession }: Props) {
             <div style={{
                 flex: 1,
                 overflowY: 'auto',
-                padding: '24px 20px',
+                padding: isEmpty ? 0 : '24px',
                 display: 'flex',
                 flexDirection: 'column',
             }}>
                 {isEmpty ? (
-                    <div style={{
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 24,
-                        paddingBottom: 40,
-                    }}>
-                        {/* Prompt icon */}
-                        <div style={{
-                            width: 52,
-                            height: 52,
-                            borderRadius: '50%',
-                            background: colors.accentGlow,
-                            border: `1px solid ${colors.accentBorder}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}>
-                            <svg viewBox="0 0 20 20" fill="none" width={22} height={22} stroke={colors.accent} strokeWidth="1.6">
-                                <circle cx="10" cy="10" r="8" />
-                                <path d="M7.5 8c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5c0 1.5-1.5 2-2.5 2.5" strokeLinecap="round" />
-                                <circle cx="10" cy="14.5" r="0.75" fill={colors.accent} stroke="none" />
-                            </svg>
+                    <div className="animate-fade-up" style={{ margin: 'auto', width: '100%', maxWidth: 560, padding: 24 }}>
+                        {/* Teal sparkles tile — radius-lg, teal glow (the reference Ask mark) */}
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+                            <div style={{
+                                width: 52,
+                                height: 52,
+                                borderRadius: radius.lg,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: colors.tealGlow,
+                                border: '1px solid rgba(0,212,170,0.25)',
+                            }}>
+                                <Icon name="sparkles" size={24} color={colors.teal} />
+                            </div>
                         </div>
 
-                        <div style={{ textAlign: 'center' }}>
-                            <p style={{ fontSize: typography.size.xl, fontWeight: 600, color: colors.text, margin: '0 0 6px' }}>
-                                Ask about your team
-                            </p>
-                            <p style={{ fontSize: typography.size.base, color: colors.text2, margin: 0 }}>
-                                {scope.employeeIds.length === 1 && selectedEmployee
-                                    ? `Viewing ${selectedEmployee.name} · ${scope.startDate} → ${scope.endDate}`
-                                    : `Viewing all employees · ${scope.startDate} → ${scope.endDate}`}
-                            </p>
-                        </div>
-
-                        {/* Suggested questions */}
-                        <div style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 8,
-                            justifyContent: 'center',
-                            maxWidth: 560,
+                        <h2 style={{
+                            fontFamily: typography.fonts.display,
+                            fontSize: 20,
+                            fontWeight: 800,
+                            textAlign: 'center',
+                            letterSpacing: '-0.3px',
+                            color: colors.text,
+                            margin: '0 0 6px',
                         }}>
-                            {suggestions.map(s => (
-                                <button
-                                    key={s}
-                                    onClick={() => submit(s)}
-                                    style={{
-                                        padding: '7px 14px',
-                                        borderRadius: 20,
-                                        border: `1px solid ${colors.border}`,
-                                        background: colors.surface,
-                                        color: colors.text2,
-                                        fontSize: typography.size.sm,
-                                        cursor: 'pointer',
-                                        transition: 'border-color 0.15s, color 0.15s',
-                                    }}
-                                    onMouseEnter={e => {
-                                        (e.target as HTMLButtonElement).style.borderColor = colors.accentBorder
-                                        ;(e.target as HTMLButtonElement).style.color = colors.text
-                                    }}
-                                    onMouseLeave={e => {
-                                        (e.target as HTMLButtonElement).style.borderColor = colors.border
-                                        ;(e.target as HTMLButtonElement).style.color = colors.text2
-                                    }}
-                                >
-                                    {s}
-                                </button>
-                            ))}
-                        </div>
+                            Ask about your team
+                        </h2>
+                        <p style={{ fontSize: 13, color: colors.text3, textAlign: 'center', margin: '0 0 22px', lineHeight: 1.6 }}>
+                            Grounded in every report your team has submitted. Answers cite the reports they used.
+                        </p>
+
+                        <AskBar
+                            value={question}
+                            onChange={setQuestion}
+                            onSubmit={submit}
+                            suggestions={suggestions}
+                            loading={loading}
+                            textareaRef={textareaRef}
+                        />
                     </div>
                 ) : (
-                    <>
+                    <div style={{ maxWidth: 720, margin: '0 auto', width: '100%' }}>
                         {messages.map((msg, i) => {
                             if (msg.role === 'user') return <MessageBubble key={i} msg={msg} />
                             return (
@@ -465,25 +525,12 @@ export function AskView({ initialContext, initialSession }: Props) {
                                         <ScopeLine ctx={ctx} scope={msg.resolvedScope} prominent={!!msg.scopeChanged} />
                                     )}
                                     <MessageBubble msg={msg} />
-                                    {msg.citations && msg.citations.length > 0 && (
-                                        <Citations citations={msg.citations} />
-                                    )}
                                 </div>
                             )
                         })}
                         {loading && (
-                            <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
-                                <div style={{
-                                    padding: '10px 16px',
-                                    borderRadius: '16px 16px 16px 4px',
-                                    background: colors.surface2,
-                                    border: `1px solid ${colors.border}`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 6,
-                                }}>
-                                    <ThinkingDots />
-                                </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: colors.text3, fontSize: 13, marginBottom: 12 }}>
+                                <Icon name="sparkles" size={14} color={colors.teal} /> Reading reports…
                             </div>
                         )}
                         {error && (
@@ -499,103 +546,32 @@ export function AskView({ initialContext, initialSession }: Props) {
                                 {error}
                             </div>
                         )}
-                    </>
+                        <div ref={messagesEndRef} />
+                    </div>
                 )}
-                <div ref={messagesEndRef} />
             </div>
 
-            {/* ── Input bar ────────────────────────────────────────────── */}
-            <div style={{
-                padding: '12px 20px 16px',
-                borderTop: `1px solid ${colors.border}`,
-                background: colors.surface,
-                flexShrink: 0,
-            }}>
+            {/* ── Input bar — only once the thread has started; in the empty state the AskBar is
+                centred above. Mirrors the reference's 720px-wide footer AskBar. */}
+            {!isEmpty && (
                 <div style={{
-                    display: 'flex',
-                    gap: 10,
-                    alignItems: 'flex-end',
-                    background: colors.surface2,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: radius.lg,
-                    padding: '8px 8px 8px 14px',
-                    transition: 'border-color 0.15s',
+                    flexShrink: 0,
+                    padding: '14px 24px',
+                    borderTop: `1px solid ${colors.border}`,
+                    background: colors.surface,
                 }}>
-                    <textarea
-                        ref={textareaRef}
-                        value={question}
-                        onChange={e => setQuestion(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Ask anything about your team's performance…"
-                        rows={1}
-                        disabled={loading}
-                        style={{
-                            flex: 1,
-                            background: 'none',
-                            border: 'none',
-                            outline: 'none',
-                            resize: 'none',
-                            color: colors.text,
-                            fontSize: typography.size.base,
-                            lineHeight: 1.6,
-                            fontFamily: 'inherit',
-                            maxHeight: 120,
-                            overflow: 'auto',
-                        }}
-                        onInput={e => {
-                            const el = e.target as HTMLTextAreaElement
-                            el.style.height = 'auto'
-                            el.style.height = Math.min(el.scrollHeight, 120) + 'px'
-                        }}
-                    />
-                    <button
-                        onClick={() => submit(question)}
-                        disabled={!question.trim() || loading}
-                        style={{
-                            flexShrink: 0,
-                            width: 34,
-                            height: 34,
-                            borderRadius: radius.md,
-                            background: question.trim() && !loading ? colors.accent : colors.surface3,
-                            border: 'none',
-                            cursor: question.trim() && !loading ? 'pointer' : 'not-allowed',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'background 0.15s',
-                        }}
-                    >
-                        <svg viewBox="0 0 16 16" fill="none" width={16} height={16}>
-                            <path d="M2 8h12M8 2l6 6-6 6" stroke={question.trim() && !loading ? '#fff' : colors.text3} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </button>
+                    <div style={{ maxWidth: 720, margin: '0 auto' }}>
+                        <AskBar
+                            value={question}
+                            onChange={setQuestion}
+                            onSubmit={submit}
+                            loading={loading}
+                            textareaRef={textareaRef}
+                        />
+                    </div>
                 </div>
-                <p style={{ margin: '6px 0 0', fontSize: typography.size.xs, color: colors.text3, textAlign: 'center' }}>
-                    Enter to send · Shift+Enter for new line
-                </p>
-            </div>
+            )}
         </div>
-    )
-}
-
-function ThinkingDots() {
-    return (
-        <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            {[0, 1, 2].map(i => (
-                <span
-                    key={i}
-                    style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: colors.text3,
-                        display: 'inline-block',
-                        animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-                    }}
-                />
-            ))}
-            <style>{`@keyframes pulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}`}</style>
-        </span>
     )
 }
 

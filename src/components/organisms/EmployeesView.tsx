@@ -6,6 +6,7 @@ import { colors, radius, typography, animation, layout, shadows, getAvatarGradie
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { StatusPill } from '@/components/atoms/StatusPill'
+import { NoDataPill } from '@/components/atoms/NoDataPill'
 import { ScoreDisplay } from '@/components/atoms/Score'
 import { InviteModal } from '@/components/molecules/InviteModal'
 import { ApproveLeaveModal } from '@/components/organisms/ApproveLeaveModal'
@@ -58,7 +59,7 @@ function TrustBadge({ signal }: { signal: TrustSignal }) {
 export function EmployeesView({ employees: initialEmployees, effectiveView = 'org' }: EmployeesViewProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
+    const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards')
     const [searchQuery, setSearchQuery] = useState('')
     const [perfFilter, setPerfFilter] = useState('')
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>(
@@ -108,7 +109,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
     }, [initialEmployees])
 
     return (
-        <div className="fade-in" style={{ padding: '28px 28px 60px' }}>
+        <div className="fade-in" style={{ padding: '24px' }}>
             {/* KPI Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 {[
@@ -121,7 +122,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                     <div key={i} style={{
                         background: colors.surface,
                         border: `1px solid ${colors.border}`,
-                        borderRadius: radius.xl,
+                        borderRadius: radius.md,
                         padding: '20px',
                         animation: `fadeUp 0.4s ease ${i * 0.05}s both`
                     }}>
@@ -130,7 +131,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                             <span style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{kpi.label}</span>
                         </div>
                         <div style={{ fontSize: '28px', fontWeight: 800, color: kpi.color, marginBottom: '4px', fontFamily: typography.fonts.numeric }}>{kpi.value}</div>
-                        <div style={{ fontSize: '11.5px', color: colors.text3 }}>{kpi.meta}</div>
+                        <div style={{ fontSize: '11px', color: colors.text3 }}>{kpi.meta}</div>
                     </div>
                 ))}
             </div>
@@ -165,8 +166,8 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                 padding: '10px 12px 10px 36px',
                                 background: colors.surface,
                                 border: `1px solid ${colors.border}`,
-                                borderRadius: radius.lg,
-                                fontSize: '13.5px',
+                                borderRadius: radius.md,
+                                fontSize: '13px',
                                 color: colors.text,
                                 outline: 'none',
                                 transition: `all ${animation.fast}`
@@ -191,8 +192,8 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                             padding: '8px 12px',
                             background: colors.surface2,
                             border: `1px solid ${colors.borderHover}`,
-                            borderRadius: radius.lg,
-                            fontSize: '12.5px',
+                            borderRadius: radius.md,
+                            fontSize: '12px',
                             fontWeight: 700,
                             color: colors.text,
                             cursor: 'pointer',
@@ -208,7 +209,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
 
                 {/* Right Side: Count & View Mode */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ fontSize: '12.5px', color: colors.text3, fontWeight: 500 }}>
+                    <div style={{ fontSize: '12px', color: colors.text3, fontWeight: 500 }}>
                         <span className="font-numeric" style={{ fontWeight: 700, color: colors.text2 }}>{filteredEmployees.length}</span> members
                     </div>
 
@@ -216,7 +217,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                         display: 'flex',
                         background: colors.surface,
                         border: `1px solid ${colors.border}`,
-                        borderRadius: radius.lg,
+                        borderRadius: radius.md,
                         padding: '3px',
                         gap: '2px'
                     }}>
@@ -265,7 +266,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                 <div style={{
                     background: colors.surface,
                     border: `1px solid ${colors.border}`,
-                    borderRadius: radius.xl,
+                    borderRadius: radius.md,
                     overflow: 'hidden'
                 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -310,7 +311,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                                 {getInitials(emp.name)}
                                             </div>
                                             <div>
-                                                <div style={{ fontSize: '13.5px', fontWeight: 600, color: colors.text }}>{emp.name}</div>
+                                                <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>{emp.name}</div>
                                                 <div style={{ fontSize: '11px', color: colors.text3 }}>{emp.title}</div>
                                             </div>
                                         </div>
@@ -319,7 +320,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                         <div style={{
                                             padding: '2px 8px',
                                             borderRadius: '5px',
-                                            fontSize: '10.5px',
+                                            fontSize: '11px',
                                             fontWeight: 700,
                                             textTransform: 'uppercase',
                                             letterSpacing: '0.04em',
@@ -331,26 +332,30 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                         </div>
                                     </td>
                                     {effectiveView === 'org' && (
-                                        <td style={{ padding: '14px', fontSize: '12.5px', color: colors.text2 }}>
+                                        <td style={{ padding: '14px', fontSize: '12px', color: colors.text2 }}>
                                             {emp.managerName || <span style={{ color: colors.text3 }}>--</span>}
                                         </td>
                                     )}
                                     <td style={{ padding: '14px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                            <span className="font-numeric" style={{ fontWeight: 700, fontSize: '15.5px', color: emp.avgScore >= 7.5 ? colors.green : emp.avgScore >= 6 ? colors.warn : colors.danger }}>
-                                                {emp.avgScore.toFixed(1)}
-                                            </span>
-                                            <div style={{ width: '40px', height: '3px', background: colors.surface3, borderRadius: '2px', overflow: 'hidden' }}>
-                                                <div style={{
-                                                    height: '100%',
-                                                    width: `${(emp.avgScore / 10) * 100}%`,
-                                                    background: emp.avgScore >= 7.5 ? colors.green : emp.avgScore >= 6 ? colors.warn : colors.danger
-                                                }} />
+                                        {emp.reportCount === 0 ? (
+                                            <NoDataPill reportCount={0} />
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <span className="font-numeric" style={{ fontWeight: 700, fontSize: '15px', color: emp.avgScore >= 7.5 ? colors.green : emp.avgScore >= 6 ? colors.warn : colors.danger }}>
+                                                    {emp.avgScore.toFixed(1)}
+                                                </span>
+                                                <div style={{ width: '40px', height: '3px', background: colors.surface3, borderRadius: '2px', overflow: 'hidden' }}>
+                                                    <div style={{
+                                                        height: '100%',
+                                                        width: `${(emp.avgScore / 10) * 100}%`,
+                                                        background: emp.avgScore >= 7.5 ? colors.green : emp.avgScore >= 6 ? colors.warn : colors.danger
+                                                    }} />
+                                                </div>
+                                                {emp.trustSignal?.label && <TrustBadge signal={emp.trustSignal} />}
                                             </div>
-                                            {emp.trustSignal?.label && <TrustBadge signal={emp.trustSignal} />}
-                                        </div>
+                                        )}
                                     </td>
-                                    <td style={{ padding: '14px', fontSize: '12.5px', color: colors.text2 }}>
+                                    <td style={{ padding: '14px', fontSize: '12px', color: colors.text2 }}>
                                         <span className="font-numeric" style={{ fontWeight: 700 }}>{emp.goalCount}</span> goals
                                     </td>
                                     <td style={{ padding: '14px', fontSize: '12px', color: colors.text3 }}>{emp.lastReport}</td>
@@ -376,12 +381,12 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                     </table>
                     {filteredEmployees.length > PAGE_SIZE && (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: `1px solid ${colors.border}` }}>
-                            <span style={{ fontSize: '12.5px', color: colors.text3 }}>
+                            <span style={{ fontSize: '12px', color: colors.text3 }}>
                                 Showing <span style={{ fontWeight: 700, color: colors.text2 }}>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredEmployees.length)}</span> of <span style={{ fontWeight: 700, color: colors.text2 }}>{filteredEmployees.length}</span>
                             </span>
                             <div style={{ display: 'flex', gap: '6px' }}>
-                                <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.lg, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
-                                <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredEmployees.length} style={{ padding: '6px 14px', borderRadius: radius.lg, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredEmployees.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredEmployees.length ? 0.4 : 1 }}>Next →</button>
+                                <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
+                                <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredEmployees.length} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredEmployees.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredEmployees.length ? 0.4 : 1 }}>Next →</button>
                             </div>
                         </div>
                     )}
@@ -402,7 +407,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                             style={{
                                 background: colors.surface,
                                 border: `1px solid ${colors.border}`,
-                                borderRadius: radius.xl,
+                                borderRadius: radius.md,
                                 padding: '24px',
                                 cursor: 'pointer',
                                 transition: `all ${animation.fast}`,
@@ -427,9 +432,13 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: '10px', color: colors.text3, textTransform: 'uppercase', fontWeight: 700, marginBottom: '2px' }}>Avg Score</div>
-                                    <div className="font-numeric" style={{ fontSize: '24px', fontWeight: 800, lineHeight: 1, color: emp.avgScore >= 7.5 ? colors.green : emp.avgScore >= 6 ? colors.warn : colors.danger }}>
-                                        {emp.avgScore.toFixed(1)}
-                                    </div>
+                                    {emp.reportCount === 0 ? (
+                                        <div style={{ marginTop: '4px' }}><NoDataPill reportCount={0} /></div>
+                                    ) : (
+                                        <div className="font-numeric" style={{ fontSize: '24px', fontWeight: 800, lineHeight: 1, color: emp.avgScore >= 7.5 ? colors.green : emp.avgScore >= 6 ? colors.warn : colors.danger }}>
+                                            {emp.avgScore.toFixed(1)}
+                                        </div>
+                                    )}
                                     {emp.trustSignal?.label && (
                                         <div style={{ marginTop: '4px' }}>
                                             <TrustBadge signal={emp.trustSignal} />
@@ -440,12 +449,12 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                             <div style={{ marginBottom: '16px' }}>
                                 <div style={{ fontSize: '15px', fontWeight: 700, color: colors.text, marginBottom: '2px' }}>{emp.name}</div>
                                 <div style={{ fontSize: '12px', color: colors.text3 }}>{emp.title || 'Staff Member'}</div>
-                                <div style={{ fontSize: '11.5px', color: colors.text3, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <div style={{ fontSize: '11px', color: colors.text3, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <Icon name="clock" size={12} color={colors.text3} />
                                     Last report: {emp.lastReport}
                                 </div>
                             </div>                             <div style={{ paddingTop: '16px', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ fontSize: '11.5px', color: colors.text3 }}>
+                                <div style={{ fontSize: '11px', color: colors.text3 }}>
                                     <span className="font-numeric" style={{ fontWeight: 700, color: colors.text2 }}>{emp.reportCount}</span> reports
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -529,8 +538,8 @@ const selectStyle: React.CSSProperties = {
     padding: '8px 28px 8px 12px',
     background: colors.surface,
     border: `1px solid ${colors.border}`,
-    borderRadius: radius.lg,
-    fontSize: '12.5px',
+    borderRadius: radius.md,
+    fontSize: '12px',
     color: colors.text2,
     fontFamily: 'inherit',
     outline: 'none',

@@ -178,7 +178,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                 background: colors.surface,
                 border: `1px solid ${colors.border}`,
                 borderRadius: radius.md,
-                fontSize: '12.5px',
+                fontSize: '12px',
                 color: colors.text2,
                 outline: 'none',
                 cursor: 'pointer',
@@ -197,7 +197,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                 background: colors.surface,
                 border: `1px solid ${colors.border}`,
                 borderRadius: radius.md,
-                fontSize: '12.5px',
+                fontSize: '12px',
                 color: colors.text2,
                 outline: 'none',
                 cursor: 'pointer',
@@ -229,7 +229,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                   background: colors.surface,
                   border: `1px solid ${colors.border}`,
                   borderRadius: radius.md,
-                  fontSize: '12.5px',
+                  fontSize: '12px',
                   color: colors.text2,
                   outline: 'none',
                   cursor: 'pointer',
@@ -246,7 +246,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
 
           {/* Right: Count & View Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="font-numeric" style={{ fontSize: '12.5px', color: colors.text3, fontWeight: 500 }}>
+            <div className="font-numeric" style={{ fontSize: '12px', color: colors.text3, fontWeight: 500 }}>
               {filteredAndSortedGoals.length} KPIs
             </div>
 
@@ -303,7 +303,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
           <div style={{
             background: colors.surface,
             border: `1px solid ${colors.border}`,
-            borderRadius: radius.xl,
+            borderRadius: radius.md,
             padding: '80px 20px',
             textAlign: 'center',
             display: 'flex',
@@ -311,17 +311,17 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
             alignItems: 'center',
             gap: '16px'
           }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: radius.xl, background: colors.accentGlow, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: radius.md, background: colors.accentGlow, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon name="target" size={24} color={colors.accent} />
             </div>
             <div>
               <div style={{ fontSize: '16px', fontWeight: 700, color: colors.text }}>No KPIs found</div>
-              <div style={{ fontSize: '13.5px', color: colors.text3, marginTop: '4px' }}>Create your first KPI to start tracking progress.</div>
+              <div style={{ fontSize: '13px', color: colors.text3, marginTop: '4px' }}>Create your first KPI to start tracking progress.</div>
             </div>
             {!readOnly && <Button variant="primary" icon="plus" onClick={() => setIsAddOpen(true)}>Create First KPI</Button>}
           </div>
         ) : viewMode === 'Table' ? (
-          <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden' }}>
+          <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
@@ -350,8 +350,8 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                     style={{ borderBottom: i === pagedGoals.length - 1 ? 'none' : `1px solid ${colors.border}`, cursor: 'pointer', transition: `background ${animation.fast}` }}
                   >
                     <td style={{ padding: '14px 20px' }}>
-                      <div style={{ fontWeight: typography.weight.semibold, fontSize: '13.5px', color: colors.text, letterSpacing: '-0.1px' }}>{goal.name}</div>
-                      <div style={{ fontSize: '11.5px', color: colors.text3 }}><span style={{ fontFamily: typography.fonts.numeric, fontWeight: typography.weight.heavy, fontVariantNumeric: 'tabular-nums lining-nums' }}>{goal.report_count}</span> reports</div>
+                      <div style={{ fontWeight: typography.weight.semibold, fontSize: '13px', color: colors.text, letterSpacing: '-0.1px' }}>{goal.name}</div>
+                      <div style={{ fontSize: '11px', color: colors.text3 }}><span style={{ fontFamily: typography.fonts.numeric, fontWeight: typography.weight.heavy, fontVariantNumeric: 'tabular-nums lining-nums' }}>{goal.report_count}</span> reports</div>
                     </td>
                     <td style={{ padding: '14px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: colors.surface2, padding: '3px 10px', borderRadius: '20px', fontSize: '11px', color: colors.text2, width: 'fit-content', border: `1px solid ${colors.border}` }}>
@@ -456,12 +456,12 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
             </table>
             {filteredAndSortedGoals.length > PAGE_SIZE && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: `1px solid ${colors.border}` }}>
-                <span style={{ fontSize: '12.5px', color: colors.text3 }}>
+                <span style={{ fontSize: '12px', color: colors.text3 }}>
                   Showing <span style={{ fontWeight: 700, color: colors.text2 }}>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredAndSortedGoals.length)}</span> of <span style={{ fontWeight: 700, color: colors.text2 }}>{filteredAndSortedGoals.length}</span>
                 </span>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
-                  <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredAndSortedGoals.length} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12.5px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredAndSortedGoals.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredAndSortedGoals.length ? 0.4 : 1 }}>Next →</button>
+                  <button onClick={() => setPage(p => p - 1)} disabled={page === 1} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12px', fontWeight: 600, cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>← Prev</button>
+                  <button onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= filteredAndSortedGoals.length} style={{ padding: '6px 14px', borderRadius: radius.md, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text, fontSize: '12px', fontWeight: 600, cursor: page * PAGE_SIZE >= filteredAndSortedGoals.length ? 'default' : 'pointer', opacity: page * PAGE_SIZE >= filteredAndSortedGoals.length ? 0.4 : 1 }}>Next →</button>
                 </div>
               </div>
             )}
@@ -474,7 +474,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                 onClick={() => router.push(`${basePath}/${goal.id}?${searchParams.toString()}`)}
                 onMouseEnter={e => { e.currentTarget.style.background = colors.surface2; e.currentTarget.style.borderColor = colors.borderHover }}
                 onMouseLeave={e => { e.currentTarget.style.background = colors.surface; e.currentTarget.style.borderColor = colors.border }}
-                style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.xl, overflow: 'hidden', cursor: 'pointer', transition: `all ${animation.fast}` }}
+                style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden', cursor: 'pointer', transition: `all ${animation.fast}` }}
               >
                 <div style={{ height: '4px', background: `linear-gradient(90deg, ${colors.accent}, ${colors.teal})` }} />
                 <div style={{ padding: '20px' }}>
@@ -502,7 +502,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                   </div>
 
                   <div style={{ marginBottom: '16px' }}>
-                    <div style={{ fontSize: '10.5px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Criteria weight</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Criteria weight</div>
                     <div style={{ display: 'flex', height: '5px', borderRadius: '3px', overflow: 'hidden', gap: '1px' }}>
                       {goal.criteria?.map((crit: any, i: number) => (
                         <div key={crit.id} style={{ width: `${crit.weight}%`, background: i === 0 ? colors.accent : i === 1 ? colors.teal : colors.purple }} />
@@ -512,11 +512,11 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', paddingTop: '16px', borderTop: `1px solid ${colors.border}` }}>
                     <div>
-                      <div style={{ fontSize: '10.5px', fontWeight: 600, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Avg Score</div>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Avg Score</div>
                       <ScoreDisplay score={goal.avg_score} size="sm" />
                     </div>
                     <div>
-                      <div style={{ fontSize: '10.5px', fontWeight: 600, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Reports</div>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Reports</div>
                       <div style={{ fontSize: '14px', fontWeight: typography.weight.black, color: colors.text2, fontFamily: typography.fonts.numeric }}>{goal.report_count}</div>
                     </div>
                   </div>
@@ -539,7 +539,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
               padding: '12px 16px',
               background: colors.surface,
               border: `1px solid ${colors.border}`,
-              borderRadius: radius.lg,
+              borderRadius: radius.md,
               cursor: 'pointer',
               transition: `all ${animation.fast}`
             }}
@@ -565,7 +565,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                     padding: '12px 20px',
                     background: colors.surface,
                     border: `1px solid ${colors.border}`,
-                    borderRadius: radius.xl,
+                    borderRadius: radius.md,
                     cursor: 'pointer',
                     transition: `all ${animation.fast}`,
                   }}
@@ -582,7 +582,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                     <Icon name="check" size={14} color={colors.green} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: colors.text, opacity: 0.7 }}>{goal.name}</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text, opacity: 0.7 }}>{goal.name}</div>
                     <div style={{ fontSize: '11px', color: colors.text3 }}>{goal.project?.name}</div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>

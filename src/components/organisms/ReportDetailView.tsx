@@ -207,11 +207,11 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     display: 'flex', alignItems: 'flex-start', gap: '20px',
                     marginBottom: '24px', padding: '24px',
                     background: colors.surface, border: `1px solid ${colors.border}`,
-                    borderRadius: radius['3xl'],
+                    borderRadius: radius.lg,
                 }}>
                     {/* Icon */}
                     <div style={{
-                        width: '52px', height: '52px', borderRadius: radius['2xl'],
+                        width: '52px', height: '52px', borderRadius: radius.lg,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         background: colors.surface2, border: `1px solid ${colors.border}`, flexShrink: 0,
                     }}>
@@ -293,7 +293,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
 
             {/* Flags */}
             {flags.length > 0 && (
-                <div style={{ margin: '0 28px', padding: '12px 20px', background: `${colors.warn}10`, border: `1px solid ${colors.warn}20`, borderRadius: radius.lg, marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ margin: '0 28px', padding: '12px 20px', background: `${colors.warn}10`, border: `1px solid ${colors.warn}20`, borderRadius: radius.md, marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: colors.warn, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Icon name="alert" size={14} color={colors.warn} />
                         Evaluation Warnings
@@ -310,7 +310,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
 
             {/* Override reasoning */}
             {report.managerOverrideReasoning && (
-                <div style={{ margin: '0 28px 16px', padding: '12px 20px', background: colors.accentGlow, border: `1px solid ${colors.accent}20`, borderRadius: radius.lg, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <div style={{ margin: '0 28px 16px', padding: '12px 20px', background: colors.accentGlow, border: `1px solid ${colors.accent}20`, borderRadius: radius.md, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '3px 9px', fontSize: '11px', fontWeight: 700, color: colors.accent, whiteSpace: 'nowrap' }}>
                         <Icon name="edit" size={12} color={colors.accent} />
                         Override
@@ -328,7 +328,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     padding: '16px 20px',
                     background: `${colors.warn}08`,
                     border: `1px solid ${colors.warn}`,
-                    borderRadius: radius.lg,
+                    borderRadius: radius.md,
                 }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: colors.warn, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                         <Icon name="alert" size={13} color={colors.warn} />
@@ -459,7 +459,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                                     </span>
                                 )}
                             </div>
-                            <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '10px', padding: '20px', fontSize: '13.5px', lineHeight: 1.8, color: colors.text, whiteSpace: 'pre-wrap' }}>
+                            <div style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '10px', padding: '20px', fontSize: '13px', lineHeight: 1.8, color: colors.text, whiteSpace: 'pre-wrap' }}>
                                 {displayText}
                             </div>
                         </div>

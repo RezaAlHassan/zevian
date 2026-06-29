@@ -3,34 +3,41 @@
    Fonts are loaded via next/font in layout.tsx — no @import needed.
    ═══════════════════════════════════════════════════════════ */
 
-/* ─── CSS Variables ──────────────────────────── */
+/* ─── CSS Variables ──────────────────────────────────────────
+   Canonical design-system entry point. Mirrors src/design-system/
+   tokens.ts (the TS source consumed by component inline styles) so
+   both layers stay in lockstep. Derived from the Zevian Manager
+   reference design system.
+   ──────────────────────────────────────────────────────────── */
 :root {
-  /* Backgrounds */
-  --color-bg: #0a0c10;
-  --color-surface: #111318;
-  --color-surface-2: #181c24;
-  --color-surface-3: #1e2330;
+  /* ── Backgrounds (low → raised) ───────────────────────── */
+  --color-bg: #0a0c10;          /* page root */
+  --color-surface: #111318;     /* cards, sidebar, header */
+  --color-surface-2: #181c24;   /* nested cards, inputs, hover */
+  --color-surface-3: #1e2330;   /* deepest nest, bar tracks, skeleton */
 
-  /* Borders */
-  --color-border: rgba(255, 255, 255, 0.07);
-  --color-border-hover: rgba(255, 255, 255, 0.13);
+  /* ── Borders ──────────────────────────────────────────── */
+  --color-border: rgba(255, 255, 255, 0.07);         /* default hairline */
+  --color-border-strong: rgba(255, 255, 255, 0.10);  /* grounded cards */
+  --color-border-hover: rgba(255, 255, 255, 0.13);   /* hovered */
+  --color-border-dashed: rgba(255, 255, 255, 0.10);  /* empty states */
 
-  /* Text */
-  --color-text: #f0f2f7;
-  --color-text-2: #8b93a8;
-  --color-text-3: #545d73;
+  /* ── Text hierarchy ───────────────────────────────────── */
+  --color-text: #f0f2f7;        /* primary */
+  --color-text-2: #8b93a8;      /* secondary / labels */
+  --color-text-3: #545d73;      /* muted / placeholder / timestamps */
 
-  /* Accent */
+  /* ── Accent (blue-violet) ─────────────────────────────── */
   --color-accent: #5b7fff;
   --color-accent-hover: #7090ff;
   --color-accent-glow: rgba(91, 127, 255, 0.18);
   --color-accent-border: rgba(91, 127, 255, 0.28);
 
-  /* Teal / AI */
+  /* ── Teal — the AI / Ask color ────────────────────────── */
   --color-teal: #00d4aa;
   --color-teal-glow: rgba(0, 212, 170, 0.12);
 
-  /* Semantic */
+  /* ── Semantic states ──────────────────────────────────── */
   --color-green: #10b981;
   --color-green-glow: rgba(16, 185, 129, 0.12);
   --color-warn: #f59e0b;
@@ -40,15 +47,101 @@
   --color-purple: #8b5cf6;
   --color-purple-glow: rgba(139, 92, 246, 0.12);
 
-  /* Layout */
-  --sidebar-width: 220px;
-  --header-height: 56px;
+  /* ── AI gradient (accent → teal) ──────────────────────── */
+  --gradient-ai-strong: linear-gradient(120deg, rgba(91, 127, 255, 0.55), rgba(0, 212, 170, 0.45));
+  --gradient-ai-subtle: linear-gradient(120deg, rgba(91, 127, 255, 0.32), rgba(0, 212, 170, 0.26));
 
-  /* Fonts — set by next/font variables in layout.tsx */
+  /* ── Semantic aliases (intent → primitive) ────────────── */
+  --color-text-primary: var(--color-text);
+  --color-text-secondary: var(--color-text-2);
+  --color-text-muted: var(--color-text-3);
+  --color-surface-page: var(--color-bg);
+  --color-surface-card: var(--color-surface);
+  --color-surface-raised: var(--color-surface-2);
+  --color-surface-deep: var(--color-surface-3);
+  --color-interactive: var(--color-accent);
+  --color-interactive-hover: var(--color-accent-hover);
+  --color-success: var(--color-green);
+  --color-warning: var(--color-warn);
+  --color-error: var(--color-danger);
+
+  /* ── Fonts — wired to next/font variables in layout.tsx ─ */
   --font-display: var(--font-outfit-google), 'Outfit', sans-serif;
   --font-body: var(--font-outfit-google), 'Outfit', sans-serif;
   --font-mono: var(--font-mono-google), 'DM Mono', monospace;
   --font-numeric: var(--font-outfit-google), 'Outfit', sans-serif;
+
+  /* ── Type scale (UI is compact) ───────────────────────── */
+  --text-xs: 10px;    /* micro labels, badges */
+  --text-sm: 11px;    /* secondary meta, pills */
+  --text-base: 13px;  /* body / default UI text */
+  --text-lg: 14px;    /* card titles, inputs */
+  --text-xl: 16px;    /* page / header titles */
+  --text-2xl: 18px;   /* modal titles */
+  --text-3xl: 22px;   /* section heroes */
+
+  /* ── Score / numeral display sizes ────────────────────── */
+  --score-sm: 16px;
+  --score-md: 22px;
+  --score-lg: 28px;
+  --score-xl: 36px;
+  --score-2xl: 42px;
+
+  /* ── Weights ──────────────────────────────────────────── */
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  /* ── Section-label recipe (uppercase eyebrow) ─────────── */
+  --label-size: 11px;
+  --label-weight: 700;
+  --label-tracking: 0.07em;
+
+  /* ── Border radius — exactly three ────────────────────── */
+  --radius-sm: 6px;    /* chips, pills inner, small controls */
+  --radius-md: 10px;   /* buttons, inputs, KPI cards, nested cards */
+  --radius-lg: 16px;   /* primary cards, modals, panels */
+  --radius-full: 9999px;
+
+  /* ── App chrome ───────────────────────────────────────── */
+  --sidebar-width: 220px;
+  --header-height: 56px;
+  --content-padding: 24px;
+  --max-content-width: 1280px;
+  --modal-sheet-width: 580px;
+
+  /* ── Spacing scale (4px base) ─────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ── Shadows & glows ──────────────────────────────────── */
+  --shadow-accent-glow: 0 0 16px rgba(91, 127, 255, 0.25);
+  --shadow-accent-glow-lg: 0 0 24px rgba(91, 127, 255, 0.35);
+  --shadow-logo-glow: 0 0 16px rgba(91, 127, 255, 0.18);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.30);
+  --shadow-input-focus: 0 0 0 3px rgba(91, 127, 255, 0.08);
+
+  /* ── Motion ───────────────────────────────────────────── */
+  --ease-fast: 0.15s;
+  --ease-base: 0.20s;
+  --ease-slow: 0.30s;
+  --ease-out: cubic-bezier(0.22, 0.68, 0, 1.2);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Z-index scale ────────────────────────────────────── */
+  --z-content: 1;
+  --z-header: 90;
+  --z-sidebar: 100;
+  --z-modal: 200;
+  --z-toast: 999;
 }
 
 /* ─── Base Reset ─────────────────────────────── */
@@ -261,11 +354,11 @@ svg {
 }
 
 .section-label {
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
   color: var(--color-text-3);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--label-tracking);
   display: flex;
   align-items: center;
   gap: 8px;

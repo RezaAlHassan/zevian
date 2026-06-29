@@ -79,7 +79,7 @@ export function RangePicker({
                     left: 0,
                     background: colors.surface,
                     border: `1px solid ${colors.border}`,
-                    borderRadius: radius.lg,
+                    borderRadius: radius.md,
                     boxShadow: shadows.cardHover,
                     zIndex: 100,
                     padding: '4px',

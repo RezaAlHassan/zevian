@@ -57,7 +57,7 @@ export function Accordion({ items, allowMultiple = false, initialOpenIndices = [
                 textAlign: 'left',
                 color: isOpen ? colors.accent : colors.text2,
                 fontWeight: 700,
-                fontSize: '12.5px',
+                fontSize: '12px',
                 transition: `color ${animation.fast} ease`
               }}
             >
