@@ -145,7 +145,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
   return (
     <div style={{ minHeight: '100vh', background: colors.bg }}>
 
-      <main style={{ padding: layout.contentPadding }}>
+      <main style={{ padding: layout.contentPadding, maxWidth: '1180px', margin: '0 auto' }}>
         {/* Controls */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '24px' }}>
           {/* Left: Search & Filters */}
@@ -354,8 +354,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                       <div style={{ fontSize: '11px', color: colors.text3 }}><span style={{ fontFamily: typography.fonts.numeric, fontWeight: typography.weight.heavy, fontVariantNumeric: 'tabular-nums lining-nums' }}>{goal.report_count}</span> reports</div>
                     </td>
                     <td style={{ padding: '14px 20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: colors.surface2, padding: '3px 10px', borderRadius: '20px', fontSize: '11px', color: colors.text2, width: 'fit-content', border: `1px solid ${colors.border}` }}>
-                        <span>{goal.project?.emoji || '🖥️'}</span>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', background: colors.surface2, padding: '3px 10px', borderRadius: '20px', fontSize: '11px', color: colors.text2, width: 'fit-content', border: `1px solid ${colors.border}`, whiteSpace: 'nowrap' }}>
                         <span>{goal.project?.name}</span>
                       </div>
                     </td>
@@ -476,13 +475,12 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                 onMouseLeave={e => { e.currentTarget.style.background = colors.surface; e.currentTarget.style.borderColor = colors.border }}
                 style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden', cursor: 'pointer', transition: `all ${animation.fast}` }}
               >
-                <div style={{ height: '4px', background: `linear-gradient(90deg, ${colors.accent}, ${colors.teal})` }} />
                 <div style={{ padding: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
                     <div>
                       <div style={{ fontFamily: typography.fonts.display, fontSize: '15px', fontWeight: 700, color: colors.text }}>{goal.name}</div>
-                      <div style={{ fontSize: '12px', color: colors.text3, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
-                        <span>{goal.project?.emoji}</span> {goal.project?.name}
+                      <div style={{ fontSize: '12px', color: colors.text3, marginTop: '4px', marginBottom: '8px' }}>
+                        {goal.project?.name}
                       </div>
                       <MetaSection 
                         items={[
@@ -517,7 +515,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                     </div>
                     <div>
                       <div style={{ fontSize: '11px', fontWeight: 600, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Reports</div>
-                      <div style={{ fontSize: '14px', fontWeight: typography.weight.black, color: colors.text2, fontFamily: typography.fonts.numeric }}>{goal.report_count}</div>
+                      <div className="font-numeric" style={{ fontSize: '20px', fontWeight: typography.weight.heavy, color: colors.text2, letterSpacing: '-0.5px', lineHeight: 1.2 }}>{goal.report_count}</div>
                     </div>
                   </div>
                 </div>
@@ -529,7 +527,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
 
       {/* Completed Accordion */}
       {showCompletedAccordion && completedGoalsCount > 0 && (
-        <div style={{ padding: '0 28px 28px' }}>
+        <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '0 24px 24px' }}>
           <div
             onClick={() => setIsCompletedOpen(!isCompletedOpen)}
             style={{

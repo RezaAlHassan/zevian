@@ -25,7 +25,7 @@
   /* ── Text hierarchy ───────────────────────────────────── */
   --color-text: #f0f2f7;        /* primary */
   --color-text-2: #8b93a8;      /* secondary / labels */
-  --color-text-3: #545d73;      /* muted / placeholder / timestamps */
+  --color-text-3: #7c8499;      /* muted / placeholder / timestamps — ≥4:1 on card surfaces (was #545d73) */
 
   /* ── Accent (blue-violet) ─────────────────────────────── */
   --color-accent: #5b7fff;

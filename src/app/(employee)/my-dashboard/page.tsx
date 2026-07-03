@@ -10,7 +10,7 @@ export default async function EmployeeDashboardPage({
   const data: any = await getDashboardDataAction(undefined, searchParams.start, searchParams.end)
 
   return (
-    <div style={{ padding: layout.contentPadding }}>
+    <div style={{ padding: layout.contentPadding, maxWidth: '1180px', margin: '0 auto' }}>
       <EmployeeDashboardView
         data={data?.error ? null : data}
         allReports={data?.allReports || []}

@@ -10,6 +10,11 @@ interface CriterionBar {
     teamAvg?: number
 }
 
+// Beyond this many criteria the list stops being scannable, so we collapse to the weakest few and
+// hide the rest behind a "Show all" toggle.
+const COLLAPSE_AT = 8
+const WEAKEST_VISIBLE = 5
+
 interface AccordionEntry {
     date: string
     score: number
@@ -57,7 +62,19 @@ function getLastFive(allReports: any[], criterionName: string, selectedGoalId: s
 
 export function SkillAnalysisBar({ criteriaData, allReports, viewMode, selectedGoalId }: Props) {
     const [openCriterion, setOpenCriterion] = useState<string | null>(null)
+    const [showAll, setShowAll] = useState(false)
     const isManager = viewMode === 'detail'
+
+    // criteriaData arrives weakest-first. Every entry is a genuine score — a 0 means "no evidence /
+    // not addressed", the bottom of the needs-improvement band, so it ranks as a top focus area.
+    const total = criteriaData.length
+    const strongCount = criteriaData.filter(c => c.score >= 8).length
+    const focusCount = criteriaData.filter(c => c.score < 6).length
+
+    const collapsible = total >= COLLAPSE_AT
+    const collapsed = collapsible && !showAll
+    const visible = collapsed ? criteriaData.slice(0, WEAKEST_VISIBLE) : criteriaData
+    const showSummary = collapsible
 
     if (criteriaData.length === 0) {
         return (
@@ -69,30 +86,43 @@ export function SkillAnalysisBar({ criteriaData, allReports, viewMode, selectedG
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {isManager && (
+            {(isManager || showSummary) && (
                 <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '12px',
                     padding: '0 4px 14px',
                     fontSize: '11px',
                     color: colors.text3,
                     fontWeight: 600,
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
+                    flexWrap: 'wrap',
                 }}>
-                    <div style={{
-                        width: '2px',
-                        height: '12px',
-                        background: 'rgba(255,255,255,0.6)',
-                        borderRadius: '1px',
-                        flexShrink: 0,
-                    }} />
-                    Team avg
+                    {showSummary && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>{strongCount} strong</span>
+                            <span style={{ opacity: 0.4 }}>·</span>
+                            <span>{focusCount} focus</span>
+                        </div>
+                    )}
+                    <div style={{ flex: 1 }} />
+                    {isManager && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{
+                                width: '2px',
+                                height: '12px',
+                                background: 'rgba(255,255,255,0.6)',
+                                borderRadius: '1px',
+                                flexShrink: 0,
+                            }} />
+                            Team avg
+                        </div>
+                    )}
                 </div>
             )}
 
-            {criteriaData.map((criterion, i) => {
+            {visible.map((criterion, i) => {
                 const isOpen = openCriterion === criterion.name
                 const color = barColor(criterion.score)
                 const entries = isOpen ? getLastFive(allReports, criterion.name, selectedGoalId) : []
@@ -265,6 +295,25 @@ export function SkillAnalysisBar({ criteriaData, allReports, viewMode, selectedG
                     </div>
                 )
             })}
+
+            {collapsible && (
+                <button
+                    onClick={() => setShowAll(v => !v)}
+                    style={{
+                        marginTop: '10px',
+                        alignSelf: 'flex-start',
+                        background: 'none',
+                        border: 'none',
+                        color: colors.accent,
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: '4px',
+                    }}
+                >
+                    {showAll ? 'Show fewer' : `Show all ${total} criteria`}
+                </button>
+            )}
         </div>
     )
 }

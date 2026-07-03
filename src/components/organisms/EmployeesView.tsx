@@ -109,12 +109,12 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
     }, [initialEmployees])
 
     return (
-        <div className="fade-in" style={{ padding: '24px' }}>
+        <div className="fade-in" style={{ padding: '24px', maxWidth: '1180px', margin: '0 auto' }}>
             {/* KPI Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 {[
                     { label: 'Team Size', value: stats.teamSize, meta: 'Active members', icon: 'users', color: colors.accent },
-                    { label: 'Avg Score', value: stats.avgScore, meta: '+0.3 vs last week', icon: 'sparkles', color: colors.green },
+                    { label: 'Avg Score', value: stats.avgScore, meta: '+0.3 vs last week', icon: 'trendingUp', color: colors.green },
                     { label: 'On Track', value: stats.onTrack, meta: 'Score ≥ 7.5', icon: 'check', color: colors.green },
                     { label: 'At Risk', value: stats.atRisk, meta: 'Requires action', icon: 'alert', color: colors.danger },
                     { label: 'Pending', value: stats.pending, meta: 'No report this week', icon: 'clock', color: colors.warn },
@@ -123,14 +123,14 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                         background: colors.surface,
                         border: `1px solid ${colors.border}`,
                         borderRadius: radius.md,
-                        padding: '20px',
+                        padding: '16px 18px',
                         animation: `fadeUp 0.4s ease ${i * 0.05}s both`
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                            <Icon name={kpi.icon as any} size={14} color={colors.text3} />
-                            <span style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{kpi.label}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                            <Icon name={kpi.icon as any} size={12} color={colors.text3} />
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{kpi.label}</span>
                         </div>
-                        <div style={{ fontSize: '28px', fontWeight: 800, color: kpi.color, marginBottom: '4px', fontFamily: typography.fonts.numeric }}>{kpi.value}</div>
+                        <div className="font-numeric" style={{ fontSize: '28px', fontWeight: 800, color: kpi.color, letterSpacing: '-1px', lineHeight: 1, marginBottom: '6px' }}>{kpi.value}</div>
                         <div style={{ fontSize: '11px', color: colors.text3 }}>{kpi.meta}</div>
                     </div>
                 ))}
@@ -439,15 +439,13 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                             {emp.avgScore.toFixed(1)}
                                         </div>
                                     )}
-                                    {emp.trustSignal?.label && (
-                                        <div style={{ marginTop: '4px' }}>
-                                            <TrustBadge signal={emp.trustSignal} />
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                             <div style={{ marginBottom: '16px' }}>
-                                <div style={{ fontSize: '15px', fontWeight: 700, color: colors.text, marginBottom: '2px' }}>{emp.name}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                    <div style={{ fontSize: '15px', fontWeight: 700, color: colors.text }}>{emp.name}</div>
+                                    {emp.trustSignal?.label && <TrustBadge signal={emp.trustSignal} />}
+                                </div>
                                 <div style={{ fontSize: '12px', color: colors.text3 }}>{emp.title || 'Staff Member'}</div>
                                 <div style={{ fontSize: '11px', color: colors.text3, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <Icon name="clock" size={12} color={colors.text3} />

@@ -12,11 +12,12 @@ import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import { Modal } from '@/components/molecules/Modal'
 import { Accordion } from '@/components/molecules/Accordion'
 import { getSkillCategory } from '@/lib/skillThresholds'
-import { Icon, Badge, NoDataPill } from '@/components/atoms'
+import { Icon, NoDataPill } from '@/components/atoms'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getNextDueDate, normalizeFrequency, resolveWorkingDays } from '@/utils/reportScheduling'
 import { computeGoalSubmissionStates } from '@/utils/goalSubmissionState'
 import { GoalSubmissionCards } from '@/components/organisms/GoalSubmissionCards'
+import { isLateSubmission } from '@/lib/utils/reportStatus'
 import { SkillAnalysisBar } from '@/components/organisms/SkillAnalysisBar'
 import { getTeamCriterionAvgsAction } from '@/app/actions/dashboardActions'
 
@@ -190,6 +191,9 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
         })
     }, [viewMode, employeeId, effectiveGoalId])
 
+    // Every criterion in filteredSkills has ≥1 score (unscored criteria produce no criterionScores
+    // and never reach this list), so a 0 here is a genuine "no evidence / not addressed" score, not a
+    // missing one. Weakest-first so those zeros surface at the top as the real focus areas they are.
     const criteriaForBar = useMemo(() =>
         filteredSkills
             .map((s: any) => ({
@@ -352,19 +356,11 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
         return { submittedCount: submitted, missedCount: missed, totalCount: submitted + missed }
     }, [viewMode, filteredReports, filteredUpcomingPeriods])
 
-    const trendDirection = useMemo<'Improving' | 'Declining' | 'Stable' | null>(() => {
-        if (viewMode !== 'detail') return null
-        const scores = trendData.scores
-        if (scores.length < 2) return null
-        const last4 = scores.slice(-4)
-        const mid = Math.ceil(last4.length / 2)
-        const avgFirst = last4.slice(0, mid).reduce((a: number, b: number) => a + b, 0) / mid
-        const avgSecond = last4.slice(mid).reduce((a: number, b: number) => a + b, 0) / (last4.length - mid)
-        const diff = avgSecond - avgFirst
-        if (diff > 0.3) return 'Improving'
-        if (diff < -0.3) return 'Declining'
-        return 'Stable'
-    }, [viewMode, trendData.scores])
+    // Late-submitted reports (submitted after the deadline) — powers the On-Time Rate KPI.
+    const lateCount = useMemo(
+        () => (viewMode !== 'detail' ? 0 : filteredReports.filter((r: any) => isLateSubmission(r)).length),
+        [viewMode, filteredReports]
+    )
 
     const reportTimeline = useMemo(() => {
         if (viewMode !== 'detail') return []
@@ -480,7 +476,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
             meta: filteredScoredReports.length === 0
                 ? 'No scored reports yet'
                 : scopedDelta >= 0 ? `+${scopedDelta} vs last report` : `${scopedDelta} vs last report`,
-            icon: 'star',
+            icon: 'trendingUp',
             variant: 'accent' as const,
         },
         {
@@ -501,29 +497,66 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
             label: 'Current streak',
             value: currentStreak === 0 ? '—' : `${currentStreak}`,
             meta: currentStreak === 1 ? '1 consecutive submission' : currentStreak > 1 ? `${currentStreak} consecutive submissions` : 'No streak yet',
-            icon: 'chart',
+            icon: 'reports',
             variant: currentStreak >= 4 ? 'green' as const : 'accent' as const,
         },
     ], [scopedAverageScore, scopedDelta, scopedBestCriterion, nextDueLabel, upcomingItems, currentStreak, filteredScoredReports.length, filteredReports.length])
 
-    const detailKpis = useMemo(() => [
-        {
-            label: 'Reports submitted',
-            value: totalCount > 0 ? `${submittedCount} of ${totalCount}` : `${submittedCount}`,
-            meta: totalCount > 0 ? `${Math.round((submittedCount / totalCount) * 100)}% submission rate` : 'No periods tracked',
-            icon: 'fileText',
-            variant: 'accent' as const,
-        },
-        {
-            label: 'Missed reports',
-            value: missedCount,
-            meta: missedCount === 0 ? 'All periods submitted' : missedCount === 1 ? '1 period not submitted' : `${missedCount} periods not submitted`,
-            icon: 'alert',
-            variant: missedCount === 0 ? 'green' as const : 'warn' as const,
-        },
-    ], [submittedCount, missedCount, totalCount])
+    const detailKpis = useMemo(() => {
+        // On-time rate = share of submitted reports that beat their deadline.
+        const onTimeRate = submittedCount > 0 ? Math.round(((submittedCount - lateCount) / submittedCount) * 100) : null
+        const atRisk = goalStates.filter(g => g.lateCount > 0).length
+        return [
+            {
+                label: 'Reports',
+                icon: 'reports',
+                value: submittedCount,
+                meta: 'submitted',
+                variant: 'accent' as const,
+            },
+            {
+                // Avg score lives in the hero now; surface missed periods here instead.
+                label: 'Missed',
+                icon: 'alertTriangle',
+                value: missedCount,
+                meta: missedCount === 0 ? 'none missed' : missedCount === 1 ? '1 period' : `${missedCount} periods`,
+                variant: (missedCount === 0 ? 'green' : 'warn') as 'green' | 'warn',
+            },
+            {
+                label: 'On-Time Rate',
+                icon: 'checkCircle',
+                value: onTimeRate != null ? `${onTimeRate}%` : 'N/A',
+                meta: onTimeRate != null ? 'of submissions' : 'No reports yet',
+                variant: (onTimeRate == null ? 'default' : onTimeRate >= 90 ? 'green' : onTimeRate >= 75 ? 'warn' : 'danger') as 'default' | 'green' | 'warn' | 'danger',
+            },
+            {
+                label: 'Open KPIs',
+                icon: 'target',
+                value: activeGoals.length,
+                meta: atRisk > 0 ? `${atRisk} at risk` : '0 at risk',
+                variant: 'accent' as const,
+            },
+        ]
+    }, [submittedCount, missedCount, lateCount, goalStates, activeGoals.length])
 
     const activeKpis = viewMode === 'detail' ? detailKpis : selfKpis
+
+    // ── Hero (detail view) ──────────────────────────────────────────────────
+    const managerName = typeof manager === 'string' ? manager : (manager?.name || null)
+    const heroScore = (filteredScoredReports.length > 0 && scopedAverageScore != null && Number(scopedAverageScore) > 0)
+        ? Number(scopedAverageScore)
+        : null
+    const heroDelta = scopedDelta != null ? Number(scopedDelta) : 0
+    // Trend compressed to the most recent 4 reports; each bar links to its own report detail.
+    const HERO_TREND_N = 4
+    const heroTrend: number[] = trendData.scores.slice(-HERO_TREND_N)
+    const heroWeeks: string[] = trendData.dates.slice(-HERO_TREND_N)
+    const heroTooltips = trendData.tooltips?.slice(-HERO_TREND_N)
+    const heroReports = (trendData.reports || []).slice(-HERO_TREND_N)
+    const openHeroReport = (i: number) => {
+        const r = heroReports[i]
+        if (r?.id) router.push(`/reports/${r.id}`)
+    }
 
     return (
         <div style={{ width: '100%', animation: animation.keyframes.fadeUp, display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -575,14 +608,98 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                 </div>
             )}
 
+            {/* ── Hero (detail view) — identity + current score + 8-week trend ── */}
+            {viewMode === 'detail' && (
+                <div style={{
+                    background: colors.surface,
+                    border: `1px solid ${colors.borderStrong}`,
+                    borderRadius: radius.lg,
+                    padding: '20px 24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '24px',
+                    flexWrap: 'wrap',
+                }}>
+                    {/* Identity */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: '240px' }}>
+                        <div style={{
+                            width: '52px', height: '52px', borderRadius: radius.md, flexShrink: 0,
+                            background: `linear-gradient(135deg, ${colors.accent}, ${colors.teal})`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '18px', fontWeight: 800, color: '#fff', letterSpacing: '0.02em',
+                        }}>
+                            {(me.initials || me.name?.slice(0, 2) || '').toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '22px', fontWeight: 800, color: colors.text, lineHeight: 1.2 }}>{me.name}</div>
+                            {(me.role || me.team) && (
+                                <div style={{ fontSize: '13px', color: colors.text2, marginTop: '3px' }}>
+                                    {[me.role, me.team].filter(Boolean).join(' · ')}
+                                </div>
+                            )}
+                            {managerName && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: colors.text3, marginTop: '5px' }}>
+                                    <Icon name="person" size={12} color={colors.text3} />
+                                    Reports to {managerName}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right group — Current score + trend, top-aligned so the "Current" and
+                        "N-Week Trend" eyebrow labels sit on the same baseline. */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '36px', flexShrink: 0, flexWrap: 'wrap' }}>
+                        {/* Current score + delta pill */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: colors.text3 }}>Current</span>
+                            {heroScore != null ? (
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                                    <span className="font-numeric" style={{ fontSize: '30px', fontWeight: 900, lineHeight: 1, color: getScoreColor(heroScore) }}>{heroScore.toFixed(1)}</span>
+                                    <span className="font-numeric" style={{ fontSize: '14px', fontWeight: 600, color: colors.text3 }}>/10</span>
+                                </div>
+                            ) : (
+                                <span style={{ fontSize: '22px', fontWeight: 800, color: colors.text3 }}>N/A</span>
+                            )}
+                            {heroScore != null && heroDelta !== 0 && (
+                                <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '4px', alignSelf: 'flex-start',
+                                    padding: '2px 8px', borderRadius: '6px',
+                                    background: heroDelta >= 0 ? colors.greenGlow : colors.dangerGlow,
+                                    color: heroDelta >= 0 ? colors.green : colors.danger,
+                                    fontSize: '11px', fontWeight: 700,
+                                }}>
+                                    {heroDelta >= 0 ? '↑' : '↓'}
+                                    <span className="font-numeric" style={{ fontWeight: 800 }}>{Math.abs(heroDelta).toFixed(1)}</span>
+                                    <span style={{ color: colors.text3, fontWeight: 500 }}>vs prior</span>
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Trend — hoverable; each bar is a report, clicking opens its detail. */}
+                        {heroTrend.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '300px', flex: 1 }}>
+                                <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: colors.text3 }}>{heroTrend.length}-Week Trend</span>
+                                <Sparkline
+                                    scores={heroTrend}
+                                    weeks={heroWeeks}
+                                    tooltips={heroTooltips}
+                                    height={72}
+                                    onBarClick={openHeroReport}
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* ── KPI Grid ─────────────────────────── */}
-            <div style={{ display: 'grid', gridTemplateColumns: viewMode === 'detail' ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
                 {activeKpis.map((kpi, i) => (
                     <KPICard
                         key={i}
                         label={kpi.label}
                         icon={kpi.icon as any}
-                        value={kpi.value}
+                        value={(kpi as any).value}
                         deltaLabel={kpi.meta}
                         variant={kpi.variant}
                     />
@@ -634,21 +751,17 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
             )}
 
             {/* ── Main Content Grid ─────────────────── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '16px', alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '65fr 35fr', gap: '16px', alignItems: 'start' }}>
 
                 {/* LEFT COLUMN */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-                    {/* Trend Card */}
+                    {/* Trend Card — self view only; the detail view shows the trend in the hero. */}
+                    {viewMode === 'self' && (
                     <Card
                         title="Score trend"
                         subtitle={`${trendData.total} report${trendData.total !== 1 ? 's' : ''}`}
                         icon="chart"
-                        action={viewMode === 'detail' && trendDirection ? (
-                            <Badge variant={trendDirection === 'Improving' ? 'green' : trendDirection === 'Declining' ? 'danger' : 'default'}>
-                                {trendDirection === 'Improving' ? '↑' : trendDirection === 'Declining' ? '↓' : '→'} {trendDirection}
-                            </Badge>
-                        ) : undefined}
                     >
                         <div style={{ padding: '0 4px 10px' }}>
                             {isBaselineRequired ? (
@@ -687,6 +800,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                             )}
                         </div>
                     </Card>
+                    )}
 
                     {/* Skill Analysis */}
                     <Card

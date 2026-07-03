@@ -1982,7 +1982,7 @@ export const dashboardService = {
 
         let reportsQuery = supabase
             .from('reports')
-            .select('*, employees!reports_employee_id_fkey!inner(organization_id, name, manager_id, title), goals(project_id, name, projects(name)), report_criterion_scores(criterion_name, score)')
+            .select('*, employees!reports_employee_id_fkey!inner(organization_id, name, manager_id, title), goals(project_id, name, projects(name)), report_criterion_scores(criterion_name, score, coaching_note)')
             .eq('employees.organization_id', orgId);
         if (view === 'direct') {
             reportsQuery = directReportIds.length > 0
@@ -1992,9 +1992,29 @@ export const dashboardService = {
         if (startDate) reportsQuery = reportsQuery.gte('submission_date', startDate);
         if (endDate) reportsQuery = reportsQuery.lte('submission_date', endDate);
 
-        const [projectsResult, reportsResult] = await Promise.all([
+        // Previous-period report scores for the Team Avg Score trend pill: an equal-length window
+        // immediately before the selected range. Only when the range is anchored (startDate set) —
+        // "All Time" has no prior period. We fetch just the score columns (averaged, not listed).
+        let prevReportsQuery: any = Promise.resolve({ data: [] as any[], error: null });
+        if (startDate) {
+            const curEndMs = endDate ? new Date(endDate).getTime() : Date.now();
+            const prevStartIso = new Date(new Date(startDate).getTime() - (curEndMs - new Date(startDate).getTime())).toISOString();
+            let q = supabase
+                .from('reports')
+                .select('manager_overall_score, evaluation_score, employees!reports_employee_id_fkey!inner(organization_id)')
+                .eq('employees.organization_id', orgId)
+                .gte('submission_date', prevStartIso)
+                .lt('submission_date', startDate);
+            if (view === 'direct') {
+                q = directReportIds.length > 0 ? q.in('employee_id', directReportIds) : q.eq('employee_id', 'none');
+            }
+            prevReportsQuery = q;
+        }
+
+        const [projectsResult, reportsResult, prevReportsResult] = await Promise.all([
             projectsQuery,
             reportsQuery.order('submission_date', { ascending: false }),
+            prevReportsQuery,
         ]);
 
         if (projectsResult.error) throw projectsResult.error;
@@ -2002,6 +2022,7 @@ export const dashboardService = {
 
         const projectsData = projectsResult.data || [];
         const reportsData = reportsResult.data || [];
+        const prevReportsData: any[] = prevReportsResult.data || [];
         const projectIds = projectsData.map((p: any) => p.id);
 
         // Batch 3: goals (needs projectIds) and reporting periods (needs employeeIds) — run in parallel
@@ -2342,21 +2363,35 @@ export const dashboardService = {
             })
             .filter((emp: any) => emp.tags.length > 0);
 
-        // Enrich recentReports with tags, reviewed status, goalName, projectName
-        const recentReports = (reportsData || []).slice(0, 10).map((r: any) => ({
-            id: r.id,
-            employeeId: r.employee_id || r.employees?.id,
-            employeeName: r.employees?.name || 'Unknown',
-            employeeTitle: r.employees?.title || '',
-            goalName: r.goals?.name || null,
-            projectName: r.goals?.projects?.name || null,
-            date: r.submission_date,
-            submittedAt: r.submitted_at ?? r.created_at ?? null,
-            score: r.manager_overall_score ?? r.evaluation_score ?? null,
-            tags: parseDashboardTags(r),
-            reviewed: r.reviewed_by != null || r.manager_overall_score != null,
-            overridden: r.manager_overall_score != null,
-        }));
+        // Enrich recentReports with tags, reviewed status, goalName, projectName, plus the
+        // per-criterion breakdown and a single actionable coaching line for the expanded row.
+        const recentReports = (reportsData || []).slice(0, 10).map((r: any) => {
+            // Per-criterion scores + notes, sorted weakest-first so the UI can lead with the area
+            // that needs attention.
+            const criteria = (r.report_criterion_scores || [])
+                .map((c: any) => ({ name: c.criterion_name, score: Number(c.score), note: c.coaching_note || null }))
+                .sort((a: any, b: any) => a.score - b.score);
+            // Coaching line a manager can act on: the weakest criterion's coaching note, falling back
+            // to the report's AI summary (with the leading [FLAGS:…] integrity tag stripped off).
+            const aiSummary = ((r.ai_summary as string) || '').replace(/^\[FLAGS:[^\]]*\]\s*/, '').trim();
+            const coachingNote = criteria.find((c: any) => c.note)?.note || (aiSummary || null);
+            return {
+                id: r.id,
+                employeeId: r.employee_id || r.employees?.id,
+                employeeName: r.employees?.name || 'Unknown',
+                employeeTitle: r.employees?.title || '',
+                goalName: r.goals?.name || null,
+                projectName: r.goals?.projects?.name || null,
+                date: r.submission_date,
+                submittedAt: r.submitted_at ?? r.created_at ?? null,
+                score: r.manager_overall_score ?? r.evaluation_score ?? null,
+                tags: parseDashboardTags(r),
+                reviewed: r.reviewed_by != null || r.manager_overall_score != null,
+                overridden: r.manager_overall_score != null,
+                criteria,
+                coachingNote,
+            };
+        });
 
         // Enriched reporting periods (for "missed" filter in Recent Reports)
         const enrichedPeriods = periodsData.map((p: any) => {
@@ -2414,7 +2449,7 @@ export const dashboardService = {
         const teamIds = new Set(enrichedTeamPerformance.map((e: any) => e.id));
         const windowStartMs = startDate ? new Date(startDate).getTime() : -Infinity;
         const windowEndMs = endDate ? new Date(endDate).getTime() : Infinity;
-        const windowedCycleStats = (rows: any[]) => {
+        const windowedCycleStats = (rows: any[], winStartMs: number, winEndMs: number) => {
             const byKey: Record<string, boolean> = {}; // period slot -> submitted? (dedupes duplicate rows)
             const byHealthKey: Record<string, 'onTime' | 'late' | 'missed' | 'excused'> = {};
             const rank: Record<'onTime' | 'late' | 'missed' | 'excused', number> = { missed: 0, late: 1, onTime: 2, excused: 3 };
@@ -2424,7 +2459,7 @@ export const dashboardService = {
                 if (p.status === 'void') continue;
                 const endT = new Date(p.period_end).getTime();
                 if (endT > nowMs) continue;                       // not due yet
-                if (endT < windowStartMs || endT > windowEndMs) continue; // outside selected range
+                if (endT < winStartMs || endT > winEndMs) continue; // outside selected range
                 const key = `${p.employee_id}|${p.goal_id}|${p.period_end}`;
                 if (p.status !== 'excused') {
                     byKey[key] = byKey[key] || p.report_id != null;
@@ -2462,9 +2497,43 @@ export const dashboardService = {
                 health: { total, healthy, onTime, late, missed, excused, pct: total > 0 ? Math.round((healthy / total) * 100) : null },
             };
         };
-        const teamWindow = windowedCycleStats(periodsData.filter((p: any) => teamIds.has(p.employee_id)));
+        const teamPeriodRows = periodsData.filter((p: any) => teamIds.has(p.employee_id));
+        const teamWindow = windowedCycleStats(teamPeriodRows, windowStartMs, windowEndMs);
         const totalPeriods = teamWindow.submission.expected;
         const submittedPeriodCount = teamWindow.submission.submitted;
+
+        // ── Period-over-period deltas (Card 2 & Card 3 trend pills) ──────────────
+        // "Previous period" = an equal-length window immediately preceding the selected range. Only
+        // defined when the range is anchored (startDate present — the default 30-day view and any
+        // explicit range both anchor it; "All Time" leaves startDate undefined, where no prior
+        // period exists). When absent, deltas are null and the UI hides the pills. A flat (zero)
+        // delta is also returned as null so the pill never shows a directionless "0".
+        const curStartMs = startDate ? new Date(startDate).getTime() : null;
+        let teamAvgDelta: { value: number; direction: 'up' | 'down' } | null = null;
+        let overdueDelta: { value: number; direction: 'up' | 'down' } | null = null;
+        if (curStartMs != null) {
+            const curEndMs = endDate ? new Date(endDate).getTime() : nowMs;
+            const prevEndMs = curStartMs;                       // exclusive upper bound
+            const prevStartMs = curStartMs - (curEndMs - curStartMs);
+
+            // Overdue delta: re-run the same windowed cycle stats over the previous window. Only
+            // surfaced when the previous window actually had reports due (a baseline to compare to).
+            const prevWindow = windowedCycleStats(teamPeriodRows, prevStartMs, prevEndMs);
+            if (prevWindow.submission.expected > 0) {
+                const prevOverdue = prevWindow.submission.expected - prevWindow.submission.submitted;
+                const curOverdue = totalPeriods - submittedPeriodCount;
+                const d = curOverdue - prevOverdue;
+                if (d !== 0) overdueDelta = { value: d, direction: d > 0 ? 'up' : 'down' };
+            }
+
+            // Avg-score delta: previous-window report scores were fetched separately (current-window
+            // reportsData is date-bounded). Hidden when there's no prior scored data or no change.
+            if (prevReportsData.length > 0 && totalReports > 0) {
+                const prevAvg = prevReportsData.reduce((acc: number, r: any) => acc + (r.manager_overall_score ?? r.evaluation_score ?? 0), 0) / prevReportsData.length;
+                const d = Number((avgScore - prevAvg).toFixed(1));
+                if (d !== 0) teamAvgDelta = { value: d, direction: d > 0 ? 'up' : 'down' };
+            }
+        }
 
         return {
             totalReports,
@@ -2484,7 +2553,8 @@ export const dashboardService = {
                 reportsThisPeriod: totalReports,
                 reportsDelta: null,
                 teamAvgScore: totalReports > 0 ? Number(avgScore.toFixed(1)) : null,
-                teamAvgDelta: null,
+                teamAvgDelta,
+                overdueDelta,
                 teamCoverage: teamWindow.coverage,
                 reportingHealth: teamWindow.health,
                 submissionRate: { submitted: submittedPeriodCount, expected: totalPeriods, pct: teamWindow.submission.pct },

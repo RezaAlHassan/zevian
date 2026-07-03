@@ -1,11 +1,12 @@
 'use client'
 
-import { colors, radius, typography, animation, getAvatarGradient, getInitials } from '@/design-system'
+import { colors, radius, typography, animation } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { ScoreDisplay } from '@/components/atoms/Score'
-import { MetaSection } from '@/components/molecules/MetaSection'
+import { Avatar, Chip } from '@/components/atoms'
+import { Card } from '@/components/molecules/Card'
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -78,7 +79,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                 {!readOnly && <Button variant="secondary" size="sm" icon="settings" onClick={() => setIsEditOpen(true)}>Settings</Button>}
             </header>
 
-            <div style={{ padding: '24px' }}>
+            <div style={{ padding: '24px', maxWidth: '1180px', margin: '0 auto' }}>
                 {/* Hero Section */}
                 <div style={{
                     display: 'flex',
@@ -136,237 +137,166 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                 </div>
 
                 {/* Main Content Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'start' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '16px', alignItems: 'start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-                        {/* Goals Section */}
-                        <section style={{
-                            background: colors.surface,
-                            border: `1px solid ${colors.border}`,
-                            borderRadius: radius.md,
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <div style={{ fontWeight: 600, fontSize: '15px', color: colors.text, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <Icon name="target" size={16} color={colors.accent} />
-                                    Active Goals ({goals.length})
-                                </div>
-                                {!readOnly && (
-                                    <Link href={`${goalBasePath}/create?projectId=${project.id}&view=${view}`} style={{ textDecoration: 'none' }}>
-                                        <Button variant="ghost" size="sm">Add Goal</Button>
-                                    </Link>
-                                )}
-                            </div>
-                            <div style={{ padding: '0px' }}>
-                                {goals.length > 0 ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        {goals.map((goal: any, i: number) => (
-                                            <Link key={goal.id} href={`${goalBasePath}/${goal.id}?${searchParams.toString()}`} style={{ textDecoration: 'none' }}>
-                                                <div style={{
-                                                    padding: '16px 20px',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '16px',
-                                                    borderBottom: i === goals.length - 1 ? 'none' : `1px solid ${colors.border}`,
-                                                    transition: `background ${animation.fast}`,
-                                                    cursor: 'pointer'
-                                                }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.background = colors.surface2}
-                                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                                >
-                                                    <div style={{ flex: 1 }}>
-                                                        <div style={{ fontSize: '14px', fontWeight: 600, color: colors.text, marginBottom: '2px' }}>{goal.name}</div>
-                                                        <div style={{ fontSize: '12px', color: colors.text3 }}>Deadline: {goal.deadline ? new Date(goal.deadline).toLocaleDateString() : 'No deadline'}</div>
-                                                    </div>
-                                                    <StatusPill status={goal.status} />
-                                                    <Icon name="chevronRight" size={16} color={colors.text3} />
-                                                </div>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                                        <div style={{ fontSize: '14px', fontWeight: 500 }}>No goals defined yet.</div>
-                                        <Button variant="primary" size="sm" icon="plus" onClick={() => router.push(`/goals?new=true&project=${project.id}`)}>
-                                            Create First Goal
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-
-                        {/* Recent Reports Section */}
-                        <section style={{
-                            background: colors.surface,
-                            border: `1px solid ${colors.border}`,
-                            borderRadius: radius.md,
-                            overflow: 'hidden'
-                        }}>
-                            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <div style={{ fontWeight: 600, fontSize: '15px', color: colors.text, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <Icon name="fileText" size={16} color={colors.accent} />
-                                    Latest Reports ({reports.length})
-                                </div>
-                                {reports.length > 3 && (
-                                    <Link href={`/reports?search=${encodeURIComponent(project.name)}`}>
-                                        <Button variant="ghost" size="sm" icon="chevronRight">
-                                            See All
-                                        </Button>
-                                    </Link>
-                                )}
-                            </div>
-                            <div style={{ padding: '0px' }}>
-                                {reports.length > 0 ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        {reports.slice(0, 3).map((report: any, i: number) => (
-                                            <div key={report.id} style={{
-                                                padding: '16px 20px',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '12px',
-                                                borderBottom: i === Math.min(reports.length, 3) - 1 ? 'none' : `1px solid ${colors.border}`
-                                            }}>
-                                                <div style={{
-                                                    width: '32px',
-                                                    height: '32px',
-                                                    borderRadius: '8px',
-                                                    background: getAvatarGradient(report.employees?.name || 'Unknown'),
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    fontWeight: 700,
-                                                    fontSize: '11px',
-                                                    color: '#fff'
-                                                }}>
-                                                    {getInitials(report.employees?.name || 'Unknown')}
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                    <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>
-                                                        {(() => { const d = report.submittedForDate || report.submissionDate; return new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })()}
-                                                    </div>
-                                                    <div style={{ fontSize: '11px', color: colors.text3 }}>Goal: {report.goals?.name || 'Goal Update'} • By {report.employees?.name || 'Unknown'}</div>
-                                                </div>
-                                                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                                    <ScoreDisplay score={report.managerOverallScore ?? report.evaluationScore} size="sm" />
-                                                    <Link href={`${basePath.includes('my-') ? '/my-reports' : '/reports'}/${report.id}?${searchParams.toString()}`}>
-                                                        <Button variant="secondary" size="sm" icon="chevronRight">
-                                                            View
-                                                        </Button>
-                                                    </Link>
-                                                </div>
+                        {/* Active Goals */}
+                        <Card
+                            dense
+                            title="Active Goals"
+                            icon="target"
+                            chip={<Chip variant="default">{goals.length}</Chip>}
+                            action={!readOnly ? (
+                                <Link href={`${goalBasePath}/create?projectId=${project.id}&view=${view}`} style={{ textDecoration: 'none', fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium }}>
+                                    Add goal
+                                </Link>
+                            ) : undefined}
+                        >
+                            {goals.length > 0 ? (
+                                goals.map((goal: any) => (
+                                    <Link key={goal.id} href={`${goalBasePath}/${goal.id}?${searchParams.toString()}`} style={{ textDecoration: 'none', display: 'block' }}>
+                                        <div
+                                            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: radius.md, marginBottom: '2px', cursor: 'pointer', transition: `background ${animation.fast}`, background: 'transparent' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = colors.surface2}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text, marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{goal.name}</div>
+                                                <div style={{ fontSize: '12px', color: colors.text3 }}>Deadline: {goal.deadline ? new Date(goal.deadline).toLocaleDateString() : 'No deadline'}</div>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div style={{ padding: '40px 20px', textAlign: 'center', color: colors.text3 }}>
-                                        <div style={{ fontSize: '14px', fontWeight: 500 }}>No reports submitted yet.</div>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
+                                            <StatusPill status={goal.status} />
+                                            <Icon name="chevronRight" size={14} color={colors.text3} style={{ flexShrink: 0 }} />
+                                        </div>
+                                    </Link>
+                                ))
+                            ) : (
+                                <div style={{ padding: '24px 8px', textAlign: 'center', color: colors.text3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 500 }}>No goals defined yet.</div>
+                                    <Button variant="primary" size="sm" icon="plus" onClick={() => router.push(`/goals?new=true&project=${project.id}`)}>
+                                        Create First Goal
+                                    </Button>
+                                </div>
+                            )}
+                        </Card>
+
+                        {/* Latest Reports */}
+                        <Card
+                            dense
+                            title="Latest Reports"
+                            icon="fileText"
+                            chip={<Chip variant="default">{reports.length}</Chip>}
+                            action={reports.length > 3 ? (
+                                <Link href={`/reports?search=${encodeURIComponent(project.name)}`} style={{ textDecoration: 'none', fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium }}>
+                                    View all
+                                </Link>
+                            ) : undefined}
+                        >
+                            {reports.length > 0 ? (
+                                reports.slice(0, 3).map((report: any) => (
+                                    <Link key={report.id} href={`${basePath.includes('my-') ? '/my-reports' : '/reports'}/${report.id}?${searchParams.toString()}`} style={{ textDecoration: 'none', display: 'block' }}>
+                                        <div
+                                            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: radius.md, marginBottom: '2px', cursor: 'pointer', transition: `background ${animation.fast}`, background: 'transparent' }}
+                                            onMouseEnter={(e) => e.currentTarget.style.background = colors.surface2}
+                                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            <Avatar name={report.employees?.name || 'Unknown'} size="md" style={{ flexShrink: 0 }} />
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>
+                                                    {(() => { const d = report.submittedForDate || report.submissionDate; return new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })()}
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: colors.text3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{report.goals?.name || 'Goal Update'} · {report.employees?.name || 'Unknown'}</div>
+                                            </div>
+                                            <ScoreDisplay score={report.managerOverallScore ?? report.evaluationScore} size="sm" />
+                                            <Icon name="chevronRight" size={14} color={colors.text3} style={{ flexShrink: 0 }} />
+                                        </div>
+                                    </Link>
+                                ))
+                            ) : (
+                                <div style={{ padding: '24px 8px', textAlign: 'center', color: colors.text3, fontSize: '13px', fontWeight: 500 }}>No reports submitted yet.</div>
+                            )}
+                        </Card>
                     </div>
 
-                    <aside style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <aside style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {/* Project Info */}
-                        <div style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
-                            <div style={{ padding: '12px 16px', borderBottom: `1px solid ${colors.border}`, fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                                Project Info
-                            </div>
+                        <Card dense title="Project Info">
                             {[
                                 { k: 'Frequency', v: project.reportFrequency || (project as any).frequency || project.report_frequency || 'Weekly', i: 'clock' },
                                 { k: 'Created', v: project.createdAt ? new Date(project.createdAt).toLocaleDateString() : '—', i: 'calendar' },
                             ].map(item => (
-                                <div key={item.k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: `1px solid ${colors.border}` }}>
+                                <div key={item.k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px' }}>
                                     <div style={{ fontSize: '12px', color: colors.text3, display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <Icon name={item.i as any} size={13} /> {item.k}
                                     </div>
                                     <div style={{ fontSize: '12px', fontWeight: 500, color: colors.text2 }}>{item.v}</div>
                                 </div>
                             ))}
-                        </div>
+                        </Card>
 
-                        {/* Team Section */}
-                        <section style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
-                            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <div style={{ fontWeight: 600, fontSize: '13px', color: colors.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    Team Members ({members.length})
+                        {/* Team */}
+                        <Card
+                            dense
+                            title="Team"
+                            icon="people"
+                            chip={<Chip variant="default">{members.length} {members.length === 1 ? 'member' : 'members'}</Chip>}
+                            action={!readOnly ? (
+                                <span onClick={() => setIsManageTeamOpen(true)} style={{ fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium, cursor: 'pointer' }}>
+                                    Manage team
+                                </span>
+                            ) : undefined}
+                        >
+                            {members.length > 0 ? members.map((m: any, i: number) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: radius.md, marginBottom: '2px' }}>
+                                    <Avatar name={m.employee.full_name} size="md" style={{ flexShrink: 0 }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>{m.employee.full_name}</div>
+                                        <div style={{ fontSize: '12px', color: colors.text3, textTransform: 'capitalize' }}>{m.employee.role}</div>
+                                    </div>
                                 </div>
-                                {!readOnly && (
-                                    <Button variant="ghost" size="sm" onClick={() => setIsManageTeamOpen(true)}>Assign Managers</Button>
-                                )}
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                {members.length > 0 ? members.map((m: any, i: number) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: i === members.length - 1 ? 'none' : `1px solid ${colors.border}` }}>
-                                        <div style={{
-                                            width: '32px',
-                                            height: '32px',
-                                            borderRadius: '8px',
-                                            background: getAvatarGradient(m.employee.full_name),
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontWeight: 700,
-                                            fontSize: '11px',
-                                            color: '#fff'
-                                        }}>
-                                            {getInitials(m.employee.full_name)}
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>{m.employee.full_name}</div>
-                                            <div style={{ fontSize: '11px', color: colors.text3, textTransform: 'capitalize' }}>{m.employee.role}</div>
-                                        </div>
-                                    </div>
-                                )) : (
-                                    <div style={{ padding: '24px 16px', textAlign: 'center', color: colors.text3, fontSize: '12px' }}>
-                                        No team members assigned.
-                                    </div>
-                                )}
-                            </div>
-                        </section>
+                            )) : (
+                                <div style={{ padding: '20px 8px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
+                                    No team members assigned.
+                                </div>
+                            )}
+                        </Card>
 
-                        {/* Recent Activity Section */}
-                        <section style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, overflow: 'hidden' }}>
-                            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${colors.border}`, fontSize: '13px', fontWeight: 600, color: colors.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Recent Activity
-                            </div>
-                            <div style={{ padding: '20px 16px' }}>
-                                {activity.length > 0 ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                        {activity.slice(0, 5).map((act: any, i: number) => (
-                                            <div key={act.id} style={{ display: 'flex', gap: '12px', position: 'relative' }}>
-                                                {i < activity.length - 1 && i < 4 && (
-                                                    <div style={{ position: 'absolute', left: '7px', top: '20px', bottom: '-20px', width: '1px', background: colors.border }} />
-                                                )}
-                                                <div style={{
-                                                    width: '15px',
-                                                    height: '15px',
-                                                    borderRadius: '50%',
-                                                    background: act.type === 'report' ? colors.teal : act.type === 'goal' ? colors.accent : colors.text3,
-                                                    border: `3px solid ${colors.bg}`,
-                                                    boxShadow: `0 0 0 1px ${colors.border}`,
-                                                    flexShrink: 0,
-                                                    zIndex: 2,
-                                                    marginTop: '2px'
-                                                }} />
-                                                <div>
-                                                    <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.5 }}>
-                                                        <span style={{ fontWeight: 600, color: colors.text }}>{act.user}</span> {act.action}
-                                                    </div>
-                                                    <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px' }}>
-                                                        {new Date(act.timestamp).toLocaleString()}
-                                                    </div>
+                        {/* Recent Activity */}
+                        <Card dense title="Recent Activity">
+                            {activity.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '4px 12px 6px' }}>
+                                    {activity.slice(0, 5).map((act: any, i: number) => (
+                                        <div key={act.id} style={{ display: 'flex', gap: '12px', position: 'relative' }}>
+                                            {i < activity.length - 1 && i < 4 && (
+                                                <div style={{ position: 'absolute', left: '7px', top: '20px', bottom: '-20px', width: '1px', background: colors.border }} />
+                                            )}
+                                            <div style={{
+                                                width: '15px',
+                                                height: '15px',
+                                                borderRadius: '50%',
+                                                background: act.type === 'report' ? colors.teal : colors.text3,
+                                                border: `3px solid ${colors.bg}`,
+                                                boxShadow: `0 0 0 1px ${colors.border}`,
+                                                flexShrink: 0,
+                                                zIndex: 2,
+                                                marginTop: '2px'
+                                            }} />
+                                            <div>
+                                                <div style={{ fontSize: '12px', color: colors.text2, lineHeight: 1.5 }}>
+                                                    <span style={{ fontWeight: 600, color: colors.text }}>{act.user}</span> {act.action}
+                                                </div>
+                                                <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px' }}>
+                                                    {new Date(act.timestamp).toLocaleString()}
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div style={{ textAlign: 'center', color: colors.text3, fontSize: '12px' }}>
-                                        No recent activity.
-                                    </div>
-                                )}
-                            </div>
-                        </section>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
+                                    No recent activity.
+                                </div>
+                            )}
+                        </Card>
                     </aside>
                 </div>
             </div>

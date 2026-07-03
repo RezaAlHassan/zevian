@@ -201,7 +201,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                 )}
             </header>
 
-            <div style={{ padding: '28px 28px 0' }}>
+            <div style={{ padding: '28px 28px 0', maxWidth: '1180px', margin: '0 auto' }}>
                 {/* Hero Card */}
                 <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: '20px',

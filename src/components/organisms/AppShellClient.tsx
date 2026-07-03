@@ -30,7 +30,7 @@ const NAV_ITEMS = [
   },
   {
     id: 'ask', label: 'Ask', href: '/ask',
-    icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3.4v9.2" /><path d="M8 4.3A2.1 2.1 0 0 0 4.2 3.2 2 2 0 0 0 2.2 5.4 2 2 0 0 0 2.3 8.3 2 2 0 0 0 3.4 11 2 2 0 0 0 6.2 12.7 1.7 1.7 0 0 0 8 12.6" /><path d="M8 4.3A2.1 2.1 0 0 1 11.8 3.2 2 2 0 0 1 13.8 5.4 2 2 0 0 1 13.7 8.3 2 2 0 0 1 12.6 11 2 2 0 0 1 9.8 12.7 1.7 1.7 0 0 1 8 12.6" /></svg>,
+    icon: <svg viewBox="0 0 16 16" fill="currentColor" stroke="none"><path d="M8 1L9 5L13 6L9 7L8 11L7 7L3 6L7 5L8 1ZM13 10L13.5 12L15 12.5L13.5 13L13 15L12.5 13L11 12.5L12.5 12L13 10ZM3 2L3.5 4L5 4.5L3.5 5L3 7L2.5 5L1 4.5L2.5 4L3 2Z" /></svg>,
   },
   {
     id: 'reports', label: 'Reports', href: '/reports',

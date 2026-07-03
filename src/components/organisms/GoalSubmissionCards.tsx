@@ -10,9 +10,6 @@ import { getGoalSection } from '@/utils/goalSubmissionState'
 const fmtShort = (d: Date) =>
   d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
-const fmtLong = (d: Date) =>
-  d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-
 const fmtDayDate = (d: Date) =>
   d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
@@ -20,109 +17,6 @@ const fmtFreq = (f: string) =>
   ({ daily: 'Daily', weekly: 'Weekly', biweekly: 'Biweekly', 'bi-weekly': 'Biweekly', monthly: 'Monthly' } as Record<string, string>)[
     f?.toLowerCase()
   ] ?? 'Weekly'
-
-// ── Late Reports Modal ────────────────────────────────────────────────────────
-
-function LateReportsModal({
-  state,
-  isOpen,
-  onClose,
-}: {
-  state: GoalSubmissionState | null
-  isOpen: boolean
-  onClose: () => void
-}) {
-  if (!isOpen || !state) return null
-
-  return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.65)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '24px',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: colors.surface,
-          border: `1px solid ${colors.border}`,
-          borderRadius: radius.md,
-          width: '100%', maxWidth: '380px',
-          overflow: 'hidden',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div style={{ padding: '18px 20px', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: colors.text, lineHeight: 1.3 }}>{state.goalName}</div>
-            <div style={{ fontSize: '12px', color: colors.text3, marginTop: '3px' }}>{state.projectName}</div>
-          </div>
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.text3, padding: '2px', flexShrink: 0 }}
-          >
-            <Icon name="x" size={15} />
-          </button>
-        </div>
-
-        {/* Date list */}
-        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '340px', overflowY: 'auto' }}>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '6px' }}>
-            {state.lateCount} missed {state.lateCount === 1 ? 'report' : 'reports'}
-          </div>
-          {state.latePeriods.map((date, i) => (
-            <div
-              key={i}
-              style={{
-                padding: '10px 14px',
-                background: colors.surface2,
-                border: `1px solid ${colors.border}`,
-                borderRadius: radius.md,
-                fontSize: '13px',
-                color: colors.text2,
-                fontWeight: 500,
-              }}
-            >
-              {fmtLong(date)}
-            </div>
-          ))}
-
-          {state.isDueToday && state.nextDueDate && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '6px 0 2px' }}>
-                <div style={{ flex: 1, height: '1px', background: colors.border }} />
-                <span style={{
-                  fontSize: '10px', fontWeight: 800, color: colors.accent,
-                  textTransform: 'uppercase', letterSpacing: '0.07em',
-                }}>
-                  Due Today
-                </span>
-                <div style={{ flex: 1, height: '1px', background: colors.border }} />
-              </div>
-              <div
-                style={{
-                  padding: '10px 14px',
-                  background: `${colors.accent}10`,
-                  border: `1px solid ${colors.accent}35`,
-                  borderRadius: radius.md,
-                  fontSize: '13px',
-                  color: colors.text2,
-                  fontWeight: 500,
-                }}
-              >
-                {fmtLong(state.nextDueDate)}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── Section header ────────────────────────────────────────────────────────────
 
@@ -133,7 +27,7 @@ function SectionHeader({ label, count, color }: { label: string; count: number; 
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        padding: '2px 0 6px',
+        padding: '2px 2px 6px',
       }}
     >
       <span
@@ -164,149 +58,127 @@ function SectionHeader({ label, count, color }: { label: string; count: number; 
   )
 }
 
-// ── Individual goal card ──────────────────────────────────────────────────────
+// ── Individual goal row ────────────────────────────────────────────────────────
+// Borderless ledger row mirroring the dashboard Recent Reports accordion: a status dot + goal on the
+// left, a status label on the right.
+//
+// "Needs attention" rows are stripped to the three signals a manager scans for: which goal missed,
+// when the most recent miss was, and the one action to take (Approve Leave). No project name,
+// frequency, running total, or per-date list — those read as data noise here.
+//
+// Due-today / upcoming rows keep the goal · project · frequency ledger layout, since the due date is
+// the point of those sections.
 
-interface GoalCardProps {
+interface GoalRowProps {
   state: GoalSubmissionState
   section: 'needs_attention' | 'due_today' | 'upcoming'
   viewMode: 'employee' | 'manager'
-  onShowLateReports?: (state: GoalSubmissionState) => void
   onApproveLeave?: (state: GoalSubmissionState) => void
 }
 
-function GoalCard({
-  state,
-  section,
-  viewMode,
-  onShowLateReports,
-  onApproveLeave,
-}: GoalCardProps) {
-  const borderColor =
-    section === 'needs_attention'
-      ? colors.danger
-      : section === 'due_today'
-        ? colors.accent
-        : colors.border
+function GoalRow({ state, section, viewMode, onApproveLeave }: GoalRowProps) {
+  const [hover, setHover] = useState(false)
+
+  // ── Needs attention: goal + most-recent miss + one action ──
+  if (section === 'needs_attention') {
+    const latePeriods = state.latePeriods ?? []
+    // latePeriods is sorted oldest → newest, so the last entry is the most recent miss.
+    const lastMissed = latePeriods.length > 0 ? latePeriods[latePeriods.length - 1] : state.oldestLateDate
+
+    return (
+      <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '9px 10px',
+          borderRadius: radius.md,
+          background: hover ? colors.surface2 : 'transparent',
+          transition: `background ${animation.fast} ease`,
+          marginBottom: '2px',
+        }}
+      >
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: colors.danger, flexShrink: 0 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {state.goalName}
+          </span>
+          {lastMissed && (
+            <span style={{ fontSize: '11px', color: colors.text3, whiteSpace: 'nowrap' }}>
+              Last missed {fmtShort(lastMissed)}
+            </span>
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: '8px' }} />
+        {viewMode === 'manager' && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onApproveLeave?.(state) }}
+            style={{
+              background: 'none',
+              border: `1px solid ${colors.border}`,
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: colors.text2,
+              padding: '5px 12px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            Approve Leave
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  // ── Due today / upcoming: goal · project · frequency ledger row ──
+  // Due-today is time-sensitive but not an error → amber. Blue stays reserved for
+  // actions / numbers / graphs, so it's kept out of these status marks.
+  const dotColor = section === 'due_today' ? colors.warn : colors.text3
+  const rightText = section === 'due_today'
+    ? 'Due today'
+    : state.nextDueDate
+      ? `Due ${fmtDayDate(state.nextDueDate)}`
+      : ''
 
   return (
     <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
-        background: colors.surface,
-        border: `1px solid ${colors.border}`,
-        borderLeft: `3px solid ${borderColor}`,
-        borderRadius: radius.md,
-        padding: '12px 14px',
         display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '9px 10px',
+        borderRadius: radius.md,
+        background: hover ? colors.surface2 : 'transparent',
+        transition: `background ${animation.fast} ease`,
+        marginBottom: '2px',
       }}
     >
-      {/* Goal name */}
-      <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, lineHeight: 1.3 }}>
-        {state.goalName}
-      </div>
-
-      {/* Project + status row */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span
-            style={{
-              fontSize: '11px',
-              color: colors.text3,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {state.goalName}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          <span style={{ fontSize: '11px', color: colors.text3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {state.projectName}
           </span>
-          <span
-            style={{
-              fontSize: '10px',
-              fontWeight: 700,
-              color: colors.text3,
-              background: colors.surface3,
-              padding: '1px 5px',
-              borderRadius: '4px',
-              flexShrink: 0,
-            }}
-          >
+          <span style={{ fontSize: '10px', fontWeight: 700, color: colors.text3, background: colors.surface3, padding: '1px 5px', borderRadius: '4px', flexShrink: 0 }}>
             {fmtFreq(state.frequency)}
           </span>
-        </div>
-
-        {section === 'needs_attention' && (
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 800,
-              color: colors.danger,
-              flexShrink: 0,
-            }}
-          >
-            {state.lateCount} late {state.lateCount === 1 ? 'report' : 'reports'}
-          </span>
-        )}
-        {section === 'due_today' && (
-          <span style={{ fontSize: '11px', fontWeight: 800, color: colors.accent, flexShrink: 0 }}>
-            Due Today
-          </span>
-        )}
-        {section === 'upcoming' && state.nextDueDate && (
-          <span style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, flexShrink: 0 }}>
-            Due {fmtDayDate(state.nextDueDate)}
-          </span>
-        )}
+        </span>
       </div>
-
-      {/* Oldest late date */}
-      {section === 'needs_attention' && state.oldestLateDate && (
-        <div style={{ fontSize: '11px', color: colors.text3 }}>
-          Oldest: {fmtShort(state.oldestLateDate)}
-        </div>
-      )}
-
-      {/* Action row */}
-      {section === 'needs_attention' && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-          {viewMode === 'employee' ? (
-            <button
-              onClick={() => onShowLateReports?.(state)}
-              style={{
-                background: 'none',
-                border: `1px solid ${colors.danger}40`,
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                fontWeight: 700,
-                color: colors.danger,
-                padding: '4px 10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
-              <Icon name="fileText" size={11} />
-              View late reports
-            </button>
-          ) : (
-            <button
-              onClick={() => onApproveLeave?.(state)}
-              style={{
-                background: 'none',
-                border: `1px solid ${colors.border}`,
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '11px',
-                fontWeight: 700,
-                color: colors.text2,
-                padding: '4px 10px',
-              }}
-            >
-              Approve Leave
-            </button>
-          )}
-        </div>
+      <div style={{ flex: 1, minWidth: '8px' }} />
+      {rightText && (
+        <span style={{ fontSize: '11px', fontWeight: section === 'upcoming' ? 700 : 800, color: dotColor, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          {rightText}
+        </span>
       )}
     </div>
   )
@@ -318,19 +190,15 @@ function UpcomingSection({
   goals,
   viewMode,
   collapseByDefault,
-  onShowLateReports,
-  onApproveLeave,
 }: {
   goals: GoalSubmissionState[]
   viewMode: 'employee' | 'manager'
   collapseByDefault: boolean
-  onShowLateReports?: (state: GoalSubmissionState) => void
-  onApproveLeave?: (state: GoalSubmissionState) => void
 }) {
   const [open, setOpen] = useState(!collapseByDefault)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       <button
         onClick={() => setOpen(v => !v)}
         style={{
@@ -358,15 +226,13 @@ function UpcomingSection({
       </button>
 
       {open && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           {goals.map(g => (
-            <GoalCard
+            <GoalRow
               key={g.goalId}
               state={g}
               section="upcoming"
               viewMode={viewMode}
-              onShowLateReports={onShowLateReports}
-              onApproveLeave={onApproveLeave}
             />
           ))}
         </div>
@@ -392,7 +258,6 @@ export function GoalSubmissionCards({
   employeeName,
 }: GoalSubmissionCardsProps) {
   const [leaveGoal, setLeaveGoal] = useState<GoalSubmissionState | null>(null)
-  const [lateReportsGoal, setLateReportsGoal] = useState<GoalSubmissionState | null>(null)
 
   const attentionGoals = goalStates.filter(g => getGoalSection(g) === 'needs_attention')
   const dueTodayGoals = goalStates.filter(g => getGoalSection(g) === 'due_today')
@@ -437,15 +302,14 @@ export function GoalSubmissionCards({
     <>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {attentionGoals.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             <SectionHeader label="Needs Attention" count={attentionGoals.length} color={colors.danger} />
             {attentionGoals.map(g => (
-              <GoalCard
+              <GoalRow
                 key={g.goalId}
                 state={g}
                 section="needs_attention"
                 viewMode={viewMode}
-                onShowLateReports={setLateReportsGoal}
                 onApproveLeave={setLeaveGoal}
               />
             ))}
@@ -453,16 +317,14 @@ export function GoalSubmissionCards({
         )}
 
         {dueTodayGoals.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <SectionHeader label="Due Today" count={dueTodayGoals.length} color={colors.accent} />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <SectionHeader label="Due Today" count={dueTodayGoals.length} color={colors.warn} />
             {dueTodayGoals.map(g => (
-              <GoalCard
+              <GoalRow
                 key={g.goalId}
                 state={g}
                 section="due_today"
                 viewMode={viewMode}
-                onShowLateReports={setLateReportsGoal}
-                onApproveLeave={setLeaveGoal}
               />
             ))}
           </div>
@@ -473,19 +335,9 @@ export function GoalSubmissionCards({
             goals={upcomingGoals}
             viewMode={viewMode}
             collapseByDefault={hasActionable}
-            onShowLateReports={setLateReportsGoal}
-            onApproveLeave={setLeaveGoal}
           />
         )}
       </div>
-
-      {viewMode === 'employee' && (
-        <LateReportsModal
-          state={lateReportsGoal}
-          isOpen={!!lateReportsGoal}
-          onClose={() => setLateReportsGoal(null)}
-        />
-      )}
 
       {viewMode === 'manager' && employeeId && (
         <ApproveLeaveModal

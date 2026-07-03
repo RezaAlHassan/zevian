@@ -26,7 +26,10 @@ export const colors = {
 
   text: '#f0f2f7',
   text2: '#8b93a8',
-  text3: '#545d73',
+  // Muted / placeholder / timestamps. Lifted from #545d73 (≈2.4–2.8:1 on the card surfaces —
+  // below WCAG) to #7c8499, which clears 4:1 on surface / surface-2 / surface-3 (≈4.2–5.0:1) so
+  // subtext is legible without collapsing the tier below text2. Mirrored in globals.css.
+  text3: '#7c8499',
 
   accent: '#5b7fff',
   accentHover: '#7090ff',

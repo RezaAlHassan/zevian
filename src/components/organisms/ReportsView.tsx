@@ -102,13 +102,13 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
 
   const kpis = [
     { label: role === 'manager' ? 'Total Reports' : 'My Reports', value: kpiData.totalReports.toString(), icon: 'fileText' as const, sub: role === 'manager' ? 'Direct reports total' : 'All your submissions', color: colors.accent },
-    { label: 'Avg Score', value: kpiData.avgScore.toString(), icon: 'star' as const, sub: role === 'manager' ? 'Team performance' : 'Your performance trend', color: colors.green },
+    { label: 'Avg Score', value: kpiData.avgScore.toString(), icon: 'trendingUp' as const, sub: role === 'manager' ? 'Team performance' : 'Your performance trend', color: colors.green },
     { label: 'Pending Review', value: kpiData.pendingReview.toString(), icon: 'clock' as const, sub: role === 'manager' ? 'Awaiting your review' : 'Awaiting manager feedback', color: colors.warn },
     { label: 'Overrides', value: kpiData.overrides.toString(), icon: 'edit' as const, sub: role === 'manager' ? 'Manual adjustments' : 'Managed adjustments', color: colors.text3 },
   ]
 
   return (
-    <div style={{ padding: layout.contentPadding }}>
+    <div style={{ padding: layout.contentPadding, maxWidth: '1180px', margin: '0 auto' }}>
       {/* KPI Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
         {kpis.map(kpi => (
@@ -117,7 +117,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
               <Icon name={kpi.icon} size={12} color={colors.text3} />
               {kpi.label}
             </div>
-            <div className="font-numeric" style={{ fontSize: '28px', fontWeight: 700, color: kpi.color, letterSpacing: '-1px', lineHeight: 1, marginBottom: '6px' }}>
+            <div className="font-numeric" style={{ fontSize: '28px', fontWeight: 800, color: kpi.color, letterSpacing: '-1px', lineHeight: 1, marginBottom: '6px' }}>
               {kpi.value}
             </div>
             <div style={{ fontSize: '11px', color: colors.text3 }}>{kpi.sub}</div>

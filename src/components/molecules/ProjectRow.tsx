@@ -79,7 +79,8 @@ export function ProjectRow({
                         fontSize: '11px',
                         fontWeight: 600,
                         background: colors.surface3,
-                        color: colors.text2
+                        color: colors.text2,
+                        whiteSpace: 'nowrap'
                     }}>
                         {category}
                     </span>
@@ -163,7 +164,8 @@ export function ProjectRow({
                         fontSize: '11px',
                         fontWeight: 600,
                         background: colors.surface3,
-                        color: colors.text2
+                        color: colors.text2,
+                        whiteSpace: 'nowrap'
                     }}>
                         {frequency}
                     </span>
@@ -181,13 +183,13 @@ export function ProjectRow({
                         {!readOnly ? (
                             <>
                                 {onComplete && status !== 'completed' && (
-                                    <Button variant="ghost" size="sm" icon="check" onClick={onComplete} style={{ color: colors.green }}>{null}</Button>
+                                    <Button variant="ghost" size="sm" icon="check" onClick={onComplete} title="Mark complete" style={{ color: colors.green, padding: '6px' }}>{null}</Button>
                                 )}
                                 {onEdit && (
-                                    <Button variant="ghost" size="sm" icon="users" onClick={onEdit} style={{ color: colors.accent }}>{null}</Button>
+                                    <Button variant="ghost" size="sm" icon="users" onClick={onEdit} title="Manage team" style={{ color: colors.accent, padding: '6px' }}>{null}</Button>
                                 )}
                                 {onDelete && (
-                                    <Button variant="ghost" size="sm" icon="trash" onClick={onDelete} style={{ color: colors.danger }}>{null}</Button>
+                                    <Button variant="ghost" size="sm" icon="trash" onClick={onDelete} title="Delete" style={{ color: colors.danger, padding: '6px' }}>{null}</Button>
                                 )}
                             </>
                         ) : null}

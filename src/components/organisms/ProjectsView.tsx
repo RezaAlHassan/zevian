@@ -135,7 +135,7 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
   return (
     <div style={{ minHeight: '100vh', background: colors.bg }}>
 
-      <div style={{ padding: layout.contentPadding }}>
+      <div style={{ padding: layout.contentPadding, maxWidth: '1180px', margin: '0 auto' }}>
         {/* Filters and View Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '24px' }}>
           {/* Left: Search & Filters */}

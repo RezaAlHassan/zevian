@@ -45,14 +45,25 @@ export async function runMissedReportCheck(employeeId?: string): Promise<{
   let missedCount = 0;
   let excusedCount = 0;
 
-  for (const period of overduePeriods) {
-    // ── Step 1: Check grace period ──
+  // ── Per-entity caches ──────────────────────────────────────────────────────
+  // Manager grace, an employee's leaves, and goal/frequency are all stable for the
+  // duration of this run. Previously each was re-queried on EVERY overdue period
+  // (N+1) — for a long leave over a daily goal that's hundreds of periods, each
+  // paying several serial round-trips. Resolve each once and reuse. The status
+  // UPDATE plus the future-period and consecutive-missed queries still run per
+  // period, since those depend on writes made earlier in this same loop.
+  const graceByEmployee = new Map<string, number>();
+  const leavesByEmployee = new Map<string, { start_date: string; end_date: string }[]>();
+  const goalById = new Map<string, any>();
+
+  const getGraceDays = async (empId: string): Promise<number> => {
+    const cached = graceByEmployee.get(empId);
+    if (cached !== undefined) return cached;
     const { data: emp } = await supabase
       .from('employees')
       .select('manager_id')
-      .eq('id', period.employee_id)
+      .eq('id', empId)
       .maybeSingle();
-
     let graceDays = 0;
     if (emp?.manager_id) {
       const { data: settings } = await supabase
@@ -62,26 +73,56 @@ export async function runMissedReportCheck(employeeId?: string): Promise<{
         .maybeSingle();
       graceDays = settings?.grace_period_days ?? 0;
     }
+    graceByEmployee.set(empId, graceDays);
+    return graceDays;
+  };
+
+  const getEmployeeLeaves = async (empId: string) => {
+    const cached = leavesByEmployee.get(empId);
+    if (cached) return cached;
+    const { data: leaves, error: leaveError } = await supabase
+      .from('leaves')
+      .select('start_date, end_date')
+      .eq('employee_id', empId);
+    if (leaveError) throw leaveError;
+    const list = leaves ?? [];
+    leavesByEmployee.set(empId, list);
+    return list;
+  };
+
+  const getGoal = async (goalId: string) => {
+    if (goalById.has(goalId)) return goalById.get(goalId);
+    const { data: goal } = await supabase
+      .from('goals')
+      .select('projects(report_frequency), name, manager_id')
+      .eq('id', goalId)
+      .maybeSingle();
+    goalById.set(goalId, goal ?? null);
+    return goal ?? null;
+  };
+
+  for (const period of overduePeriods) {
+    // ── Step 1: Check grace period ──
+    const graceDays = await getGraceDays(period.employee_id);
 
     const effectiveDeadline = new Date(period.period_end).getTime() + (graceDays * 24 * 60 * 60 * 1000);
     if (Date.now() <= effectiveDeadline) {
       continue;
     }
 
-    // ── Step 2: Check for approved leave ──
-    const { data: leaves, error: leaveError } = await supabase
-      .from('leaves')
-      .select('id')
-      .eq('employee_id', period.employee_id)
-      .lte('start_date', period.period_end)
-      .gte('end_date', period.period_start)
-      .limit(1);
-
-    if (leaveError) throw leaveError;
+    // ── Step 2: Check for approved leave (overlap resolved in-memory from the cached list) ──
+    // Overlap: leave.start_date <= period_end AND leave.end_date >= period_start.
+    const leaves = await getEmployeeLeaves(period.employee_id);
+    const periodStartMs = new Date(period.period_start).getTime();
+    const periodEndMs = new Date(period.period_end).getTime();
+    const onLeave = leaves.some((l: { start_date: string; end_date: string }) =>
+      new Date(l.start_date).getTime() <= periodEndMs &&
+      new Date(l.end_date).getTime() >= periodStartMs
+    );
 
     // ── Step 3: Check ramp-up period (from project_assignees, NOT from period row) ──
-    let newStatus = (leaves && leaves.length > 0) ? 'excused' : 'missed';
-    
+    let newStatus = onLeave ? 'excused' : 'missed';
+
     // Ramp-up disabled as column doesn't exist yet
 
     newStatus === 'excused' ? excusedCount++ : missedCount++;
@@ -90,14 +131,10 @@ export async function runMissedReportCheck(employeeId?: string): Promise<{
       .from('reporting_periods')
       .update({ status: newStatus })
       .eq('id', period.id);
-      
+
     // TRIGGER D — Immediately generate the next period
     // Find frequency using project settings
-    const { data: goal } = await supabase
-      .from('goals')
-      .select('projects(report_frequency), name, manager_id')
-      .eq('id', period.goal_id)
-      .maybeSingle();
+    const goal = await getGoal(period.goal_id);
       
     if (goal && (goal.projects as any)?.report_frequency) {
        const freq = (goal.projects as any).report_frequency;

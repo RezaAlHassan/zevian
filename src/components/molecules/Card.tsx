@@ -13,9 +13,15 @@ interface CardProps {
   chip?: React.ReactNode
   className?: string
   danger?: boolean
+  // Tightens header + body padding for list-style cards (dashboard / project panels) where the
+  // child rows carry their own padding. Form-style cards keep the roomier default.
+  dense?: boolean
 }
 
-export function Card({ children, title, subtitle, icon, action, chip, danger, className }: CardProps) {
+export function Card({ children, title, subtitle, icon, action, chip, danger, className, dense }: CardProps) {
+  // Body padding: dense list cards sit their rows close to the edge (rows pad themselves) with a
+  // small top gap under the title; default cards keep the roomier 20px box.
+  const bodyPadding = title || icon ? (dense ? '4px 8px 12px' : '20px') : '0'
   return (
     <div
       className={className}
@@ -29,11 +35,10 @@ export function Card({ children, title, subtitle, icon, action, chip, danger, cl
       {(title || action || chip) && (
         <div
           style={{
-            padding: '18px 20px 14px',
+            padding: dense ? '14px 14px 4px' : '18px 20px 6px',
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
-            borderBottom: `1px solid ${colors.borderStrong}`,
           }}
         >
           {icon && (
@@ -57,7 +62,7 @@ export function Card({ children, title, subtitle, icon, action, chip, danger, cl
           )}
         </div>
       )}
-      <div style={{ padding: title || icon ? '20px' : '0' }}>
+      <div style={{ padding: bodyPadding }}>
         {children}
       </div>
     </div>

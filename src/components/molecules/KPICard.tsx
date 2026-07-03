@@ -37,18 +37,18 @@ export function KPICard({
         background: colors.surface,
         border: `1px solid ${colors.border}`,
         borderRadius: radius.md,
-        padding: '18px 20px',
+        padding: '16px 18px',
         transition: `border-color ${animation.fast}`,
         cursor: 'default',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-        <Icon name={icon} size={13} />
+        <Icon name={icon} size={12} color={colors.text3} />
         <span style={{
           fontSize: '11px',
-          fontWeight: typography.weight.semibold,
+          fontWeight: 700,
           color: colors.text3,
-          letterSpacing: '0.05em',
+          letterSpacing: '0.06em',
           textTransform: 'uppercase',
         }}>
           {label}
@@ -57,25 +57,25 @@ export function KPICard({
 
       {isScore ? (
         scoreValue != null ? (
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '6px' }}>
             <span className="font-numeric" style={{
-              fontSize: '36px',
-              fontWeight: typography.weight.black,
-              letterSpacing: '-2px',
+              fontSize: '28px',
+              fontWeight: 800,
+              letterSpacing: '-1px',
               lineHeight: 1,
               color: valueColor,
             }}>
               {scoreValue.toFixed(1)}
             </span>
-            <span className="font-numeric" style={{ fontSize: '16px', color: colors.text3, fontWeight: typography.weight.semibold }}>/10</span>
+            <span className="font-numeric" style={{ fontSize: '14px', color: colors.text3, fontWeight: typography.weight.semibold }}>/10</span>
           </div>
         ) : (
           <div className="font-numeric" style={{
-            fontSize: '32px',
-            fontWeight: typography.weight.black,
+            fontSize: '28px',
+            fontWeight: 800,
             letterSpacing: '-1px',
             lineHeight: 1,
-            marginBottom: '8px',
+            marginBottom: '6px',
             color: colors.text3,
           }}>
             N/A
@@ -83,11 +83,11 @@ export function KPICard({
         )
       ) : (
         <div className="font-numeric" style={{
-          fontSize: '32px',
-          fontWeight: typography.weight.black,
+          fontSize: '28px',
+          fontWeight: 800,
           letterSpacing: '-1px',
           lineHeight: 1,
-          marginBottom: '8px',
+          marginBottom: '6px',
           color: valueColor,
         }}>
           {value}
@@ -100,7 +100,7 @@ export function KPICard({
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: colors.text3 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: colors.text3 }}>
         {delta && (
           <span style={{
             display: 'inline-flex',

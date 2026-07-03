@@ -7,6 +7,7 @@ import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { ScoreDisplay, ScoreBar, MiniBar } from '@/components/atoms/Score'
 import { StatusPill } from '@/components/atoms/StatusPill'
+import { Card } from '@/components/molecules/Card'
 import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import { EmployeeDashboardView } from '@/components/organisms/EmployeeDashboardView'
 import { calculateReportStatus, isLateSubmission } from '@/lib/utils/reportStatus'
@@ -122,7 +123,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
         />
       </header>
 
-      <div style={{ padding: '24px 28px 60px' }}>
+      <div style={{ padding: '24px 24px 60px', maxWidth: '1180px', margin: '0 auto' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
           <div style={{ display: 'flex', gap: '32px', borderBottom: `1px solid ${colors.border}` }}>
             {([
@@ -314,41 +315,46 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
             )}
 
             {activeTab === 'activity' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {allActivity.map((act: any, i: number) => {
-                  const type = act.type || 'alert'
-                  const iconMap: any = {
-                    report: { name: 'fileText', color: '#14b8a6', bg: 'rgba(20,184,166,0.1)' },
-                    goal: { name: 'target', color: colors.accent, bg: colors.accentGlow },
-                    leave: { name: 'calendar', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-                    alert: { name: 'bell', color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
-                    info: { name: 'bell', color: colors.text3, bg: colors.border },
-                  }
-                  const icon = iconMap[type] || iconMap.info
-                  return (
-                    <div key={i} style={{
-                      background: colors.surface, border: `1px solid ${colors.border}`,
-                      borderRadius: radius.md, padding: '16px 20px',
-                      display: 'flex', alignItems: 'center', gap: '16px', transition: 'transform 0.2s',
-                    }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: icon.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon name={icon.name} size={18} color={icon.color} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '14px', fontWeight: 600, color: colors.text }}>{act.title}</div>
-                        <div style={{ fontSize: '13px', color: colors.text2 }}>{act.message}</div>
-                      </div>
-                      <div style={{ fontSize: '11px', color: colors.text3, fontWeight: 500, textAlign: 'right' }}>
-                        <div>{new Date(act.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                        <div style={{ marginTop: '2px', opacity: 0.8 }}>{new Date(act.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</div>
-                      </div>
-                    </div>
-                  )
-                })}
-                {allActivity.length === 0 && (
-                  <div style={{ padding: '40px', textAlign: 'center', color: colors.text3 }}>No recent activity</div>
+              <Card dense title="Recent Activity">
+                {allActivity.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '4px 12px 6px' }}>
+                    {allActivity.map((act: any, i: number) => {
+                      // Rationed color, matching the projects timeline: teal marks reports,
+                      // red flags alerts, everything else stays neutral.
+                      const type = act.type || 'info'
+                      const dotColor = type === 'report' ? colors.teal
+                        : type === 'alert' ? colors.danger
+                        : colors.text3
+                      return (
+                        <div key={i} style={{ display: 'flex', gap: '12px', position: 'relative' }}>
+                          {i < allActivity.length - 1 && (
+                            <div style={{ position: 'absolute', left: '7px', top: '20px', bottom: '-20px', width: '1px', background: colors.border }} />
+                          )}
+                          <div style={{
+                            width: '15px', height: '15px', borderRadius: '50%',
+                            background: dotColor, border: `3px solid ${colors.bg}`,
+                            boxShadow: `0 0 0 1px ${colors.border}`,
+                            flexShrink: 0, zIndex: 2, marginTop: '2px',
+                          }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text, lineHeight: 1.5 }}>{act.title}</div>
+                            {act.message && (
+                              <div style={{ fontSize: '12px', color: colors.text2, marginTop: '2px', lineHeight: 1.5 }}>{act.message}</div>
+                            )}
+                            <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px' }}>
+                              {new Date(act.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {new Date(act.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ padding: '20px 8px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
+                    No recent activity
+                  </div>
                 )}
-              </div>
+              </Card>
             )}
           </div>
         </div>
