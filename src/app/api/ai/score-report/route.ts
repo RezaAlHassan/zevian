@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     const { data: report, error } = await supabase
       .from('reports')
       .select(`
-        id, content,
+        id, report_text,
         employee_id,
         goal:goals(
           id, name, instructions, project_id, deadline,
@@ -221,7 +221,7 @@ If the majority of criteria have "low" confidence, set the top-level \`overall_c
 ## SECTION 3: INPUT FORMAT
 
 - report_text: 
-${r.content}
+${r.report_text}
 
 - goal_name: 
 ${goal?.name}
@@ -465,7 +465,7 @@ Round to 1 decimal place.
     try {
       const { data: priorReports } = await supabase
         .from('reports')
-        .select('id, content, evaluation_score')
+        .select('id, report_text, evaluation_score')
         .eq('employee_id', r.employee_id)
         .eq('goal_id', goal?.id)
         .neq('id', reportId)
@@ -477,13 +477,13 @@ Round to 1 decimal place.
         const consistencyPrompt = `You are reviewing an employee's report history for signs of narrative drift or contribution inflation.
 
 CURRENT REPORT:
-${r.content}
+${r.report_text}
 AI Score: ${overall_score}
 
 PREVIOUS 4 REPORTS (oldest first):
 ${[...(priorReports || [])].reverse().map((pr: any, i: number) => `
 Report ${i + 1} — Score: ${pr.evaluation_score}
-${pr.content || ''}
+${pr.report_text || ''}
 `).join('\n')}
 
 Analyse for these two patterns only:

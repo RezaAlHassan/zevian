@@ -20,6 +20,30 @@ interface GoalPeriodSummary {
     nextLabel: string | null
 }
 
+// Subtle tinted action button (mirrors the calibration/override buttons in ReportDetailView)
+function SubtleButton({ label, icon, onClick }: { label: string; icon: string; onClick: () => void }) {
+    const [hovered, setHovered] = useState(false)
+    return (
+        <button
+            onClick={onClick}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={{
+                padding: '6px 12px', borderRadius: radius.md,
+                border: `1px solid ${hovered ? 'rgba(16,185,129,0.48)' : 'rgba(16,185,129,0.30)'}`,
+                background: hovered ? 'rgba(16,185,129,0.18)' : 'rgba(16,185,129,0.10)',
+                color: colors.green, fontSize: '12px', fontWeight: typography.weight.semibold,
+                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                fontFamily: typography.fonts.body,
+                transition: `all ${animation.fast}`,
+            }}
+        >
+            <Icon name={icon as any} size={14} color="currentColor" />
+            {label}
+        </button>
+    )
+}
+
 interface Props {
     goal: any
     projects: any[]
@@ -81,21 +105,21 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                 <div style={{ flex: 1 }} />
                 {!readOnly && (
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        {currentGoal.status !== 'completed' && (
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                icon="check"
-                                style={{ background: colors.green }}
-                                onClick={handleComplete}
-                            >Complete KPI</Button>
-                        )}
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            icon="people"
+                            onClick={() => setIsManageTeamOpen(true)}
+                        >Assign Employees</Button>
                         <Button
                             variant="secondary"
                             size="sm"
                             icon="edit"
                             onClick={() => setIsEditOpen(true)}
                         >Edit KPI</Button>
+                        {currentGoal.status !== 'completed' && (
+                            <SubtleButton label="Complete KPI" icon="check" onClick={handleComplete} />
+                        )}
                     </div>
                 )}
             </header>
@@ -343,11 +367,6 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                             title="Assigned Members"
                             icon="people"
                             chip={<CountLabel>{members.length}</CountLabel>}
-                            action={!readOnly ? (
-                                <span onClick={() => setIsManageTeamOpen(true)} style={{ fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium, cursor: 'pointer' }}>
-                                    Assign employees
-                                </span>
-                            ) : undefined}
                         >
                             {members.length > 0 ? members.map((m: any, i: number) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: radius.md, marginBottom: '2px' }}>

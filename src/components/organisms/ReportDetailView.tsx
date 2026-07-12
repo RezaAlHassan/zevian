@@ -12,13 +12,14 @@ import Link from 'next/link'
 
 import { Report } from '@/types'
 import { useScoreReport } from '@/hooks/useScoreReport'
-import { overrideReportScoreAction, setCalibrationAction } from '@/app/actions/reportActions'
+import { overrideReportScoreAction, setCalibrationAction, authorizeRescoreAction, finishRescoreAction } from '@/app/actions/reportActions'
 import { calculateReportStatus } from '@/lib/utils/reportStatus'
 
 interface ReportDetailProps {
     report: Report
     role?: 'manager' | 'employee'
     canOverride?: boolean
+    canRescore?: boolean
 }
 
 const SUMMARY_MAX = 200
@@ -58,9 +59,51 @@ function CalibButton({ tone, label, onClick, disabled }: { tone: keyof typeof CA
     )
 }
 
-export function ReportDetailView({ report, role = 'manager', canOverride = true }: ReportDetailProps) {
+// Manager-facing metadata for the AI's integrity flags. Keeps engine enums out of
+// the UI: a plain label, a static "what this means" tooltip, and a severity —
+// prompt-injection is an integrity red flag (forces all scores to 1), the rest are
+// quality-of-writing nudges. The "why on this report" lives in the criterion evidence.
+const INTEGRITY_FLAG_META: Record<string, { label: string; tooltip: string; severity: 'warn' | 'critical' }> = {
+    LOW_SPECIFICITY: {
+        label: 'Light on specifics',
+        tooltip: 'The report describes work but lacks the concrete detail needed to verify it.',
+        severity: 'warn',
+    },
+    INSUFFICIENT_EVIDENCE: {
+        label: 'Not enough evidence',
+        tooltip: 'Fewer than the minimum distinct, verifiable points — the score is capped.',
+        severity: 'warn',
+    },
+    VAGUE_AFFIRMATIONS_DOMINANT: {
+        label: 'Mostly vague claims',
+        tooltip: 'Dominated by "I ensured / maintained…" statements that assert rather than show.',
+        severity: 'warn',
+    },
+    KEYWORD_STUFFING: {
+        label: 'Repeated keywords',
+        tooltip: 'A criterion is named repeatedly without adding new evidence each time.',
+        severity: 'warn',
+    },
+    PROMPT_INJECTION_DETECTED: {
+        label: 'Flagged: gaming attempt',
+        tooltip: 'The report tried to instruct or manipulate the scorer, so every criterion was scored 1.',
+        severity: 'critical',
+    },
+}
+
+function flagMeta(flag: string): { label: string; tooltip: string; severity: 'warn' | 'critical' } {
+    return INTEGRITY_FLAG_META[flag] ?? {
+        label: flag.replace(/_/g, ' ').toLowerCase().replace(/^./, c => c.toUpperCase()),
+        tooltip: 'The AI flagged a concern with this report.',
+        severity: 'warn',
+    }
+}
+
+export function ReportDetailView({ report, role = 'manager', canOverride = true, canRescore = false }: ReportDetailProps) {
     const router = useRouter()
     const { loading: isScoring, error: scoringError, scoreReport } = useScoreReport()
+    const [isRescoring, setIsRescoring] = useState(false)
+    const [rescoreError, setRescoreError] = useState<string | null>(null)
 
     const [activeTab, setActiveTab] = useState<'breakdown' | 'content' | 'activity'>('breakdown')
     const [evaluationData, setEvaluationData] = useState<{
@@ -100,6 +143,50 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                 summary: result.summary
             })
         }
+    }
+
+    const handleRescore = async () => {
+        if (!report.id || isRescoring) return
+        const ok = window.confirm(
+            'Re-score this report with the AI? This replaces the current AI evaluation and evidence. Any manager override you made is kept.'
+        )
+        if (!ok) return
+        setIsRescoring(true)
+        setRescoreError(null)
+
+        // 1. Authorize (permission + eligibility) before touching the scorer.
+        const auth = await authorizeRescoreAction(report.id)
+        if (!auth || 'error' in auth) {
+            setIsRescoring(false)
+            setRescoreError((auth as any)?.error || 'Not allowed')
+            return
+        }
+
+        // 2. Run the AI scoring engine via the same route the submit flow uses.
+        const scored = await scoreReport(report.id)
+        if (!scored) {
+            setIsRescoring(false)
+            setRescoreError('AI scoring failed. Please try again.')
+            return
+        }
+
+        // 3. Stamp the audit trail, then reflect the fresh scores locally.
+        await finishRescoreAction(report.id)
+        setIsRescoring(false)
+        setEvaluationData({
+            overall_score: scored.overall_score,
+            criterion_scores: (scored as any).criteria_scores?.map((c: any) => ({
+                criterionName: c.name,
+                score: c.score,
+                evidence: c.evidence,
+                reasoning: c.reasoning,
+                confidence: c.confidence,
+                weight: c.weight,
+                coachingNote: c.coaching_note || null,
+            })) || [],
+            summary: scored.summary,
+        })
+        router.refresh()
     }
 
     const handleSaveOverride = async () => {
@@ -162,7 +249,9 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
 
     const summaryText = evaluationData?.summary ?? ''
     const flagsMatch = summaryText.match(/^\[FLAGS:\s*(.*?)\]/)
-    const flags = flagsMatch ? flagsMatch[1].split(',').map((f: string) => f.trim()) : []
+    const flags = flagsMatch ? flagsMatch[1].split(',').map((f: string) => f.trim()).filter(Boolean) : []
+    const flagsCritical = flags.some((f: string) => flagMeta(f).severity === 'critical')
+    const flagsColor = flagsCritical ? colors.danger : colors.warn
     const cleanSummary = flagsMatch ? summaryText.replace(flagsMatch[0], '').trim() : summaryText
     const summaryTruncated = cleanSummary.length > SUMMARY_MAX && !showFullSummary
         ? cleanSummary.slice(0, SUMMARY_MAX) + '…'
@@ -193,6 +282,16 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     <div style={{ fontSize: '12px', color: colors.warn, background: `${colors.warn}10`, padding: '4px 10px', borderRadius: '4px', border: `1px solid ${colors.warn}30` }}>
                         {scoringError}
                     </div>
+                )}
+                {rescoreError && (
+                    <div style={{ fontSize: '12px', color: colors.warn, background: `${colors.warn}10`, padding: '4px 10px', borderRadius: '4px', border: `1px solid ${colors.warn}30` }}>
+                        {rescoreError}
+                    </div>
+                )}
+                {role === 'manager' && canRescore && hasScored && (
+                    <Button variant="secondary" size="sm" icon="star" onClick={handleRescore} disabled={isRescoring}>
+                        {isRescoring ? 'Re-scoring…' : 'Re-score with AI'}
+                    </Button>
                 )}
                 {role === 'manager' && canOverride && hasScored && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
@@ -275,6 +374,13 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                                 </div>
                             </div>
                         )}
+
+                        {report.rescoredAt && (
+                            <div style={{ fontSize: '11px', color: colors.text3, marginTop: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <Icon name="star" size={10} color={colors.text3} />
+                                Re-scored with AI{report.rescoredBy ? ` by ${report.rescoredBy}` : ''} · {new Date(report.rescoredAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        )}
                     </div>
 
                     {/* Score */}
@@ -304,17 +410,29 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
 
             {/* Flags */}
             {flags.length > 0 && (
-                <div style={{ padding: '12px 20px', background: `${colors.warn}10`, border: `1px solid ${colors.warn}20`, borderRadius: radius.md, marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: colors.warn, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Icon name="alert" size={14} color={colors.warn} />
-                        Evaluation Warnings
+                <div style={{ padding: '12px 20px', background: `${flagsColor}10`, border: `1px solid ${flagsColor}20`, borderRadius: radius.md, marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: flagsColor, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Icon name="alert" size={14} color={flagsColor} />
+                        {flagsCritical ? 'Integrity Alert' : 'Evaluation Warnings'}
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {flags.map((flag: string, idx: number) => (
-                            <div key={idx} style={{ padding: '3px 10px', background: `${colors.warn}20`, border: `1px solid ${colors.warn}40`, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: colors.warn }}>
-                                {flag.replace(/_/g, ' ')}
-                            </div>
-                        ))}
+                        {flags.map((flag: string, idx: number) => {
+                            const meta = flagMeta(flag)
+                            const c = meta.severity === 'critical' ? colors.danger : colors.warn
+                            return (
+                                <div
+                                    key={idx}
+                                    title={meta.tooltip}
+                                    style={{ padding: '3px 10px', background: `${c}20`, border: `1px solid ${c}40`, borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: c, cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                                >
+                                    {meta.severity === 'critical' && <Icon name="alert" size={11} color={c} />}
+                                    {meta.label}
+                                </div>
+                            )
+                        })}
+                    </div>
+                    <div style={{ fontSize: '11px', color: colors.text3, lineHeight: 1.5 }}>
+                        Hover a warning for what it means; the criterion breakdown below shows where it applies.
                     </div>
                 </div>
             )}

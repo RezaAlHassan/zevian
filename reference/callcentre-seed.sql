@@ -331,29 +331,32 @@ DECLARE
   ];
 BEGIN
   -- (agent, team-goal, baseline score, weeks reported, pend=latest-week-unreviewed)
+  -- Baselines are deliberately spread wide — clear high performers, low performers,
+  -- and borderline (~6.5-7.0) cases — while the average stays ~6.5 so the org total
+  -- is unchanged. Low baselines surface sub-7 criteria that carry coaching notes.
   FOR emp IN SELECT * FROM (VALUES
-      ('emp-cc-03','goal-cc-inbound',   6.4::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-04','goal-cc-inbound',   6.9::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-05','goal-cc-inbound',   6.1::numeric, ARRAY[1,2,4,5,6,7,8],   FALSE),
-      ('emp-cc-06','goal-cc-inbound',   7.0::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-07','goal-cc-inbound',   5.9::numeric, ARRAY[2,3,4,5,6,7,8],   FALSE),
-      ('emp-cc-10','goal-cc-tech',      6.6::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-11','goal-cc-tech',      6.3::numeric, ARRAY[1,2,3,4,5,6,7,8], TRUE),
-      ('emp-cc-12','goal-cc-tech',      7.4::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-13','goal-cc-tech',      6.0::numeric, ARRAY[1,2,3,4,5],       FALSE),
-      ('emp-cc-14','goal-cc-tech',      6.7::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-17','goal-cc-retention', 6.8::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-18','goal-cc-retention', 6.2::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-19','goal-cc-retention', 6.5::numeric, ARRAY[1,2,3,4,5,6,7,8], TRUE),
-      ('emp-cc-20','goal-cc-retention', 6.0::numeric, ARRAY[1,3,4,5,6,7,8],   FALSE),
-      ('emp-cc-22','goal-cc-outbound',  6.7::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-23','goal-cc-outbound',  6.4::numeric, ARRAY[1,2,3,4,5,6,7,8], TRUE),
-      ('emp-cc-24','goal-cc-outbound',  7.1::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-25','goal-cc-outbound',  6.2::numeric, ARRAY[2,3,4,5,6,7,8],   FALSE),
-      ('emp-cc-27','goal-cc-qa',        7.2::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-28','goal-cc-qa',        6.6::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-29','goal-cc-qa',        6.9::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
-      ('emp-cc-30','goal-cc-qa',        6.1::numeric, ARRAY[5,6,7,8],         FALSE)  -- recent joiner: only latter weeks
+      ('emp-cc-03','goal-cc-inbound',   8.7::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),  -- HIGH
+      ('emp-cc-04','goal-cc-inbound',   6.5::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),  -- borderline
+      ('emp-cc-05','goal-cc-inbound',   5.2::numeric, ARRAY[1,2,4,5,6,7,8],   FALSE),  -- LOW
+      ('emp-cc-06','goal-cc-inbound',   7.3::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
+      ('emp-cc-07','goal-cc-inbound',   4.6::numeric, ARRAY[2,3,4,5,6,7,8],   FALSE),  -- LOW outlier
+      ('emp-cc-10','goal-cc-tech',      6.9::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),  -- borderline
+      ('emp-cc-11','goal-cc-tech',      6.2::numeric, ARRAY[1,2,3,4,5,6,7,8], TRUE),
+      ('emp-cc-12','goal-cc-tech',      8.4::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),  -- HIGH
+      ('emp-cc-13','goal-cc-tech',      4.9::numeric, ARRAY[1,2,3,4,5],       FALSE),  -- LOW (offboarded)
+      ('emp-cc-14','goal-cc-tech',      6.0::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
+      ('emp-cc-17','goal-cc-retention', 7.6::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
+      ('emp-cc-18','goal-cc-retention', 5.5::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),  -- LOW
+      ('emp-cc-19','goal-cc-retention', 6.6::numeric, ARRAY[1,2,3,4,5,6,7,8], TRUE),   -- borderline
+      ('emp-cc-20','goal-cc-retention', 4.4::numeric, ARRAY[1,3,4,5,6,7,8],   FALSE),  -- LOW outlier
+      ('emp-cc-22','goal-cc-outbound',  7.0::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),  -- borderline
+      ('emp-cc-23','goal-cc-outbound',  6.3::numeric, ARRAY[1,2,3,4,5,6,7,8], TRUE),
+      ('emp-cc-24','goal-cc-outbound',  7.9::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),  -- HIGH
+      ('emp-cc-25','goal-cc-outbound',  5.8::numeric, ARRAY[2,3,4,5,6,7,8],   FALSE),  -- LOW
+      ('emp-cc-27','goal-cc-qa',        7.5::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),
+      ('emp-cc-28','goal-cc-qa',        6.4::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),  -- borderline
+      ('emp-cc-29','goal-cc-qa',        6.8::numeric, ARRAY[1,2,3,4,5,6,7,8], FALSE),  -- borderline
+      ('emp-cc-30','goal-cc-qa',        6.7::numeric, ARRAY[5,6,7,8],         FALSE)   -- recent joiner: only latter weeks
     ) AS t(eid, gid, base, weeks, pend)
   LOOP
     v_eid  := emp.eid;
@@ -466,6 +469,7 @@ DECLARE
   v_bias NUMERIC;
   v_reason TEXT;
   v_evidence TEXT;
+  v_coach TEXT;
   crit TEXT[] := ARRAY['Resolution & FCR','Call Quality & Compliance','Productivity','Customer Experience','Communication','Growth & Coaching'];
 BEGIN
   FOR r IN SELECT id, employee_id, evaluation_score FROM reports WHERE goal_id LIKE 'goal-cc-%' LOOP
@@ -488,8 +492,36 @@ BEGIN
         v_evidence := 'Limited specifics; below target.';
       END IF;
 
-      INSERT INTO report_criterion_scores (report_id, criterion_name, score, reasoning, evidence)
-      VALUES (r.id, nm, v_score, v_reason, v_evidence);
+      -- Coaching note for weak criteria (< 7.0), tailored to the criterion and
+      -- its severity; NULL when the criterion is strong. Mirrors the app's own
+      -- "coach anything under 7.0" convention so the demo shows real coaching.
+      IF v_score < 7.0 THEN
+        v_coach := CASE nm
+          WHEN 'Resolution & FCR' THEN
+            CASE WHEN v_score < 5.5 THEN 'Too many contacts are reopening — verify the fix with the customer before you close.'
+                 ELSE 'Confirm the resolution on the call before closing to lift first-contact resolution.' END
+          WHEN 'Call Quality & Compliance' THEN
+            CASE WHEN v_score < 5.5 THEN 'Compliance misses are recurring — re-take the QA module and self-audit two calls a day.'
+                 ELSE 'Work the compliance checklist on every call to close the QA gaps.' END
+          WHEN 'Productivity' THEN
+            CASE WHEN v_score < 5.5 THEN 'Handle time and adherence are well off target — plan ready-time and breaks around volume.'
+                 ELSE 'Tighten after-call work to bring handle time back under standard.' END
+          WHEN 'Customer Experience' THEN
+            CASE WHEN v_score < 5.5 THEN 'CSAT is trailing badly — mirror the customer''s concern before moving to the fix.'
+                 ELSE 'Lead with an empathy statement to lift CSAT in the first 30 seconds.' END
+          WHEN 'Communication' THEN
+            CASE WHEN v_score < 5.5 THEN 'Notes are too thin for the next agent — capture issue, action, and next step every time.'
+                 ELSE 'Add the outcome and a clear next step to every case note so handoffs are clean.' END
+          ELSE
+            CASE WHEN v_score < 5.5 THEN 'Engage with feedback — book a listening session and commit to one concrete change.'
+                 ELSE 'Pick one point from your last review and apply it this week.' END
+        END;
+      ELSE
+        v_coach := NULL;
+      END IF;
+
+      INSERT INTO report_criterion_scores (report_id, criterion_name, score, reasoning, evidence, coaching_note)
+      VALUES (r.id, nm, v_score, v_reason, v_evidence, v_coach);
     END LOOP;
   END LOOP;
 END $$;

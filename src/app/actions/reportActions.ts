@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { getPeriodKey } from '@/utils/reportPeriod'
 import { withRetry } from '@/lib/ai/withRetry'
 import { getSessionContext, getAuthUser, getCachedEmployee } from '@/lib/auth/session'
+import { isSeededReport } from '@/utils/seededReport'
 
 export async function getReportsByManagerAction(view: 'org' | 'direct' = 'org', startDate?: string, endDate?: string) {
     try {
@@ -764,6 +765,92 @@ export async function setCalibrationAction(
     } catch (error) {
         console.error('setCalibrationAction Error:', error)
         return { error: 'Failed to save calibration' }
+    }
+}
+
+/**
+ * Shared gate for the manager re-score flow. Uses getSessionContext (which joins
+ * employee_permissions + maps isAccountOwner) so account owners and permitted
+ * managers resolve correctly — getByAuthId returns a leaner profile that omits
+ * those. Not exported → allowed alongside the 'use server' action exports.
+ */
+async function requireRescoreManager() {
+    const ctx = await getSessionContext()
+    if (!ctx?.employee) return { error: 'Not authenticated' as const }
+    const e = ctx.employee
+    const isManagerish = e.role === 'manager' || e.role === 'admin' || !!e.isAccountOwner
+    const canOverrideScores = !!e.isAccountOwner || e.role === 'admin' || (e.permissions?.canOverrideAIScores ?? false)
+    if (!isManagerish || !canOverrideScores) {
+        return { error: 'Unauthorized: you do not have permission to re-score reports' as const }
+    }
+    return { employee: e }
+}
+
+/**
+ * Authorize a manager-triggered AI re-score (checked before the client runs the
+ * scoring engine). Guardrails:
+ *  - Permission: account owner / admin, or a manager with canOverrideAIScores,
+ *    with access to this report (direct manager or org-wide).
+ *  - Eligibility: seeded/demo reports may always be re-scored; real reports only
+ *    when they never finished scoring. Changing a completed score goes through the
+ *    manager override, not a re-roll — this keeps scoring integrity intact.
+ */
+export async function authorizeRescoreAction(reportId: string) {
+    try {
+        const auth = await requireRescoreManager()
+        if ('error' in auth) return { error: auth.error }
+        const employee = auth.employee
+
+        const report = await reportService.getById(reportId)
+        if (!report) return { error: 'Report not found' }
+
+        const reportOwner = await employeeService.getById(report.employeeId!)
+        const isDirectManager = reportOwner.managerId === employee.id
+        const hasOrgWideAccess = !!employee.isAccountOwner ||
+            employee.role === 'admin' ||
+            (employee.permissions?.canViewOrganizationWide ?? false)
+        if (!isDirectManager && !hasOrgWideAccess) {
+            return { error: 'Unauthorized: you are not the manager for this employee' }
+        }
+
+        const seeded = isSeededReport(reportId)
+        const neverScored = !report.aiSummary
+        if (!seeded && !neverScored) {
+            return { error: 'Re-scoring is only available for demo reports or reports that never finished scoring. To change a completed score, use the manager override.' }
+        }
+
+        return { ok: true as const }
+    } catch (error) {
+        console.error('authorizeRescoreAction Error:', error)
+        return { error: 'Failed to authorize re-score' }
+    }
+}
+
+/**
+ * Stamp the audit trail after a successful re-score. The scoring engine (run by
+ * the client via /api/ai/score-report) only rewrites the AI score/summary/criterion
+ * scores, so any manager override is preserved. Non-fatal on a missing column.
+ */
+export async function finishRescoreAction(reportId: string) {
+    try {
+        const auth = await requireRescoreManager()
+        if ('error' in auth) return { error: auth.error }
+
+        try {
+            const admin = createAdminClient()
+            await (admin as any).from('reports').update({
+                rescored_at: new Date().toISOString(),
+                rescored_by: auth.employee.name || 'A manager',
+            }).eq('id', reportId)
+        } catch (stampErr) {
+            console.error('[finishRescoreAction] audit stamp failed (non-fatal):', stampErr)
+        }
+
+        revalidatePath(`/reports/${reportId}`)
+        return { success: true }
+    } catch (error) {
+        console.error('finishRescoreAction Error:', error)
+        return { error: 'Failed to finalize re-score' }
     }
 }
 

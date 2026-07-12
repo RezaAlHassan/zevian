@@ -2,6 +2,7 @@ import { getReportDetailAction } from '@/app/actions/reportActions'
 import { ReportDetailView } from '@/components/organisms/ReportDetailView'
 import { notFound } from 'next/navigation'
 import { getSessionContext } from '@/lib/auth/session'
+import { isSeededReport } from '@/utils/seededReport'
 
 export const metadata = {
     title: 'Report Detail | Zevian',
@@ -39,5 +40,11 @@ export default async function ReportDetailPage({ params }: { params: { id: strin
         }
     }
 
-    return <ReportDetailView report={result.report} canOverride={canOverride} />
+    // Re-score is available to override-capable managers on seeded/demo reports
+    // (always) or on real reports that never finished scoring (retry). Changing a
+    // completed real score stays in the override channel — see rescoreReportAction.
+    const neverScored = !result.report.aiSummary
+    const canRescore = canOverride && (isSeededReport(result.report.id) || neverScored)
+
+    return <ReportDetailView report={result.report} canOverride={canOverride} canRescore={canRescore} />
 }

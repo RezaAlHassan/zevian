@@ -549,7 +549,7 @@ async function scoreUploadedReport(args: {
     if (!apiKey) return { ok: false, error: 'AI is not configured (missing GEMINI_API_KEY)' }
 
     const goalCriteria = (args.goal.criteria || []).map((c: any) => ({
-        name: c.name, weight: c.weight,
+        name: c.name, weight: c.weight, target_description: c.target_description ?? null,
     }))
 
     if (goalCriteria.length === 0) {
@@ -565,20 +565,22 @@ GOAL: ${args.goal.name}
 GOAL INSTRUCTIONS: ${args.goal.instructions || 'None'}
 
 GOAL CRITERIA (score each 1.0–10.0 with one decimal):
-${goalCriteria.map((c: any) => `- ${c.name} (weight ${c.weight}%)`).join('\n')}
+${goalCriteria.map((c: any) => `- ${c.name} (weight ${c.weight}%) — Target: ${c.target_description || 'No target set'}`).join('\n')}
 
 ORG METRICS (score each 1.0–10.0 with one decimal):
 ${args.orgMetrics.map(m => `- ${m.name}: ${m.description || ''}`).join('\n') || 'None'}
 
 SCORING RULES:
-- Score on the numeric evidence shown. Higher numbers on positive metrics score higher; higher numbers on negative metrics (e.g. cancellations) score lower.
-- If a criterion has no matching KPI value in the report, score it 5.0 and say so in reasoning.
+- Score against the stated Target for each criterion, not just the raw number in isolation. Work out from the target's wording whether higher or lower values are better (e.g. a handle-time or cancellation target is lower-is-better; a CSAT or resolution-rate target is higher-is-better).
+- Meeting or beating the target → 8.0-10.0. Close but short of target → 5.0-7.9. Well short of target → below 5.0.
+- If a criterion has a target but no matching KPI value in the report, score it 5.0 and say "no value provided against a set target" in reasoning.
+- If a criterion has NO target set AND no matching KPI value in the report, do not guess a score — instead set "unscored": true and omit it from your judgement (it will be excluded from the average). Do not include unscored criteria in your reasoning as if they were evaluated.
 - For criteria scoring below 7.0, write one sentence of actionable coaching for the manager. Otherwise coaching_note is null.
 
 Return ONLY this JSON (no markdown, no preamble):
 {
   "criteria_scores": [
-    { "name": "<criterion name>", "score": 7.5, "evidence": "<KPI line referenced>", "reasoning": "<2 sentences>", "coaching_note": null }
+    { "name": "<criterion name>", "score": 7.5, "unscored": false, "evidence": "<KPI line referenced>", "reasoning": "<2 sentences, reference the target explicitly if one was set>", "coaching_note": null }
   ],
   "org_metrics": [
     { "name": "<metric name>", "score": 7.0, "reasoning": "<1 sentence>" }
@@ -619,7 +621,13 @@ Return ONLY this JSON (no markdown, no preamble):
             return { ok: false, error: 'AI returned no criterion scores' }
         }
 
-        const goalAvg = criteriaScores.reduce((s: number, c: any) => s + Number(c.score || 0), 0) / criteriaScores.length
+        // Criteria with no target and no matching KPI value are excluded from
+        // the average entirely, rather than floored at a guessed 5.0 — no
+        // target + no data means "nothing to judge", not "mediocre".
+        const scoredCriteria = criteriaScores.filter((c: any) => !c.unscored)
+        const goalAvg = scoredCriteria.length
+            ? scoredCriteria.reduce((s: number, c: any) => s + Number(c.score || 0), 0) / scoredCriteria.length
+            : 0
         const orgAvg = orgScores.length
             ? orgScores.reduce((s: number, m: any) => s + Number(m.score || 0), 0) / orgScores.length
             : 0

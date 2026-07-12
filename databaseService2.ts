@@ -667,7 +667,8 @@ function dbGoalToGoal(dbGoal: any): Goal {
         criteria: dbGoal.criteria ? dbGoal.criteria.map((c: any) => ({
             id: c.id,
             name: c.name,
-            weight: c.weight
+            weight: c.weight,
+            target_description: c.target_description ?? null
         })) : [],
         instructions: dbGoal.instructions,
         startDate: dbGoal.start_date ?? dbGoal.created_at,
@@ -1057,6 +1058,8 @@ function dbReportToReport(dbReport: any): Report {
         managerCalibration: dbReport.manager_calibration ?? null,
         consistencyFlag: dbReport.consistency_flag ?? null,
         consistencyNote: dbReport.consistency_note ?? null,
+        rescoredAt: dbReport.rescored_at ?? null,
+        rescoredBy: dbReport.rescored_by ?? null,
         goals: dbReport.goals,
         employees: dbReport.employees
     };

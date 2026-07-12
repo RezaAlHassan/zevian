@@ -114,6 +114,8 @@ export interface Report {
     managerCalibration?: 'agree' | 'adjusted_up' | 'adjusted_down' | null;
     consistencyFlag?: 'ESCALATING_CLAIMS' | 'STAGNANT_LANGUAGE' | 'STABLE' | null;
     consistencyNote?: string | null;
+    rescoredAt?: string | null;
+    rescoredBy?: string | null;
     criterionScores?: any[];
     goals?: any;
     employees?: any;
