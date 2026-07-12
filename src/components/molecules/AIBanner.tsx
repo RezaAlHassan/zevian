@@ -41,17 +41,17 @@ export function AIBanner({ message, highlightedText, onActionClick }: AIBannerPr
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
-          background: colors.accentGlow,
-          border: '1px solid colors.accentBorder',
+          background: colors.aiGlow,
+          border: `1px solid ${colors.aiBorder}`,
           borderRadius: radius.md,
           padding: '4px 10px',
           fontSize: '11px',
           fontWeight: typography.weight.semibold,
-          color: colors.accent,
+          color: colors.ai,
           whiteSpace: 'nowrap',
         }}
       >
-        <Icon name="star" size={11} color={colors.accent} />
+        <Icon name="star" size={11} color={colors.ai} />
         Zevian
       </div>
 

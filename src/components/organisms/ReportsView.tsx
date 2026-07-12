@@ -101,10 +101,12 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
   const pagedReports = filteredAndSortedReports.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const kpis = [
-    { label: role === 'manager' ? 'Total Reports' : 'My Reports', value: kpiData.totalReports.toString(), icon: 'fileText' as const, sub: role === 'manager' ? 'Direct reports total' : 'All your submissions', color: colors.accent },
-    { label: 'Avg Score', value: kpiData.avgScore.toString(), icon: 'trendingUp' as const, sub: role === 'manager' ? 'Team performance' : 'Your performance trend', color: colors.green },
-    { label: 'Pending Review', value: kpiData.pendingReview.toString(), icon: 'clock' as const, sub: role === 'manager' ? 'Awaiting your review' : 'Awaiting manager feedback', color: colors.warn },
-    { label: 'Overrides', value: kpiData.overrides.toString(), icon: 'edit' as const, sub: role === 'manager' ? 'Manual adjustments' : 'Managed adjustments', color: colors.text3 },
+    // Color = meaning: counts are neutral; Avg Score is graded; Pending goes amber only when there's
+    // actually something pending. No decorative rainbow competing with the graded/alert color.
+    { label: role === 'manager' ? 'Total Reports' : 'My Reports', value: kpiData.totalReports.toString(), icon: 'fileText' as const, sub: role === 'manager' ? 'Direct reports total' : 'All your submissions', color: colors.text },
+    { label: 'Avg Score', value: kpiData.avgScore.toString(), icon: 'trendingUp' as const, sub: role === 'manager' ? 'Team performance' : 'Your performance trend', color: Number(kpiData.avgScore) > 0 ? getScoreColor(Number(kpiData.avgScore)) : colors.text3 },
+    { label: 'Pending Review', value: kpiData.pendingReview.toString(), icon: 'clock' as const, sub: role === 'manager' ? 'Awaiting your review' : 'Awaiting manager feedback', color: kpiData.pendingReview > 0 ? colors.warnMuted : colors.text },
+    { label: 'Overrides', value: kpiData.overrides.toString(), icon: 'edit' as const, sub: role === 'manager' ? 'Manual adjustments' : 'Managed adjustments', color: colors.text },
   ]
 
   return (
@@ -117,7 +119,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
               <Icon name={kpi.icon} size={12} color={colors.text3} />
               {kpi.label}
             </div>
-            <div className="font-numeric" style={{ fontSize: '28px', fontWeight: 800, color: kpi.color, letterSpacing: '-1px', lineHeight: 1, marginBottom: '6px' }}>
+            <div className="font-numeric" style={{ fontSize: '28px', fontWeight: 800, color: kpi.color, letterSpacing: '-0.3px', lineHeight: 1, marginBottom: '6px' }}>
               {kpi.value}
             </div>
             <div style={{ fontSize: '11px', color: colors.text3 }}>{kpi.sub}</div>
@@ -129,18 +131,17 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '24px' }}>
         {/* Left: Search & Filters */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, width: '240px' }}>
+          <div className="zv-search" style={{ width: '240px' }}>
             <Icon name="search" size={14} color={colors.text3} />
             <input
               placeholder="Search reports..."
-              style={{ background: 'none', border: 'none', outline: 'none', color: colors.text, fontSize: '13px', width: '100%', fontFamily: typography.fonts.body }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
 
           <select
-            style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
+            className="zv-select"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -157,7 +158,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Sort:</span>
             <select
-              style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
+              className="zv-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
             >
@@ -189,20 +190,20 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
             {totalFilteredCount} {isPeriodFilter ? 'periods' : 'reports'}
           </div>
 
-          <div style={{ display: 'flex', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '2px', gap: '2px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', boxSizing: 'border-box', height: '32px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '2px', gap: '2px' }}>
             <button
               onClick={() => setViewMode('grid')}
               title="Grid View"
               style={{
                 width: '30px',
-                height: '30px',
+                height: '26px',
                 borderRadius: '5px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
                 background: viewMode === 'grid' ? colors.surface2 : 'transparent',
-                color: viewMode === 'grid' ? colors.accent : colors.text3,
+                color: viewMode === 'grid' ? colors.text : colors.text3,
                 border: 'none',
                 transition: `all ${animation.fast}`
               }}
@@ -214,14 +215,14 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
               title="Table View"
               style={{
                 width: '30px',
-                height: '30px',
+                height: '26px',
                 borderRadius: '5px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
                 background: viewMode === 'table' ? colors.surface2 : 'transparent',
-                color: viewMode === 'table' ? colors.accent : colors.text3,
+                color: viewMode === 'table' ? colors.text : colors.text3,
                 border: 'none',
                 transition: `all ${animation.fast}`
               }}
@@ -238,7 +239,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${colors.border}`, background: 'rgba(255,255,255,0.02)' }}>
-                {role === 'manager' && <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Employee</th>}
+                {role === 'manager' && <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Person</th>}
                 <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Goal</th>
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Project</th>
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Due Date</th>
@@ -313,7 +314,7 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${colors.border}`, background: 'rgba(255,255,255,0.02)' }}>
-                {role === 'manager' && <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Employee</th>}
+                {role === 'manager' && <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Person</th>}
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Goal</th>
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Project</th>
                 <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Date</th>
@@ -346,7 +347,8 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                     {role === 'manager' && (
                       <td style={{ padding: '14px 20px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: getAvatarGradient(employeeName), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#fff' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: getAvatarGradient(employeeName), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#fff', position: 'relative', overflow: 'hidden' }}>
+                            {report.employees?.avatar_url && <img src={report.employees.avatar_url} alt={employeeName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                             {getInitials(employeeName)}
                           </div>
                           <div>
@@ -450,7 +452,8 @@ export function ReportsView({ initialReports, kpiData, role = 'manager', initial
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                   {role === 'manager' && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: getAvatarGradient(employeeName), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: '#fff' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: getAvatarGradient(employeeName), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: '#fff', position: 'relative', overflow: 'hidden' }}>
+                        {report.employees?.avatar_url && <img src={report.employees.avatar_url} alt={employeeName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                         {getInitials(employeeName)}
                       </div>
                       <div>

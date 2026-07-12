@@ -2,9 +2,9 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { format } from 'date-fns'
-import { colors, radius, animation, getScoreColor } from '@/design-system'
+import { colors, radius, animation, getScoreColor, getAvatarTones, typography } from '@/design-system'
 import { KPICard } from '@/components/molecules/KPICard'
-import { Card } from '@/components/molecules/Card'
+import { Card, ShowAllButton } from '@/components/molecules/Card'
 import { SkillSpider } from '@/components/molecules/SkillSpider'
 import { SkillList } from '@/components/molecules/SkillList'
 import { Sparkline } from '@/components/molecules/Sparkline'
@@ -478,6 +478,8 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                 : scopedDelta >= 0 ? `+${scopedDelta} vs last report` : `${scopedDelta} vs last report`,
             icon: 'trendingUp',
             variant: 'accent' as const,
+            // Average IS a score → grade it. Neutral when there's no scored data to grade.
+            valueColor: filteredScoredReports.length > 0 ? getScoreColor(Number(scopedAverageScore)) : undefined,
         },
         {
             label: 'Strongest area',
@@ -527,7 +529,9 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                 icon: 'checkCircle',
                 value: onTimeRate != null ? `${onTimeRate}%` : 'N/A',
                 meta: onTimeRate != null ? 'of submissions' : 'No reports yet',
-                variant: (onTimeRate == null ? 'default' : onTimeRate >= 90 ? 'green' : onTimeRate >= 75 ? 'warn' : 'danger') as 'default' | 'green' | 'warn' | 'danger',
+                // Below-target on-time reads amber (attention), never saturated red — a rate isn't
+                // a genuine at-risk state. Good rate stays neutral (color = meaning).
+                variant: (onTimeRate == null || onTimeRate >= 90 ? 'default' : 'warn') as 'default' | 'warn',
             },
             {
                 label: 'Open KPIs',
@@ -543,6 +547,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
 
     // ── Hero (detail view) ──────────────────────────────────────────────────
     const managerName = typeof manager === 'string' ? manager : (manager?.name || null)
+    const heroTones = getAvatarTones(me.name || me.initials || '')
     const heroScore = (filteredScoredReports.length > 0 && scopedAverageScore != null && Number(scopedAverageScore) > 0)
         ? Number(scopedAverageScore)
         : null
@@ -564,23 +569,10 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '-10px', flexWrap: 'wrap' }}>
                     {activeGoals.length > 0 && (
                         <select
+                            className="zv-select"
                             value={effectiveGoalId ?? ''}
                             onChange={e => handleGoalChange(e.target.value || null)}
-                            style={{
-                                background: colors.surface2,
-                                border: `1px solid ${colors.border}`,
-                                borderRadius: '8px',
-                                color: effectiveGoalId ? colors.accent : colors.text3,
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                padding: '5px 28px 5px 10px',
-                                cursor: 'pointer',
-                                outline: 'none',
-                                appearance: 'none',
-                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-                                backgroundRepeat: 'no-repeat',
-                                backgroundPosition: 'right 8px center',
-                            }}
+                            style={{ color: effectiveGoalId ? colors.text : colors.text3 }}
                         >
                             <option value="">All KPIs</option>
                             {activeGoals.map((g: any) => (
@@ -624,10 +616,13 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: '240px' }}>
                         <div style={{
                             width: '52px', height: '52px', borderRadius: radius.md, flexShrink: 0,
-                            background: `linear-gradient(135deg, ${colors.accent}, ${colors.teal})`,
+                            background: heroTones.bg, position: 'relative', overflow: 'hidden',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '18px', fontWeight: 800, color: '#fff', letterSpacing: '0.02em',
+                            fontFamily: typography.fonts.display,
+                            fontSize: '18px', fontWeight: 600, color: heroTones.fg, letterSpacing: '-0.02em',
+                            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
                         }}>
+                            {me.avatarUrl && <img src={me.avatarUrl} alt={me.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                             {(me.initials || me.name?.slice(0, 2) || '').toUpperCase()}
                         </div>
                         <div style={{ minWidth: 0 }}>
@@ -702,6 +697,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                         value={(kpi as any).value}
                         deltaLabel={kpi.meta}
                         variant={kpi.variant}
+                        valueColor={(kpi as any).valueColor}
                     />
                 ))}
             </div>
@@ -722,7 +718,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                         background: colors.accentGlow, display: 'flex',
                         alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
-                        <Icon name="bell" size={16} color={colors.accent} />
+                        <Icon name="bell" size={16} color={colors.text3} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
@@ -850,20 +846,13 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
                         <Card
                             title="Reports"
                             icon="clock"
-                            action={
-                                <button
-                                    onClick={() => router.push('/my-reports')}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, color: colors.accent, padding: 0 }}
-                                >
-                                    See all →
-                                </button>
-                            }
                         >
                             <GoalSubmissionCards
                                 goalStates={goalStates}
                                 allowLateSubmissions={allowLateSubmissions}
                                 viewMode="employee"
                             />
+                            <ShowAllButton label="View all reports" onClick={() => router.push('/my-reports')} />
                         </Card>
                     )}
 
@@ -885,7 +874,7 @@ export function EmployeeDashboardView({ data, showDateSelector = true, allReport
 
 function ReportDetailContent({ report }: { report: any }) {
     const overallScore = report.managerOverallScore ?? report.evaluationScore
-    const scoreColor = overallScore >= 7.5 ? colors.green : overallScore >= 6 ? colors.warn : colors.danger
+    const scoreColor = getScoreColor(overallScore)
     const reportForDate = report.submittedForDate || report.submissionDate
     const submissionDate = (() => {
         const d = reportForDate.length === 10 ? reportForDate + 'T12:00:00' : reportForDate
@@ -953,7 +942,7 @@ function ReportDetailContent({ report }: { report: any }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {report.criterionScores.map((cs: any, i: number) => {
                             const csScore = Number(cs.score)
-                            const csColor = csScore >= 7.5 ? colors.green : csScore >= 6 ? colors.warn : colors.danger
+                            const csColor = getScoreColor(csScore)
                             return (
                                 <div key={i} style={{
                                     background: colors.surface2,

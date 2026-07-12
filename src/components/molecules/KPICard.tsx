@@ -14,6 +14,9 @@ interface KPICardProps {
   isScore?: boolean
   scoreValue?: number | null
   showBar?: boolean
+  // Explicit override for callers that pass a real score as `value` (not scoreValue) and want it
+  // graded — wins over the variant/count policy below.
+  valueColor?: string
 }
 
 export function KPICard({
@@ -26,10 +29,23 @@ export function KPICard({
   isScore = false,
   scoreValue,
   showBar = false,
+  valueColor: valueColorOverride,
 }: KPICardProps) {
-  const valueColor = variant !== 'default'
-    ? colors[variant]
-    : (scoreValue != null ? getScoreColor(scoreValue) : colors.accent)
+  // Color = meaning. A KPI value is colored only when it carries a state:
+  //   • a real score → graded bands (getScoreColor)
+  //   • an alert variant (warn/danger) → that color, for attention states (Missed/Overdue/…)
+  //   • everything else (plain counts: accent/green/default) → neutral text.
+  // This keeps decorative rainbow off count cards so the graded/alert color actually reads.
+  // Amber alerts use the muted amber (matches the muted-red saturation); danger stays saturated
+  // (reserved for genuine at-risk); everything else neutral.
+  const valueColor = valueColorOverride
+    ?? (isScore && scoreValue != null
+      ? getScoreColor(scoreValue)
+      : variant === 'warn'
+        ? colors.warnMuted
+        : variant === 'danger'
+          ? colors.danger
+          : colors.text)
 
   return (
     <div
@@ -46,7 +62,7 @@ export function KPICard({
         <Icon name={icon} size={12} color={colors.text3} />
         <span style={{
           fontSize: '11px',
-          fontWeight: 700,
+          fontWeight: 600,
           color: colors.text3,
           letterSpacing: '0.06em',
           textTransform: 'uppercase',
@@ -61,7 +77,7 @@ export function KPICard({
             <span className="font-numeric" style={{
               fontSize: '28px',
               fontWeight: 800,
-              letterSpacing: '-1px',
+              letterSpacing: '-0.3px',
               lineHeight: 1,
               color: valueColor,
             }}>
@@ -73,7 +89,7 @@ export function KPICard({
           <div className="font-numeric" style={{
             fontSize: '28px',
             fontWeight: 800,
-            letterSpacing: '-1px',
+            letterSpacing: '-0.3px',
             lineHeight: 1,
             marginBottom: '6px',
             color: colors.text3,
@@ -85,7 +101,7 @@ export function KPICard({
         <div className="font-numeric" style={{
           fontSize: '28px',
           fontWeight: 800,
-          letterSpacing: '-1px',
+          letterSpacing: '-0.3px',
           lineHeight: 1,
           marginBottom: '6px',
           color: valueColor,

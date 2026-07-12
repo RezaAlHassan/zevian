@@ -20,8 +20,8 @@ export function MetricCard({ name, subtitle, score, sparklineData, active = fals
     <div
       onClick={onClick}
       style={{
-        background: active ? 'rgba(91,127,255,0.05)' : colors.surface2,
-        border: `1px solid ${active ? 'rgba(91,127,255,0.35)' : colors.border}`,
+        background: active ? 'rgba(255,255,255,0.05)' : colors.surface2,
+        border: `1px solid ${active ? 'rgba(255,255,255,0.22)' : colors.border}`,
         borderRadius: radius.md,
         padding: '14px',
         cursor: onClick ? 'pointer' : 'default',
@@ -37,8 +37,8 @@ export function MetricCard({ name, subtitle, score, sparklineData, active = fals
       }}
       onMouseLeave={(e) => {
         if (onClick) {
-          e.currentTarget.style.borderColor = active ? 'rgba(91,127,255,0.35)' : colors.border
-          e.currentTarget.style.background = active ? 'rgba(91,127,255,0.05)' : colors.surface2
+          e.currentTarget.style.borderColor = active ? 'rgba(255,255,255,0.22)' : colors.border
+          e.currentTarget.style.background = active ? 'rgba(255,255,255,0.05)' : colors.surface2
         }
       }}
     >
@@ -49,7 +49,7 @@ export function MetricCard({ name, subtitle, score, sparklineData, active = fals
           left: 0,
           right: 0,
           height: '2px',
-          background: `linear-gradient(90deg, ${colors.accent}, ${colors.teal})`,
+          background: colors.text,
         }} />
       )}
 

@@ -247,7 +247,7 @@ export const projectService = {
             .from('projects')
             .select(`
                 *,
-                project_assignees(assignee_id, assignee_type, employees(name)),
+                project_assignees(assignee_id, assignee_type, employees(name, avatar_url)),
                 goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score, submission_date))
             `)
             .order('created_at', { ascending: false });
@@ -262,7 +262,7 @@ export const projectService = {
             .from('projects')
             .select(`
                 *,
-                project_assignees(assignee_id, assignee_type, employees(name)),
+                project_assignees(assignee_id, assignee_type, employees(name, avatar_url)),
                 goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score, submission_date))
             `)
             .eq('id', id)
@@ -328,7 +328,7 @@ export const projectService = {
                 type: pa.assignee_type
             })) || [],
             project_members: dbProject.project_assignees?.map((pa: any) => ({
-                employee: { id: pa.assignee_id, full_name: pa.employees?.name || 'Unknown' }
+                employee: { id: pa.assignee_id, full_name: pa.employees?.name || 'Unknown', avatar_url: pa.employees?.avatar_url ?? null }
             })) || [],
             goal_count: activeGoals.length,
             total_goals: goals.length,
@@ -621,7 +621,7 @@ export const projectService = {
             .from('projects')
             .select(`
                 *,
-                project_assignees(assignee_id, assignee_type, employees(name)),
+                project_assignees(assignee_id, assignee_type, employees(name, avatar_url)),
                 goals(id, status, deadline, reports(id, evaluation_score, manager_overall_score, submission_date))
             `)
             .in('id', allProjIds)
@@ -645,7 +645,8 @@ export const projectService = {
                 ...mapped,
                 project_members: (dbProject.project_assignees || []).map((pa: any) => ({
                     employee: {
-                        full_name: pa.employees?.name || 'Unknown'
+                        full_name: pa.employees?.name || 'Unknown',
+                        avatar_url: pa.employees?.avatar_url ?? null
                     }
                 }))
             };
@@ -684,7 +685,7 @@ function dbGoalToGoal(dbGoal: any): Goal {
  * Avoids joining `employees` directly from `goal_assignees` (no FK in schema cache).
  * Instead fetches assignee_ids first, then looks up names from the employees table.
  */
-async function fetchGoalMembersMap(goalIds: string[]): Promise<Record<string, { employee: { id: string; full_name: string } }[]>> {
+async function fetchGoalMembersMap(goalIds: string[]): Promise<Record<string, { employee: { id: string; full_name: string; avatar_url: string | null } }[]>> {
     if (!goalIds.length) return {};
 
     // Step 1: get assignee IDs per goal
@@ -695,21 +696,22 @@ async function fetchGoalMembersMap(goalIds: string[]): Promise<Record<string, { 
 
     if (!assigneeRows || assigneeRows.length === 0) return {};
 
-    // Step 2: get unique employee IDs, then fetch their names
+    // Step 2: get unique employee IDs, then fetch their names + avatars
     const empIds = [...new Set(assigneeRows.map((r: any) => r.assignee_id))];
     const { data: empRows } = await supabase
         .from('employees')
-        .select('id, name')
+        .select('id, name, avatar_url')
         .in('id', empIds);
 
     const empNameMap: Record<string, string> = {};
-    (empRows || []).forEach((e: any) => { empNameMap[e.id] = e.name; });
+    const empAvatarMap: Record<string, string | null> = {};
+    (empRows || []).forEach((e: any) => { empNameMap[e.id] = e.name; empAvatarMap[e.id] = e.avatar_url ?? null; });
 
     // Step 3: build map from goal_id -> members array
-    const map: Record<string, { employee: { id: string; full_name: string } }[]> = {};
+    const map: Record<string, { employee: { id: string; full_name: string; avatar_url: string | null } }[]> = {};
     assigneeRows.forEach((r: any) => {
         if (!map[r.goal_id]) map[r.goal_id] = [];
-        map[r.goal_id].push({ employee: { id: r.assignee_id, full_name: empNameMap[r.assignee_id] || 'Unknown' } });
+        map[r.goal_id].push({ employee: { id: r.assignee_id, full_name: empNameMap[r.assignee_id] || 'Unknown', avatar_url: empAvatarMap[r.assignee_id] ?? null } });
     });
 
     return map;
@@ -1476,6 +1478,7 @@ export const employeeService = {
         if (updates.email !== undefined) dbUpdates.email = updates.email;
         if (updates.organizationId !== undefined) dbUpdates.organization_id = updates.organizationId; // Critical fix: allow updating org ID
         if (updates.title !== undefined) dbUpdates.title = updates.title;
+        if (updates.avatarUrl !== undefined) dbUpdates.avatar_url = updates.avatarUrl; // null clears the photo
         if (updates.role !== undefined) dbUpdates.role = updates.role;
         if (updates.managerId !== undefined) dbUpdates.manager_id = updates.managerId;
         if (updates.isAccountOwner !== undefined) dbUpdates.is_account_owner = updates.isAccountOwner;
@@ -1883,6 +1886,7 @@ export const dashboardService = {
             me: {
                 name: employee.name,
                 initials: employee.name.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
+                avatarUrl: employee.avatarUrl ?? null,
                 role: employee.title || 'Team Member',
                 team: goals.length > 0 ? goals[0].projectName : 'No Team Assigned',
                 currentScore: Number(currentScore.toFixed(1)),
@@ -1974,7 +1978,7 @@ export const dashboardService = {
 
         let projectsQuery = supabase
             .from('projects')
-            .select('id, name, category, report_frequency, status, created_by, project_assignees(assignee_id, employees(name))')
+            .select('id, name, category, report_frequency, status, created_by, project_assignees(assignee_id, employees(name, avatar_url))')
             .eq('organization_id', orgId);
         if (view === 'direct') {
             projectsQuery = projectsQuery.or(`created_by.eq.${managerId}${assignedIds.length > 0 ? `,id.in.("${assignedIds.join('","')}")` : ''}`);
@@ -1982,7 +1986,7 @@ export const dashboardService = {
 
         let reportsQuery = supabase
             .from('reports')
-            .select('*, employees!reports_employee_id_fkey!inner(organization_id, name, manager_id, title), goals(project_id, name, projects(name)), report_criterion_scores(criterion_name, score, coaching_note)')
+            .select('*, employees!reports_employee_id_fkey!inner(organization_id, name, manager_id, title, avatar_url), goals(project_id, name, projects(name)), report_criterion_scores(criterion_name, score, coaching_note)')
             .eq('employees.organization_id', orgId);
         if (view === 'direct') {
             reportsQuery = directReportIds.length > 0
@@ -2107,7 +2111,7 @@ export const dashboardService = {
                 goalCount: projectGoals.length,
                 lastReport: projectReports.length > 0 ? new Date(projectReports[0].submission_date).toLocaleDateString() : 'Never',
                 members: p.project_assignees?.map((pa: any) => ({
-                    employee: { full_name: pa.employees?.name }
+                    employee: { full_name: pa.employees?.name, avatar_url: pa.employees?.avatar_url ?? null }
                 })) || [],
                 emoji: '📄'
             };
@@ -2155,6 +2159,7 @@ export const dashboardService = {
                 id: e.id,
                 name: e.name,
                 role: e.title || 'Team Member',
+                avatarUrl: e.avatar_url ?? null,
                 score: baselineRequired ? null : Number(empScore.toFixed(1)),
                 baselineRequired,
                 compliance,
@@ -2380,6 +2385,7 @@ export const dashboardService = {
                 employeeId: r.employee_id || r.employees?.id,
                 employeeName: r.employees?.name || 'Unknown',
                 employeeTitle: r.employees?.title || '',
+                employeeAvatarUrl: r.employees?.avatar_url ?? null,
                 goalName: r.goals?.name || null,
                 projectName: r.goals?.projects?.name || null,
                 date: r.submission_date,

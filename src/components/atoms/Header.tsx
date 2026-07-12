@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useTransition } from 'react'
 import { colors, layout, typography, radius, animation, shadows } from '@/design-system'
 import { Icon, Avatar } from '@/components/atoms'
 import Link from 'next/link'
@@ -11,13 +11,18 @@ interface HeaderProps {
   title: string
   subtitle?: string
   userName?: string
+  avatarUrl?: string | null
   showViewSwitcher?: boolean
 }
 
-export function Header({ title, subtitle, userName = 'JD', showViewSwitcher = false }: HeaderProps) {
+export function Header({ title, subtitle, userName = 'JD', avatarUrl, showViewSwitcher = false }: HeaderProps) {
   const [isAccountOpen, setIsAccountOpen] = useState(false)
   const [isViewOpen, setIsViewOpen] = useState(false)
-  
+  // Switching org/direct re-fetches the page server-side without a route change, so
+  // loading.tsx never shows. The pending flag drives a spinner on the switcher control
+  // so the user can see the view is actually loading.
+  const [isViewPending, startViewTransition] = useTransition()
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const viewParam = searchParams.get('view') || 'org'
@@ -39,7 +44,9 @@ export function Header({ title, subtitle, userName = 'JD', showViewSwitcher = fa
   const handleViewChange = (newView: string) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set('view', newView)
-    router.push(`?${params.toString()}`)
+    startViewTransition(() => {
+      router.push(`?${params.toString()}`)
+    })
     setIsViewOpen(false)
   }
 
@@ -54,6 +61,7 @@ export function Header({ title, subtitle, userName = 'JD', showViewSwitcher = fa
         background: 'rgba(10,12,16,0.8)',
         backdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${colors.border}`,
+        boxShadow: '0 1px 0 rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.15)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 24px',
@@ -88,7 +96,7 @@ export function Header({ title, subtitle, userName = 'JD', showViewSwitcher = fa
       {showViewSwitcher && (
         <div style={{ position: 'relative' }}>
           <div
-            onClick={() => setIsViewOpen(!isViewOpen)}
+            onClick={() => { if (!isViewPending) setIsViewOpen(!isViewOpen) }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -100,13 +108,14 @@ export function Header({ title, subtitle, userName = 'JD', showViewSwitcher = fa
               fontSize: '12px',
               fontWeight: 600,
               color: colors.text2,
-              cursor: 'pointer',
+              cursor: isViewPending ? 'progress' : 'pointer',
+              opacity: isViewPending ? 0.7 : 1,
               transition: `all ${animation.fast}`,
             }} className="header-control"
           >
             <Icon name="person" size={13} />
             <span>{currentView}</span>
-            <Icon name="chevronDown" size={10} />
+            {isViewPending ? <span className="view-spinner" aria-label="Loading view" /> : <Icon name="chevronDown" size={10} />}
           </div>
 
           {isViewOpen && (
@@ -187,7 +196,7 @@ export function Header({ title, subtitle, userName = 'JD', showViewSwitcher = fa
           }}
           className="account-trigger"
         >
-          <Avatar name={userName} size="md" />
+          <Avatar name={userName} src={avatarUrl} size="md" />
           <Icon name="chevronDown" size={10} color={colors.text3} />
         </div>
 
@@ -234,6 +243,17 @@ export function Header({ title, subtitle, userName = 'JD', showViewSwitcher = fa
       </div>
 
       <style jsx>{`
+        .view-spinner {
+          width: 10px;
+          height: 10px;
+          border: 1.5px solid ${colors.text3};
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: view-spin 0.7s linear infinite;
+        }
+        @keyframes view-spin {
+          to { transform: rotate(360deg); }
+        }
         .header-control:hover {
           border-color: ${colors.borderHover} !important;
           color: ${colors.text} !important;

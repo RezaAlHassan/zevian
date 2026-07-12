@@ -31,10 +31,30 @@ export const colors = {
   // subtext is legible without collapsing the tier below text2. Mirrored in globals.css.
   text3: '#7c8499',
 
-  accent: '#5b7fff',
-  accentHover: '#7090ff',
-  accentGlow: 'rgba(91,127,255,0.18)',
-  accentBorder: 'rgba(91,127,255,0.28)',
+  // ── Interactive chrome (greyscale) ───────────────────────────────────────
+  // Formerly the blue brand accent; repointed to greyscale so navigation, tabs, links and buttons
+  // stop competing with score data. Only score colors (green/warn/danger) and the AI blue/teal carry
+  // meaning now. `accent` == text-primary so a link/active-tab reads as high-contrast white; pills
+  // built from accentGlow+accent become quiet white-on-tint chips. Interactivity is signalled by
+  // weight / underline-on-hover / border, never by hue (see the button + tab + nav treatments).
+  accent: '#f0f2f7',                       // = text (chrome interactive foreground)
+  accentHover: '#ffffff',
+  accentGlow: 'rgba(255,255,255,0.06)',    // subtle raised tint for active-nav / soft chips
+  accentBorder: 'rgba(255,255,255,0.13)',  // = borderHover
+
+  // ── Brand (blue) ─────────────────────────────────────────────────────────
+  // The one deliberate blue left in the product: the Zevian logo mark. Reads as identity, not as an
+  // interactive affordance, so it never appears on a button, tab, or link.
+  brand: '#5b7fff',
+  brandBorder: 'rgba(91,127,255,0.28)',
+
+  // ── AI accent (low-opacity blue) ─────────────────────────────────────────
+  // AI / Ask surfaces keep blue, used low-opacity as their primary tint so "this is generated"
+  // stays visually distinct from greyscale chrome. Teal remains the AI secondary.
+  ai: '#5b7fff',
+  aiHover: '#7090ff',
+  aiGlow: 'rgba(91,127,255,0.14)',
+  aiBorder: 'rgba(91,127,255,0.26)',
 
   teal: '#00d4aa',
   tealGlow: 'rgba(0,212,170,0.12)',
@@ -44,9 +64,24 @@ export const colors = {
 
   warn: '#f59e0b',
   warnGlow: 'rgba(245,158,11,0.12)',
+  // Below-target amber for numbers / data — desaturated to the SAME saturation+lightness as
+  // dangerMuted (hsl ~53% / 62%), just at the amber hue, so a muted-amber value sits beside a
+  // muted-red value without one looking louder. Reserve the saturated `warn` for structural alerts
+  // (dots, strips, borders).
+  warnMuted: '#d1ac6b',
+  warnMutedGlow: 'rgba(209,172,107,0.14)',
 
+  // Saturated red — RESERVED for genuine at-risk *states*: the "N at risk" pill, at-risk status
+  // dot, Needs Attention flag, and the "not addressed / score 0" skill flag. Never used for a
+  // score number or a routine bar (those use dangerMuted) so that when this red appears it means
+  // something rather than reading as a broken product.
   danger: '#f04438',
   dangerGlow: 'rgba(240,68,56,0.15)',
+  // Below-target red — desaturated terracotta for score numbers / bars in the <5.0 band. Present
+  // and legible (≈4.6:1 on card surfaces) but calm, so a screen of low scores informs instead of
+  // alarms. Pairs with getScoreColor()'s reworked bands.
+  dangerMuted: '#d1746b',
+  dangerMutedGlow: 'rgba(209,116,107,0.14)',
 
   purple: '#8b5cf6',
   purpleGlow: 'rgba(139,92,246,0.12)',
@@ -91,7 +126,7 @@ export const typography = {
   },
   label: {
     fontSize: '11px',
-    fontWeight: 700,
+    fontWeight: 600,
     letterSpacing: '0.07em',
     textTransform: 'uppercase' as const,
     color: colors.text3,
@@ -125,12 +160,14 @@ export const radius = {
 // SHADOWS / GLOWS
 // ─────────────────────────────────────────────
 export const shadows = {
-  accentGlow: '0 0 16px rgba(91,127,255,0.25)',
-  accentGlowLg: '0 0 24px rgba(91,127,255,0.35)',
-  logoGlow: '0 0 16px rgba(91,127,255,0.18)',
+  // Chrome glows neutralized — greyscale chrome carries no colored halo. Kept as tokens (rather than
+  // deleted) so the many call sites don't break; they now resolve to no glow / a neutral focus tint.
+  accentGlow: 'none',
+  accentGlowLg: 'none',
+  logoGlow: 'none',
   greenGlow: '0 0 5px rgba(16,185,129,1)',
   cardHover: '0 8px 24px rgba(0,0,0,0.3)',
-  inputFocus: '0 0 0 3px rgba(91,127,255,0.08)',
+  inputFocus: '0 0 0 3px rgba(255,255,255,0.08)',
 } as const
 
 // ─────────────────────────────────────────────
@@ -166,36 +203,73 @@ export const zIndex = {
 } as const
 
 // ─────────────────────────────────────────────
+// BADGE TONES (count / status number badges)
+// ─────────────────────────────────────────────
+// Soft-badge pairs for the dark UI: a LOW-OPACITY tint of the color as the fill + the muted same-hue
+// color for the number. The tint stays quiet against the dark surface while the text keeps ≥4:1
+// against it. Amber uses the muted amber so it matches the muted red's saturation. Rendered as a
+// rounded square (radius.sm) — the canonical number badge, mirrored from the Chip atom.
+export const badgeTones = {
+  neutral: { bg: 'rgba(255,255,255,0.07)', text: '#8b93a8' }, // text2
+  // Chrome badge tone — greyscale (formerly blue). Slightly brighter fill + near-white text so it
+  // reads a step above `neutral` without reintroducing a hue.
+  accent:  { bg: 'rgba(255,255,255,0.10)', text: '#f0f2f7' },
+  // AI badge tone — low-opacity blue, for generated / AI-scored chips only.
+  ai:      { bg: 'rgba(91,127,255,0.16)',  text: '#7a97ff' },
+  teal:    { bg: 'rgba(0,212,170,0.16)',   text: '#00d4aa' },
+  danger:  { bg: 'rgba(209,116,107,0.16)', text: '#d1746b' }, // dangerMuted
+  warn:    { bg: 'rgba(209,172,107,0.16)', text: '#d1ac6b' }, // warnMuted — matches the red saturation
+} as const
+
+// ─────────────────────────────────────────────
 // SCORE HELPER
 // ─────────────────────────────────────────────
+/**
+ * Score → color, banded to the AI scoring rubric (see /api/ai/score-report), NOT to arbitrary
+ * taste. The engine applies the same fixed rubric to every org, so the numbers have an absolute,
+ * org-independent meaning we can color against:
+ *   • ≥ 7.0  on-track  → green. 7.0 is the rubric's "has measurable outcomes" line — the point at
+ *                        which the engine itself stops generating a coaching note.
+ *   • 5.0–7.0 mid      → neutral text. The rubric calls this "plausible but thin evidence." It is
+ *                        not a warning; most real reports land here, so it reads calm, not amber.
+ *   • < 5.0  below-tgt → dangerMuted. Genuinely unsupported/evidence-free work. Muted, not
+ *                        saturated — saturated red is reserved for discrete at-risk states (pills).
+ */
 export function getScoreColor(score: number | null | undefined): string {
   if (score == null) return colors.text3
-  if (score >= 7.5) return colors.green
-  if (score >= 6.0) return colors.warn
-  return colors.danger
-}
-
-export function getScoreBarColor(score: number | null | undefined): string {
-  return getScoreColor(score)
+  if (score >= 7.0) return colors.green
+  if (score >= 5.0) return colors.text
+  return colors.dangerMuted
 }
 
 /**
- * Muted progress-bar fill. Returns a low-opacity tint of the status color so bars
- * read as quiet context rather than competing alarms — color hierarchy is reserved
- * for status pills, the Needs Attention section, and integrity flags. The numeric
- * score next to the bar keeps its full-saturation getScoreColor() value.
+ * Bar-fill color. Same bands as getScoreColor, but the neutral middle uses a grey (not near-white)
+ * so a mid-band bar reads as quiet progress rather than a full/loud track, and the low band uses
+ * the muted red. Solid enough to read; never the saturated alarm red.
+ */
+export function getScoreBarColor(score: number | null | undefined): string {
+  if (score == null) return colors.surface3
+  if (score >= 7.0) return colors.green
+  if (score >= 5.0) return colors.text2
+  return colors.dangerMuted
+}
+
+/**
+ * Low-opacity tint variant for bars that sit *under* a colored number — even quieter than
+ * getScoreBarColor. Color hierarchy is reserved for status pills and the Needs Attention section;
+ * these tints read as context, not competing alarms.
  */
 export function getScoreBarFill(score: number | null | undefined): string {
   if (score == null) return colors.surface3
-  if (score >= 7.5) return 'rgba(16,185,129,0.40)'   // green tint
-  if (score >= 6.0) return 'rgba(245,158,11,0.40)'   // amber tint
-  return 'rgba(240,68,56,0.40)'                        // danger tint
+  if (score >= 7.0) return 'rgba(16,185,129,0.40)'    // green tint
+  if (score >= 5.0) return 'rgba(139,147,168,0.28)'   // neutral grey tint
+  return 'rgba(209,116,107,0.38)'                      // muted red tint
 }
 
 export function getScoreStatus(score: number | null | undefined): 'on-track' | 'review' | 'at-risk' | 'no-data' {
   if (score == null) return 'no-data'
-  if (score >= 7.5) return 'on-track'
-  if (score >= 6.0) return 'review'
+  if (score >= 7.0) return 'on-track'
+  if (score >= 5.0) return 'review'
   return 'at-risk'
 }
 
@@ -211,10 +285,44 @@ const GRADIENTS = [
   'linear-gradient(135deg, #10b981, #0ea5e9)',
 ]
 
+/**
+ * Curated avatar palette — 10 distinct hues spread evenly around the wheel at a shared saturation /
+ * lightness so they read as one family, tuned to sit on the dark UI and carry white initials. A
+ * fixed palette (not a continuous hash→hue) GUARANTEES people get visibly different colors instead
+ * of occasionally landing on near-identical hues. Semantic score hues (green/amber/danger/accent)
+ * are deliberately avoided-ish so an avatar never reads as a status.
+ */
+const AVATAR_PALETTE = [
+  '#e05a7d', // rose
+  '#e2694a', // coral
+  '#c98a3e', // ochre
+  '#3fa96b', // green
+  '#1ba398', // teal
+  '#2b8fb8', // cyan
+  '#4a7fe0', // blue
+  '#6d5fe0', // indigo
+  '#9c56d4', // violet
+  '#cf5bb0', // pink
+] as const
+
+/**
+ * Deterministic name → avatar color pair. Solid fill from the curated palette + white initials, for
+ * maximum at-a-glance distinguishability in rosters and report lists. { bg, fg } shape is kept so the
+ * Avatar atom and its call sites don't change.
+ */
+export function getAvatarTones(name: string): { bg: string; fg: string } {
+  let h = 5381
+  for (let i = 0; i < name.length; i++) h = ((h << 5) + h) ^ name.charCodeAt(i)
+  return {
+    bg: AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length],
+    fg: '#ffffff',
+  }
+}
+
+// Back-compat for call sites that set an avatar background directly: returns the solid palette fill
+// (see getAvatarTones) so overrides stay in sync with the Avatar atom.
 export function getAvatarGradient(name: string): string {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  return GRADIENTS[Math.abs(hash) % GRADIENTS.length]
+  return getAvatarTones(name).bg
 }
 
 // ─────────────────────────────────────────────
@@ -223,9 +331,11 @@ export function getAvatarGradient(name: string): string {
 // its suggestion chips). `strong` for the primary input border, `subtle` for secondary
 // affordances so they relate to the bar without competing with it.
 // ─────────────────────────────────────────────
+// Low-opacity blue-forward (teal as the secondary): AI surfaces read as a soft blue wash — distinct
+// from greyscale chrome without the old saturated brand-blue border.
 export const aiGradient = {
-  strong: 'linear-gradient(120deg, rgba(91,127,255,0.55), rgba(0,212,170,0.45))',
-  subtle: 'linear-gradient(120deg, rgba(91,127,255,0.32), rgba(0,212,170,0.26))',
+  strong: 'linear-gradient(120deg, rgba(91,127,255,0.30), rgba(0,212,170,0.20))',
+  subtle: 'linear-gradient(120deg, rgba(91,127,255,0.18), rgba(0,212,170,0.12))',
 } as const
 
 // Build the two-layer background that paints a gradient *border* on a single element:
@@ -257,7 +367,7 @@ export const componentTokens = {
       borderBottom: `1px solid ${colors.border}`,
     },
     logoMark: {
-      width: '30px', height: '30px', background: colors.accent, borderRadius: radius.md,
+      width: '30px', height: '30px', background: colors.brand, borderRadius: radius.md,
       fontFamily: typography.fonts.display, fontWeight: typography.weight.extrabold,
       fontSize: '14px', color: '#fff', boxShadow: shadows.logoGlow,
     },
@@ -278,15 +388,18 @@ export const componentTokens = {
         transition: `all ${animation.fast}`,
       },
       hover: { background: colors.surface2, color: colors.text },
-      active: { background: colors.accentGlow, color: colors.accent, border: `1px solid ${colors.accentBorder}` },
+      // Active nav: high-contrast white text on a subtle raised tint + a hairline border. No hue —
+      // the contrast jump + border carry "you are here".
+      active: { background: colors.accentGlow, color: colors.text, border: `1px solid ${colors.accentBorder}` },
     },
     footer: { padding: '12px 10px', borderTop: `1px solid ${colors.border}` },
+    // Primary CTA — "Raised neutral" (P3): dark raised surface + white label + hairline border.
     ctaButton: {
       gap: '8px',
-      padding: '9px', background: colors.accent, border: 'none',
-      borderRadius: radius.md, color: '#fff', fontSize: '13px',
+      padding: '9px', background: colors.surface3, border: `1px solid ${colors.borderHover}`,
+      borderRadius: radius.md, color: colors.text, fontSize: '13px',
       fontWeight: typography.weight.semibold, cursor: 'pointer',
-      boxShadow: '0 0 20px rgba(91,127,255,0.30)', transition: `all ${animation.fast}`,
+      boxShadow: 'none', transition: `all ${animation.fast}`,
     },
   },
   header: {
@@ -306,7 +419,7 @@ export const componentTokens = {
     },
     avatar: {
       width: '34px', height: '34px',
-      background: `linear-gradient(135deg, ${colors.accent}, ${colors.teal})`,
+      background: `linear-gradient(135deg, ${colors.brand}, ${colors.teal})`,
       borderRadius: radius.md, fontWeight: typography.weight.bold,
       fontSize: '12px', color: '#fff', cursor: 'pointer',
     },
@@ -367,9 +480,11 @@ export const componentTokens = {
       icon: { width: '30px', height: '30px', padding: '0', borderRadius: radius.md },
     },
     variants: {
-      primary: { background: colors.accent, color: '#fff', boxShadow: shadows.accentGlow },
-      secondary: { background: colors.surface2, color: colors.text2, border: `1px solid ${colors.border}` },
-      ghost: { background: 'transparent', color: colors.accent, border: `1px solid ${colors.accentBorder}` },
+      // Primary "Raised neutral" (P3): dark raised surface + white label + hairline border.
+      // Secondary "Ghost outline" (S2): transparent + defined border. Ghost: quietest, no rest border.
+      primary: { background: colors.surface3, color: colors.text, border: `1px solid ${colors.borderHover}`, boxShadow: 'none' },
+      secondary: { background: 'transparent', color: colors.text2, border: `1px solid ${colors.borderHover}` },
+      ghost: { background: 'transparent', color: colors.text2 },
     },
   },
   card: {
@@ -409,14 +524,24 @@ export const cssVariables = {
   '--color-accent-hover': colors.accentHover,
   '--color-accent-glow': colors.accentGlow,
   '--color-accent-border': colors.accentBorder,
+  '--color-brand': colors.brand,
+  '--color-brand-border': colors.brandBorder,
+  '--color-ai': colors.ai,
+  '--color-ai-hover': colors.aiHover,
+  '--color-ai-glow': colors.aiGlow,
+  '--color-ai-border': colors.aiBorder,
   '--color-teal': colors.teal,
   '--color-teal-glow': colors.tealGlow,
   '--color-green': colors.green,
   '--color-green-glow': colors.greenGlow,
   '--color-warn': colors.warn,
   '--color-warn-glow': colors.warnGlow,
+  '--color-warn-muted': colors.warnMuted,
+  '--color-warn-muted-glow': colors.warnMutedGlow,
   '--color-danger': colors.danger,
   '--color-danger-glow': colors.dangerGlow,
+  '--color-danger-muted': colors.dangerMuted,
+  '--color-danger-muted-glow': colors.dangerMutedGlow,
   '--color-purple': colors.purple,
   '--color-purple-glow': colors.purpleGlow,
   '--sidebar-width': layout.sidebarWidth,

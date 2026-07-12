@@ -1,4 +1,4 @@
-import { createServerClient as _createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient as _createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
 
@@ -6,6 +6,9 @@ import type { Database } from '@/types/database'
  * Server-side Supabase client.
  * Use in Server Components, Route Handlers, and Server Actions.
  * Reads/writes auth cookies automatically via Next.js cookies().
+ * Uses the getAll/setAll cookie API so the auth cookie set is always written
+ * atomically — partial writes under the old per-cookie API could corrupt the
+ * session and log users out.
  */
 export function createServerClient() {
   const cookieStore = cookies()
@@ -15,25 +18,17 @@ export function createServerClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        getAll() {
+          return cookieStore.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
+        setAll(cookiesToSet) {
           try {
-            cookieStore.set({ name, value, ...options })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
           } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // Called from a Server Component, where cookies are read-only.
+            // Safe to ignore — the middleware refreshes sessions.
           }
         },
       },

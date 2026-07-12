@@ -5,7 +5,7 @@ import { DEFAULT_ORG_METRICS } from '@/constants/metrics'
 import { colors, radius, typography, animation, layout, shadows, getAvatarGradient, getInitials } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
-import { Card } from '@/components/molecules/Card'
+import { Card, CountLabel } from '@/components/molecules/Card'
 import { InviteModal } from '@/components/molecules/InviteModal'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { Organization, Employee, CustomMetric } from '@/types'
@@ -200,12 +200,18 @@ export function OrganizationView({ organization, employees, customMetrics, curre
         }
     }
 
+    const RAIL_WIDTH = 200
+
     return (
-        <div style={{ display: 'flex', height: 'calc(100vh - 56px)', background: colors.bg }}>
-            {/* Left Rail Navigation */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%', background: colors.bg }}>
+            {/* Left Rail Navigation — sticks to the left of the grid while the content scrolls */}
             <nav style={{
-                width: '200px',
+                width: `${RAIL_WIDTH}px`,
                 flexShrink: 0,
+                position: 'sticky',
+                top: layout.headerHeight,
+                alignSelf: 'flex-start',
+                maxHeight: `calc(100vh - ${layout.headerHeight})`,
                 borderRight: `1px solid ${colors.border}`,
                 padding: '20px 12px',
                 overflowY: 'auto'
@@ -245,8 +251,8 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                 ))}
             </nav>
 
-            {/* Content Area */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+            {/* Content Area — centers within the remaining space to the right of the rail */}
+            <div style={{ flex: 1, minWidth: 0, maxWidth: '980px', margin: '0 auto', padding: layout.contentPadding }}>
                 {activeTab === 'general' && (
                     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         <Card title="General Information" icon="settings">
@@ -327,13 +333,10 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                 {submissionPolicy.globalFrequency && (
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0', marginLeft: '12px', borderLeft: `2px solid ${colors.border}`, paddingLeft: '16px' }}>
                                         <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text2 }}>Default Frequency</div>
-                                        <select 
+                                        <select
+                                            className="zv-select"
                                             value={submissionPolicy.reportFrequency}
                                             onChange={(e) => setSubmissionPolicy(prev => ({ ...prev, reportFrequency: e.target.value as any }))}
-                                            style={{ 
-                                                padding: '6px 12px', background: colors.surface2, border: `1px solid ${colors.border}`, 
-                                                borderRadius: '6px', fontSize: '12px', color: colors.text, outline: 'none'
-                                            }}
                                         >
                                             <option value="daily">Daily</option>
                                             <option value="weekly">Weekly</option>
@@ -348,7 +351,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
                                     <div>
                                         <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text }}>Allow Late Submissions</div>
-                                        <div style={{ fontSize: '12px', color: colors.text3 }}>Enable employees to submit reports for past dates (up to 7 days).</div>
+                                        <div style={{ fontSize: '12px', color: colors.text3 }}>Enable people to submit reports for past dates (up to 7 days).</div>
                                     </div>
                                     <div 
                                         onClick={() => setSubmissionPolicy(prev => ({ ...prev, allowLateSubmissions: !prev.allowLateSubmissions }))}
@@ -460,7 +463,7 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                         <Card
                             title="Organizational Metrics"
                             icon="target"
-                            action={<div style={{ padding: '4px 12px', background: colors.accentGlow, color: colors.accent, borderRadius: '20px', fontSize: '11px', fontWeight: 700 }}>{selectedMetrics.length} Active</div>}
+                            action={<CountLabel>{selectedMetrics.length} Active</CountLabel>}
                         >
                             <p style={{ fontSize: '13px', color: colors.text3, marginBottom: '24px', lineHeight: 1.6 }}>
                                 Select dimensions measured across your organization. These apply to every evaluation separately from goal criteria.
@@ -671,7 +674,8 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                                         <tr key={e.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
                                                             <td style={{ padding: '12px' }}>
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: getAvatarGradient(e.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#fff' }}>
+                                                                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: getAvatarGradient(e.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: '#fff', position: 'relative', overflow: 'hidden' }}>
+                                                                        {e.avatarUrl && <img src={e.avatarUrl} alt={e.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                                                                         {getInitials(e.name)}
                                                                     </div>
                                                                     <div>
@@ -691,22 +695,14 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                                             </td>
                                                             <td style={{ padding: '12px' }}>
                                                                 <select
+                                                                    className="zv-select"
                                                                     value={managerIds[e.id] ?? ''}
                                                                     onChange={async (ev) => {
                                                                         const newManagerId = ev.target.value
                                                                         setManagerIds(prev => ({ ...prev, [e.id]: newManagerId }))
                                                                         await updateEmployeeManagerAction(e.id, newManagerId || null)
                                                                     }}
-                                                                    style={{
-                                                                        background: colors.surface2,
-                                                                        border: `1px solid ${colors.border}`,
-                                                                        borderRadius: '6px',
-                                                                        padding: '4px 8px',
-                                                                        fontSize: '12px',
-                                                                        color: colors.text,
-                                                                        outline: 'none',
-                                                                        width: '140px'
-                                                                    }}
+                                                                    style={{ width: '140px' }}
                                                                 >
                                                                     <option value="">No Manager</option>
                                                                     {activeEmps.filter(m => (m.role === 'manager' || m.isAccountOwner) && m.id !== e.id).map(m => (
@@ -760,7 +756,8 @@ export function OrganizationView({ organization, employees, customMetrics, curre
                                                             <tr key={e.id} style={{ borderBottom: `1px solid ${colors.border}`, opacity: 0.6 }}>
                                                                 <td style={{ padding: '12px' }}>
                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: colors.surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: colors.text3 }}>
+                                                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: colors.surface2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, color: colors.text3, position: 'relative', overflow: 'hidden' }}>
+                                                                            {e.avatarUrl && <img src={e.avatarUrl} alt={e.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                                                                             {getInitials(e.name)}
                                                                         </div>
                                                                         <div>

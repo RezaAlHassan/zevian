@@ -28,16 +28,17 @@ export function StepTracker({ steps, currentStep }: StepTrackerProps) {
                                     width: '28px',
                                     height: '28px',
                                     borderRadius: '50%',
-                                    border: isDone ? `none` : `1.5px solid ${isActive ? colors.accent : colors.border}`,
-                                    background: isDone ? colors.green : (isActive ? colors.accent : colors.surface2),
+                                    border: isDone ? `none` : `1.5px solid ${isActive ? colors.text : colors.border}`,
+                                    // Active step: near-white fill + dark ink (greyscale primary). Done stays semantic green.
+                                    background: isDone ? colors.green : (isActive ? colors.text : colors.surface2),
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     fontSize: '11px',
                                     fontWeight: 800,
-                                    color: (isDone || isActive) ? '#fff' : colors.text3,
+                                    color: isDone ? '#fff' : (isActive ? colors.bg : colors.text3),
                                     transition: `all ${animation.fast}`,
-                                    boxShadow: isActive ? `0 0 12px ${colors.accent}40` : 'none'
+                                    boxShadow: 'none'
                                 }}
                             >
                                 {isDone ? (

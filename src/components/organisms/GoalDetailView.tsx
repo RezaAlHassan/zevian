@@ -5,8 +5,8 @@ import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { ScoreDisplay } from '@/components/atoms/Score'
-import { Avatar, Chip } from '@/components/atoms'
-import { Card } from '@/components/molecules/Card'
+import { Avatar } from '@/components/atoms'
+import { Card, ShowAllButton, CountLabel } from '@/components/molecules/Card'
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -15,15 +15,21 @@ import { updateGoalMembersAction, updateGoalStatusAction } from '@/app/actions/g
 import { AddGoalSheet } from './AddGoalSheet'
 import { ManageGoalTeamSheet } from './ManageGoalTeamSheet'
 
+interface GoalPeriodSummary {
+    current: { label: string; reported: number; total: number; missing: string[] } | null
+    nextLabel: string | null
+}
+
 interface Props {
     goal: any
     projects: any[]
     employees: any[]
     readOnly?: boolean
     basePath?: string
+    periodSummary?: GoalPeriodSummary | null
 }
 
-export function GoalDetailView({ goal, projects, employees, readOnly = false, basePath = '/goals' }: Props) {
+export function GoalDetailView({ goal, projects, employees, readOnly = false, basePath = '/goals', periodSummary = null }: Props) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const view = searchParams.get('view') || 'org'
@@ -118,7 +124,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                         border: `1px solid ${colors.border}`,
                         flexShrink: 0
                     }}>
-                        <Icon name="target" size={26} color={colors.accent} />
+                        <Icon name="target" size={26} color={colors.text3} />
                     </div>
                     <div style={{ flex: 1 }}>
                         <h1 style={{ fontFamily: typography.fonts.display, fontSize: '21px', fontWeight: 800, color: colors.text, letterSpacing: '-0.5px', marginBottom: '4px' }}>
@@ -169,7 +175,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                 <Icon name={kpi.icon} size={12} color={colors.text3} />
                                 {kpi.label}
                             </div>
-                            <div className="font-numeric" style={{ fontSize: '28px', fontWeight: 800, color: colors.text, letterSpacing: '-1px', lineHeight: 1, marginBottom: '6px' }}>
+                            <div className="font-numeric" style={{ fontSize: '28px', fontWeight: 800, color: colors.text, letterSpacing: '-0.3px', lineHeight: 1, marginBottom: '6px' }}>
                                 {kpi.value}
                             </div>
                             <div style={{ fontSize: '11px', color: colors.text3 }}>{kpi.meta}</div>
@@ -187,7 +193,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                             dense
                             title="Criteria Breakdown"
                             icon="list"
-                            chip={<Chip variant="default">{goal.criteria?.length || 0}</Chip>}
+                            chip={<CountLabel>{goal.criteria?.length || 0}</CountLabel>}
                         >
                             {goal.criteria && goal.criteria.length > 0 ? (
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -236,22 +242,18 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                             dense
                             title="Recent Reports"
                             icon="fileText"
-                            chip={<Chip variant="default">{reports.length}</Chip>}
-                            action={reports.length > 3 ? (
-                                <Link href={`/reports?search=${encodeURIComponent(goal.name)}`} style={{ textDecoration: 'none', fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium }}>
-                                    View all
-                                </Link>
-                            ) : undefined}
+                            chip={<CountLabel>{reports.length}</CountLabel>}
                         >
                             {reports.length > 0 ? (
-                                reports.slice(0, 3).map((report: any) => (
+                                <>
+                                {reports.slice(0, 3).map((report: any) => (
                                     <Link key={report.id} href={`${basePath.includes('my-') ? '/my-reports' : '/reports'}/${report.id}?${searchParams.toString()}`} style={{ textDecoration: 'none', display: 'block' }}>
                                         <div
                                             style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: radius.md, marginBottom: '2px', cursor: 'pointer', transition: `background ${animation.fast}`, background: 'transparent' }}
                                             onMouseEnter={(e) => e.currentTarget.style.background = colors.surface2}
                                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                         >
-                                            <Avatar name={report.employees?.name || 'Unknown'} size="md" style={{ flexShrink: 0 }} />
+                                            <Avatar name={report.employees?.name || 'Unknown'} src={report.employees?.avatar_url ?? null} size="md" style={{ flexShrink: 0 }} />
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>
                                                     {(() => { const d = report.submittedForDate || report.submissionDate; return new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })()}
@@ -262,7 +264,11 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                                             <Icon name="chevronRight" size={14} color={colors.text3} style={{ flexShrink: 0 }} />
                                         </div>
                                     </Link>
-                                ))
+                                ))}
+                                {reports.length > 3 && (
+                                    <ShowAllButton label="View all reports" onClick={() => router.push(`/reports?search=${encodeURIComponent(goal.name)}`)} />
+                                )}
+                                </>
                             ) : (
                                 <div style={{ padding: '24px 8px', textAlign: 'center', color: colors.text3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: 500 }}>No reports yet.</div>
@@ -277,6 +283,45 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {/* This period — current-cycle coverage + next-cycle caption */}
+                        {periodSummary && (
+                            <Card dense title="This period" icon="calendar">
+                                {periodSummary.current ? (
+                                    <div style={{ padding: '6px 12px 12px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                            <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>
+                                                {periodSummary.current.label}
+                                            </div>
+                                            <div style={{
+                                                fontSize: '12px',
+                                                fontWeight: 600,
+                                                color: periodSummary.current.reported >= periodSummary.current.total ? colors.green : colors.warn,
+                                            }}>
+                                                {periodSummary.current.reported} / {periodSummary.current.total} reported
+                                            </div>
+                                        </div>
+                                        {periodSummary.current.missing.length > 0 && (
+                                            <div style={{ fontSize: '12px', color: colors.text3, lineHeight: 1.5, marginTop: '8px' }}>
+                                                Missing: {periodSummary.current.missing.slice(0, 3).join(', ')}
+                                                {periodSummary.current.missing.length > 3
+                                                    ? ` +${periodSummary.current.missing.length - 3} more`
+                                                    : ''}
+                                            </div>
+                                        )}
+                                        {periodSummary.nextLabel && (
+                                            <div style={{ fontSize: '11px', color: colors.text3, marginTop: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <Icon name="chevronRight" size={11} color={colors.text3} /> Next: {periodSummary.nextLabel}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div style={{ padding: '16px 12px', textAlign: 'center', color: colors.text3, fontSize: '12px' }}>
+                                        No active reporting period.
+                                    </div>
+                                )}
+                            </Card>
+                        )}
+
                         {/* KPI Info */}
                         <Card dense title="KPI Info">
                             {[
@@ -297,7 +342,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                             dense
                             title="Assigned Members"
                             icon="people"
-                            chip={<Chip variant="default">{members.length}</Chip>}
+                            chip={<CountLabel>{members.length}</CountLabel>}
                             action={!readOnly ? (
                                 <span onClick={() => setIsManageTeamOpen(true)} style={{ fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium, cursor: 'pointer' }}>
                                     Assign employees
@@ -306,7 +351,7 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                         >
                             {members.length > 0 ? members.map((m: any, i: number) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: radius.md, marginBottom: '2px' }}>
-                                    <Avatar name={m.employee.full_name} size="md" style={{ flexShrink: 0 }} />
+                                    <Avatar name={m.employee.full_name} src={m.employee.avatar_url ?? null} size="md" style={{ flexShrink: 0 }} />
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>{m.employee.full_name}</div>
                                         {m.employee.role && <div style={{ fontSize: '12px', color: colors.text3, textTransform: 'capitalize' }}>{m.employee.role}</div>}

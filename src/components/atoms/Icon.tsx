@@ -10,7 +10,7 @@ export type IconName =
   | 'alert' | 'clock' | 'search' | 'plus' | 'x' | 'edit' | 'trash'
   | 'arrowUp' | 'arrowDown' | 'mail' | 'linkExternal'
   | 'layoutGrid' | 'list' | 'briefcase' | 'fileText' | 'settings' | 'users' | 'globe' | 'key' | 'user'
-  | 'sparkles' | 'refresh' | 'chevronUp' | 'logOut'
+  | 'sparkles' | 'sparkleOutline' | 'refresh' | 'chevronUp' | 'logOut'
   | 'trendingUp' | 'trendingDown' | 'minus' | 'help' | 'checkCircle' | 'alertTriangle' | 'lightbulb'
 
 interface IconProps {
@@ -27,19 +27,17 @@ const icons: Record<IconName, React.ReactNode> = {
   ),
   projects: (
     <>
-      <rect x="2" y="2" width="12" height="12" rx="2" strokeWidth="1.6" fill="none" stroke="currentColor" />
-      <path d="M2 6h12M6 6v8" strokeWidth="1.6" fill="none" stroke="currentColor" />
+      <rect x="1" y="3" width="14" height="10" rx="2" strokeWidth="1.6" fill="none" stroke="currentColor" />
+      <path d="M5 3V1h6v2" strokeWidth="1.6" fill="none" stroke="currentColor" />
     </>
   ),
   goals: (
-    <>
-      <circle cx="8" cy="8" r="6" strokeWidth="1.6" fill="none" stroke="currentColor" />
-      <path d="M8 5v3l2 2" strokeWidth="1.6" fill="none" stroke="currentColor" strokeLinecap="round" />
-    </>
+    <polygon points="8,1 15,5 15,11 8,15 1,11 1,5" strokeWidth="1.6" fill="none" stroke="currentColor" />
   ),
   reports: (
     <>
-      <path d="M2 4h12M2 8h8M2 12h10" strokeWidth="1.6" fill="none" stroke="currentColor" strokeLinecap="round" />
+      <rect x="2" y="1" width="12" height="14" rx="2" strokeWidth="1.6" fill="none" stroke="currentColor" />
+      <path d="M5 5h6M5 8h6M5 11h4" strokeWidth="1.6" fill="none" stroke="currentColor" strokeLinecap="round" />
     </>
   ),
   employees: (
@@ -226,6 +224,10 @@ const icons: Record<IconName, React.ReactNode> = {
   sparkles: (
     <path d="M8 1L9 5L13 6L9 7L8 11L7 7L3 6L7 5L8 1ZM13 10L13.5 12L15 12.5L13.5 13L13 15L12.5 13L11 12.5L12.5 12L13 10ZM3 2L3.5 4L5 4.5L3.5 5L3 7L2.5 5L1 4.5L2.5 4L3 2Z" fill="currentColor" stroke="none" />
   ),
+  // Hollow 4-point sparkle — the quiet outline counterpart to the filled `sparkles`.
+  sparkleOutline: (
+    <path d="M8 1.5 L9.5 6.4 L14.5 8 L9.5 9.6 L8 14.5 L6.5 9.6 L1.5 8 L6.5 6.4 Z" strokeWidth="1.4" fill="none" stroke="currentColor" strokeLinejoin="round" />
+  ),
   refresh: (
     <path d="M14 8a6 6 0 1 1-1-3.3M14 2v3h-3" strokeWidth="1.8" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
   ),
@@ -285,7 +287,10 @@ export function Icon({ name, size = 16, color = colors.text2, className, style }
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
-      style={style}
+      // Glyph paths hardcode stroke/fill="currentColor", which resolves to the CSS `color`, not the
+      // svg `stroke` attribute. Set `color` here so the `color` prop is honored by every glyph
+      // (otherwise currentColor leaks the parent's text color). Caller `style` can still override.
+      style={{ color, ...style }}
     >
       {icons[name]}
     </svg>

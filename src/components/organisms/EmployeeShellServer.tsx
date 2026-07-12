@@ -7,6 +7,7 @@ interface Props {
         role: string
         organization_id: string
         organizations: { name: string } | null
+        avatar_url?: string | null
     } | null
     children: React.ReactNode
 }
@@ -16,6 +17,7 @@ export function EmployeeShellServer({ profile, children }: Props) {
         <EmployeeShellClient
             userName={profile?.name ?? 'User'}
             employeeId={profile?.id ?? 'N/A'}
+            avatarUrl={profile?.avatar_url ?? null}
             orgName={profile?.organizations?.name ?? 'My Org'}
             userRole={profile?.role ?? 'employee'}
         >

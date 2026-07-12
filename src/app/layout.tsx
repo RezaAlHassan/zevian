@@ -1,8 +1,12 @@
 import type { Metadata } from 'next'
-import { DM_Mono, Outfit } from 'next/font/google'
+import { DM_Mono, Outfit, Plus_Jakarta_Sans } from 'next/font/google'
 import '@/styles/globals.css'
 
 // ─── Font loading (Next.js optimised, no layout shift) ───────
+// Two voices: Plus Jakarta Sans carries the STRUCTURAL voice — display titles/headings/logo AND the
+// data (scores, KPI values, deltas) via --font-numeric, rendered heavy with tabular figures for
+// instant legibility. Outfit is the neutral READING voice (body/UI). DM Mono is kept only for small
+// tabular contexts (--font-mono), not for hero numbers.
 const dmMono = DM_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
@@ -13,6 +17,14 @@ const dmMono = DM_Mono({
 const outfit = Outfit({
   subsets: ['latin'],
   variable: '--font-outfit-google',
+  display: 'swap',
+})
+
+// Plus Jakarta Sans is a variable font (up to 800) — omitting `weight` loads the full axis so titles
+// and hero numbers get real (not synthesized) bold weights.
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta-google',
   display: 'swap',
 })
 
@@ -38,7 +50,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${dmMono.variable} ${outfit.variable}`}>
+    <html lang="en" className={`${dmMono.variable} ${outfit.variable} ${jakarta.variable}`}>
       <body>{children}</body>
     </html>
   )

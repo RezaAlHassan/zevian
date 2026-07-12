@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { colors, typography, animation, radius } from '@/design-system'
+import { colors, typography, animation, radius, getScoreColor, getScoreBarColor } from '@/design-system'
 
 interface TooltipData {
     score: number
@@ -44,7 +44,11 @@ export function Sparkline({ scores, weeks, height = 60, tooltips, onBarClick }: 
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: `${height}px`, width: '100%' }}>
                 {scores.map((score, i) => {
                     const percentage = (score / max) * 100
-                    const color = score >= 7.5 ? colors.green : score >= 6 ? colors.warn : colors.danger
+                    // Same bands as everywhere else (getScoreColor): the number label carries the
+                    // legible band color, the bar itself uses the quieter getScoreBarColor (grey in
+                    // the neutral 5–7 band, muted red below 5) so the trend reads calm, not alarmed.
+                    const color = getScoreColor(score)
+                    const barColor = getScoreBarColor(score)
                     const isHovered = hoveredIndex === i
                     const tip = tooltips?.[i]
 
@@ -72,10 +76,10 @@ export function Sparkline({ scores, weeks, height = 60, tooltips, onBarClick }: 
                                 style={{
                                     width: '100%',
                                     height: `${percentage}%`,
-                                    background: color,
+                                    background: barColor,
                                     borderRadius: '4px 4px 0 0',
                                     opacity: isHovered ? 1 : 0.85,
-                                    outline: isHovered ? `2px solid ${color}` : 'none',
+                                    outline: isHovered ? `2px solid ${barColor}` : 'none',
                                     outlineOffset: '2px',
                                     transition: `height ${animation.slow} ${animation.easeOut}, opacity 0.15s`,
                                 }}

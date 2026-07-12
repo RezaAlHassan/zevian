@@ -10,7 +10,16 @@ export default async function AskPage({
 }: {
     searchParams: { [key: string]: string | string[] | undefined }
 }) {
-    const result = await getAskContextAction()
+    // An incoming question (Ask why / stat card) always takes precedence and starts a clean
+    // thread, so we only restore the prior session when entering Ask plainly (no ?q=).
+    const incomingQ = searchParams.q
+    const hasIncoming = typeof incomingQ === 'string' && incomingQ.trim().length > 0
+
+    // Context and session are independent — fetch them in parallel instead of back-to-back.
+    const [result, session] = await Promise.all([
+        getAskContextAction(),
+        hasIncoming ? Promise.resolve(null) : getAskSessionAction(),
+    ])
 
     if ('error' in result) {
         return (
@@ -19,12 +28,6 @@ export default async function AskPage({
             </div>
         )
     }
-
-    // An incoming question (Ask why / stat card) always takes precedence and starts a clean
-    // thread, so we only restore the prior session when entering Ask plainly (no ?q=).
-    const incomingQ = searchParams.q
-    const hasIncoming = typeof incomingQ === 'string' && incomingQ.trim().length > 0
-    const session = hasIncoming ? null : await getAskSessionAction()
 
     return <AskView initialContext={result.data} initialSession={session} />
 }

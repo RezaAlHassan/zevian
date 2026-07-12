@@ -11,6 +11,7 @@ import Image from 'next/image'
 interface Props {
     userName: string
     employeeId: string
+    avatarUrl?: string | null
     orgName: string
     userRole: string
     children: React.ReactNode
@@ -42,7 +43,7 @@ const SETTINGS_ITEMS = [
     },
 ]
 
-export function EmployeeShellClient({ userName, employeeId, orgName, children }: Props) {
+export function EmployeeShellClient({ userName, employeeId, avatarUrl, orgName, children }: Props) {
     const pathname = usePathname()
     const t = componentTokens.sidebar
 
@@ -135,14 +136,14 @@ export function EmployeeShellClient({ userName, employeeId, orgName, children }:
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: '12px', fontWeight: 700, lineHeight: 1.2, color: colors.text }}>{userName}</div>
-                            <div style={{ fontSize: '10px', color: colors.text3 }}>Employee</div>
+                            <div style={{ fontSize: '10px', color: colors.text3 }}>Person</div>
                         </div>
                     </div>
                 </div>
             </aside>
 
             <div style={{ marginLeft: layout.sidebarWidth, minHeight: '100vh', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
-                <EmployeeHeader title={pageTitle} userName={userName} employeeId={employeeId} />
+                <EmployeeHeader title={pageTitle} userName={userName} employeeId={employeeId} avatarUrl={avatarUrl} />
                 <div style={{ paddingTop: layout.headerHeight, flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ flex: 1 }}>
                         {children}

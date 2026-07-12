@@ -140,54 +140,24 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '24px' }}>
           {/* Left: Search & Filters */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '7px 12px',
-              background: colors.surface,
-              border: `1px solid ${colors.border}`,
-              borderRadius: radius.md,
-              width: '220px',
-            }}>
+            <div className="zv-search" style={{ width: '220px' }}>
               <Icon name="search" size={13} color={colors.text3} />
               <input
                 type="text"
                 placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ background: 'none', border: 'none', outline: 'none', fontSize: '13px', color: colors.text, width: '100%', fontFamily: typography.fonts.body }}
               />
             </div>
 
-            <select style={{
-              padding: '7px 12px',
-              background: colors.surface,
-              border: `1px solid ${colors.border}`,
-              borderRadius: radius.md,
-              fontSize: '12px',
-              color: colors.text2,
-              cursor: 'pointer',
-              fontFamily: typography.fonts.body,
-              outline: 'none',
-            }}>
+            <select className="zv-select">
               <option>All Categories</option>
               <option>Engineering</option>
               <option>Design</option>
               <option>Marketing</option>
             </select>
 
-            <select style={{
-              padding: '7px 12px',
-              background: colors.surface,
-              border: `1px solid ${colors.border}`,
-              borderRadius: radius.md,
-              fontSize: '12px',
-              color: colors.text2,
-              cursor: 'pointer',
-              fontFamily: typography.fonts.body,
-              outline: 'none',
-            }}>
+            <select className="zv-select">
               <option>All Status</option>
               <option>Active</option>
               <option>At Risk</option>
@@ -207,44 +177,44 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
               </Button>
             )}
 
-            <div style={{ display: 'flex', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '2px', gap: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', boxSizing: 'border-box', height: '32px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '2px', gap: '2px' }}>
               <button
                 onClick={() => setViewMode('grid')}
                 title="Grid View"
                 style={{
                   width: '30px',
-                  height: '30px',
+                  height: '26px',
                   borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                   background: viewMode === 'grid' ? colors.surface2 : 'transparent',
-                  color: viewMode === 'grid' ? colors.accent : colors.text3,
+                  color: viewMode === 'grid' ? colors.text : colors.text3,
                   border: 'none',
                   transition: `all ${animation.fast}`,
                 }}
               >
-                <Icon name="layoutGrid" size={14} />
+                <Icon name="layoutGrid" size={14} color="currentColor" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
                 title="List View"
                 style={{
                   width: '30px',
-                  height: '30px',
+                  height: '26px',
                   borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                   background: viewMode === 'list' ? colors.surface2 : 'transparent',
-                  color: viewMode === 'list' ? colors.accent : colors.text3,
+                  color: viewMode === 'list' ? colors.text : colors.text3,
                   border: 'none',
                   transition: `all ${animation.fast}`,
                 }}
               >
-                <Icon name="list" size={14} />
+                <Icon name="list" size={14} color="currentColor" />
               </button>
             </div>
           </div>
@@ -266,12 +236,12 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
               width: '64px',
               height: '64px',
               borderRadius: radius.md,
-              background: 'rgba(91,127,255,0.08)',
+              background: 'rgba(255,255,255,0.05)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '16px',
-              color: colors.accent,
+              color: colors.text3,
             }}>
               <Icon name="briefcase" size={26} />
             </div>
@@ -414,7 +384,6 @@ export function ProjectsView({ projects, employees, readOnly = false, basePath =
                       opacity: 0.8,
                     }}
                   >
-                    <div style={{ fontSize: '20px' }}>{p.emoji || '✅'}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '14px', fontWeight: 600, color: colors.text }}>{p.name}</div>
                       <div style={{ fontSize: '11px', color: colors.text3 }}>{p.category} · Completed</div>

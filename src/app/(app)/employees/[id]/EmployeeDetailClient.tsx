@@ -63,7 +63,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
         display: 'flex', alignItems: 'center', padding: '0 24px', gap: '10px', zIndex: 90,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: colors.text3 }}>
-          <Link href="/employees" style={{ color: colors.text2, textDecoration: 'none' }}>Employees</Link>
+          <Link href="/employees" style={{ color: colors.text2, textDecoration: 'none' }}>People</Link>
           <span style={{ color: colors.text3 }}>/</span>
           <span style={{ color: colors.text, fontWeight: 500 }}>{employee.name}</span>
           {trustSignal?.label && (() => {
@@ -88,6 +88,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
         )}
         {pageData.dashboardData?.goals?.length > 0 && (
           <select
+            className="zv-select"
             value={selectedGoalId ?? ''}
             onChange={e => {
               const params = new URLSearchParams(searchParams.toString())
@@ -96,14 +97,7 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
               else params.delete('goal')
               router.push(`?${params.toString()}`)
             }}
-            style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '8px', color: selectedGoalId ? colors.accent : colors.text3,
-              fontSize: '12px', fontWeight: 600, padding: '5px 28px 5px 10px',
-              cursor: 'pointer', outline: 'none', appearance: 'none',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
-            }}
+            style={{ color: selectedGoalId ? colors.text : colors.text3 }}
           >
             <option value="">All KPIs</option>
             {pageData.dashboardData.goals.filter((g: any) => g.status === 'active').map((g: any) => (
@@ -199,19 +193,18 @@ export function EmployeeDetailClient({ pageData, id, startDate, endDate, selecte
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {/* Control bar */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, width: '240px' }}>
+                  <div className="zv-search" style={{ width: '240px' }}>
                     <Icon name="search" size={14} color={colors.text3} />
                     <input
                       placeholder="Search by goal or project..."
                       value={reportSearch}
                       onChange={e => setReportSearch(e.target.value)}
-                      style={{ background: 'none', border: 'none', outline: 'none', color: colors.text, fontSize: '13px', width: '100%', fontFamily: typography.fonts.body }}
                     />
                   </div>
                   <select
+                    className="zv-select"
                     value={reportStatusFilter}
                     onChange={e => setReportStatusFilter(e.target.value)}
-                    style={{ background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '7px 12px', color: colors.text2, fontSize: '12px', outline: 'none', cursor: 'pointer', fontFamily: typography.fonts.body }}
                   >
                     <option value="all">All Statuses</option>
                     <option value="pending">Pending</option>

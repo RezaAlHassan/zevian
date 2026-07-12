@@ -88,7 +88,7 @@ export function SkillSpider({ skills, size = 280 }: SkillSpiderProps) {
                 </div>
                 {sorted.map((s, i) => {
                     const color = s.category === 'strength' ? colors.green
-                        : s.category === 'weakness' ? colors.danger
+                        : s.category === 'weakness' ? colors.dangerMuted
                         : colors.accent
                     return (
                         <div key={i}>
@@ -161,7 +161,7 @@ export function SkillSpider({ skills, size = 280 }: SkillSpiderProps) {
                     />
                     {chartSkills.map((s, i) => {
                         const { x, y } = getDataCoords(i, s.score)
-                        const color = s.category === 'strength' ? colors.green : colors.danger
+                        const color = s.category === 'strength' ? colors.green : colors.dangerMuted
                         return (
                             <circle key={i} cx={x} cy={y} r="4" fill={color} stroke={colors.surface} strokeWidth="2">
                                 <title>{s.name}: {s.score.toFixed(1)}</title>
@@ -178,7 +178,7 @@ export function SkillSpider({ skills, size = 280 }: SkillSpiderProps) {
                                 textAnchor="middle"
                                 dominantBaseline="middle"
                                 style={{
-                                    fill: s.category === 'strength' ? colors.green : colors.danger,
+                                    fill: s.category === 'strength' ? colors.green : colors.dangerMuted,
                                     fontSize: '9px',
                                     fontWeight: 700,
                                     textTransform: 'uppercase',

@@ -8,11 +8,13 @@ import { parseCSV } from '@/utils/csv'
 import {
     suggestMappingAction,
     processUploadAction,
+    getUploadPeriodsAction,
 } from '@/app/actions/managerUploadActions'
 import { addCriterionToGoalAction } from '@/app/actions/goalActions'
 import {
     SKIP_COLUMN,
     type UploadGoalSummary,
+    type UploadPeriod,
     type MappingSuggestion,
     type ProcessUploadResult,
 } from '@/app/actions/managerUploadShared'
@@ -26,7 +28,7 @@ const importanceStyle = {
     critical: { border: '#f04438',     bg: 'rgba(240,68,56,.15)',   text: '#f04438',     label: 'Critical' },
 }
 
-type Step = 'pick-goal' | 'upload' | 'confirm' | 'results'
+type Step = 'pick-goal' | 'pick-period' | 'upload' | 'confirm' | 'results'
 
 interface Props {
     goals: UploadGoalSummary[]
@@ -36,6 +38,9 @@ interface Props {
 export function UploadDataView({ goals, loadError }: Props) {
     const [step, setStep] = useState<Step>('pick-goal')
     const [goalId, setGoalId] = useState<string | null>(null)
+    const [periods, setPeriods] = useState<UploadPeriod[]>([])
+    const [periodsLoading, setPeriodsLoading] = useState(false)
+    const [periodKey, setPeriodKey] = useState<string | null>(null)
     const [fileName, setFileName] = useState<string | null>(null)
     const [headers, setHeaders] = useState<string[]>([])
     const [rows, setRows] = useState<string[][]>([])
@@ -47,6 +52,7 @@ export function UploadDataView({ goals, loadError }: Props) {
     const [addCritModal, setAddCritModal] = useState<{ header: string } | null>(null)
 
     const goal = useMemo(() => goals.find(g => g.id === goalId) || null, [goals, goalId])
+    const selectedPeriod = useMemo(() => periods.find(p => p.key === periodKey) || null, [periods, periodKey])
     const displayGoal = useMemo(
         () => goal && effectiveCriteria ? { ...goal, criteria: effectiveCriteria } : goal,
         [goal, effectiveCriteria],
@@ -57,6 +63,8 @@ export function UploadDataView({ goals, loadError }: Props) {
     function reset() {
         setStep('pick-goal')
         setGoalId(null)
+        setPeriods([])
+        setPeriodKey(null)
         setFileName(null)
         setHeaders([])
         setRows([])
@@ -67,13 +75,29 @@ export function UploadDataView({ goals, loadError }: Props) {
         setAddCritModal(null)
     }
 
+    // Goal chosen → load the goal's open reporting periods, then move to the period step.
+    async function handleGoalNext() {
+        if (!goalId) return
+        setErr(null)
+        setPeriodsLoading(true)
+        const res = await getUploadPeriodsAction(goalId)
+        setPeriodsLoading(false)
+        if ('error' in res) {
+            setErr(res.error)
+            return
+        }
+        setPeriods(res.periods)
+        setPeriodKey(null)
+        setStep('pick-period')
+    }
+
     async function handleFile(file: File) {
         setErr(null)
         try {
             const text = await file.text()
             const parsed = parseCSV(text)
-            if (parsed.headers.length < 3) {
-                setErr('CSV must have at least 3 columns: agent identifier, period date, and one criterion column.')
+            if (parsed.headers.length < 2) {
+                setErr('CSV must have at least 2 columns: agent identifier and one criterion column.')
                 return
             }
             if (parsed.rows.length === 0) {
@@ -86,7 +110,7 @@ export function UploadDataView({ goals, loadError }: Props) {
 
             // If a saved mapping exists, prefill straight away — same column names → reuse.
             const saved = goal?.savedMapping
-            const dataHeaders = parsed.headers.slice(2)
+            const dataHeaders = parsed.headers.slice(1)
             if (saved) {
                 const next = dataHeaders.map(h => {
                     const prev = saved.columns.find(c => c.header === h)
@@ -117,11 +141,12 @@ export function UploadDataView({ goals, loadError }: Props) {
     }
 
     async function handleConfirm() {
-        if (!goal) return
+        if (!goal || !periodKey) return
         setBusy(true)
         setErr(null)
         const res = await processUploadAction({
             goalId: goal.id,
+            periodKey,
             headers,
             rows,
             mapping,
@@ -152,10 +177,12 @@ export function UploadDataView({ goals, loadError }: Props) {
 
     const stepperLabels: { id: Step; label: string }[] = [
         { id: 'pick-goal', label: '1. Select goal' },
-        { id: 'upload', label: '2. Upload CSV' },
-        { id: 'confirm', label: '3. Confirm mapping' },
-        { id: 'results', label: '4. Results' },
+        { id: 'pick-period', label: '2. Select period' },
+        { id: 'upload', label: '3. Upload CSV' },
+        { id: 'confirm', label: '4. Confirm mapping' },
+        { id: 'results', label: '5. Results' },
     ]
+    const stepOrder: Step[] = ['pick-goal', 'pick-period', 'upload', 'confirm', 'results']
 
     return (
         <div style={{ padding: '24px', maxWidth: '980px', margin: '0 auto' }}>
@@ -193,10 +220,7 @@ export function UploadDataView({ goals, loadError }: Props) {
             }}>
                 {stepperLabels.map(s => {
                     const isCurrent = s.id === step
-                    const isDone =
-                        (s.id === 'pick-goal' && step !== 'pick-goal') ||
-                        (s.id === 'upload' && (step === 'confirm' || step === 'results')) ||
-                        (s.id === 'confirm' && step === 'results')
+                    const isDone = stepOrder.indexOf(s.id) < stepOrder.indexOf(step)
                     return (
                         <div key={s.id} style={{
                             flex: 1,
@@ -226,16 +250,29 @@ export function UploadDataView({ goals, loadError }: Props) {
                     intangibleGoals={intangibleGoals}
                     selectedId={goalId}
                     onSelect={setGoalId}
+                    onNext={handleGoalNext}
+                    loading={periodsLoading}
+                />
+            )}
+
+            {step === 'pick-period' && goal && (
+                <PickPeriodStep
+                    goal={goal}
+                    periods={periods}
+                    selectedKey={periodKey}
+                    onSelect={setPeriodKey}
                     onNext={() => setStep('upload')}
+                    onBack={() => setStep('pick-goal')}
                 />
             )}
 
             {step === 'upload' && goal && (
                 <UploadStep
                     goal={goal}
+                    period={selectedPeriod}
                     busy={busy}
                     onFile={handleFile}
-                    onBack={() => setStep('pick-goal')}
+                    onBack={() => setStep('pick-period')}
                 />
             )}
 
@@ -295,7 +332,7 @@ function ErrorBanner({ message }: { message: string }) {
 }
 
 function PickGoalStep({
-    goals, tangibleGoals, intangibleGoals, selectedId, onSelect, onNext,
+    goals, tangibleGoals, intangibleGoals, selectedId, onSelect, onNext, loading,
 }: {
     goals: UploadGoalSummary[]
     tangibleGoals: UploadGoalSummary[]
@@ -303,6 +340,7 @@ function PickGoalStep({
     selectedId: string | null
     onSelect: (id: string) => void
     onNext: () => void
+    loading: boolean
 }) {
     if (goals.length === 0) {
         return (
@@ -329,9 +367,95 @@ function PickGoalStep({
                 </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-                <Button onClick={onNext} disabled={!selectedId} icon="chevronRight">Next</Button>
+                <Button onClick={onNext} disabled={!selectedId} loading={loading} icon="chevronRight">Next</Button>
             </div>
         </>
+    )
+}
+
+function PickPeriodStep({
+    goal, periods, selectedKey, onSelect, onNext, onBack,
+}: {
+    goal: UploadGoalSummary
+    periods: UploadPeriod[]
+    selectedKey: string | null
+    onSelect: (key: string) => void
+    onNext: () => void
+    onBack: () => void
+}) {
+    const freq = (goal.reportFrequency || 'weekly').toLowerCase()
+    return (
+        <Card title="Which period are these numbers for?" subtitle={`${goal.name} · ${goal.projectName}`} icon="calendar">
+            {/* Plain-language definition, anchored to this goal's own cadence */}
+            <div style={{
+                background: colors.surface2,
+                border: `1px solid ${colors.border}`,
+                borderRadius: radius.md,
+                padding: '12px 14px',
+                marginBottom: '14px',
+                fontSize: '12px',
+                color: colors.text2,
+                lineHeight: 1.6,
+            }}>
+                This goal reports <strong style={{ color: colors.text }}>{freq}</strong>, so Zevian tracks it in{' '}
+                <strong style={{ color: colors.text }}>{freq} periods</strong> — each one is a single {freq === 'weekly' ? 'week' : freq === 'monthly' ? 'month' : 'cycle'} that a report covers.
+                Pick the period your spreadsheet is for; you upload one period at a time.
+                <br />
+                <span style={{ color: colors.text3 }}>
+                    “{'2 of 5 open'}” means 2 of the 5 agents on that period still need a report — those are the ones this upload can fill.
+                </span>
+            </div>
+
+            {periods.length === 0 ? (
+                <div style={{
+                    background: colors.surface2,
+                    border: `1px dashed ${colors.borderDashed}`,
+                    borderRadius: radius.md,
+                    padding: '24px',
+                    textAlign: 'center',
+                    color: colors.text3,
+                    fontSize: '13px',
+                }}>
+                    No open periods for this goal right now. Either every agent already has a report for each
+                    period, or this goal hasn&apos;t started its {freq} reporting yet.
+                </div>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+                    {periods.map(p => {
+                        const isSelected = p.key === selectedKey
+                        return (
+                            <button
+                                key={p.key}
+                                onClick={() => onSelect(p.key)}
+                                style={{
+                                    textAlign: 'left',
+                                    background: isSelected ? colors.accentGlow : colors.surface,
+                                    border: `1px solid ${isSelected ? colors.accentBorder : colors.border}`,
+                                    borderRadius: radius.md,
+                                    padding: '14px 16px',
+                                    cursor: 'pointer',
+                                    color: colors.text,
+                                    transition: `all ${animation.fast}`,
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Icon name="calendar" size={14} color={isSelected ? colors.accent : colors.text3} />
+                                    <span style={{ fontSize: '13px', fontWeight: typography.weight.semibold }}>{p.label}</span>
+                                </div>
+                                <div style={{ color: colors.text3, fontSize: '12px', marginTop: '6px' }}>
+                                    {p.openCount} of {p.totalCount} {p.totalCount === 1 ? 'agent' : 'agents'} open
+                                </div>
+                            </button>
+                        )
+                    })}
+                </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+                <Button variant="secondary" size="sm" onClick={onBack}>Back</Button>
+                <Button onClick={onNext} disabled={!selectedKey} icon="chevronRight">Next</Button>
+            </div>
+        </Card>
     )
 }
 
@@ -375,8 +499,8 @@ function GoalGrid({
 }
 
 function UploadStep({
-    goal, busy, onFile, onBack,
-}: { goal: UploadGoalSummary; busy: boolean; onFile: (f: File) => void; onBack: () => void }) {
+    goal, period, busy, onFile, onBack,
+}: { goal: UploadGoalSummary; period: UploadPeriod | null; busy: boolean; onFile: (f: File) => void; onBack: () => void }) {
     const [dragOver, setDragOver] = useState(false)
     const inputRef = useRef<HTMLInputElement | null>(null)
 
@@ -385,8 +509,12 @@ function UploadStep({
         inputRef.current?.click()
     }
 
+    const subtitle = period
+        ? `${goal.projectName} · period ${period.label}`
+        : `${goal.projectName} · ${goal.reportFrequency}`
+
     return (
-        <Card title={goal.name} subtitle={`${goal.projectName} · ${goal.reportFrequency}`} icon="goals">
+        <Card title={goal.name} subtitle={subtitle} icon="goals">
             <input
                 ref={inputRef}
                 type="file"
@@ -430,12 +558,12 @@ function UploadStep({
                     outline: 'none',
                 }}
             >
-                <Icon name="fileText" size={28} color={colors.accent} />
+                <Icon name="fileText" size={28} color={colors.text3} />
                 <div style={{ fontSize: '14px', color: colors.text, marginTop: '10px', fontWeight: typography.weight.semibold }}>
                     Drag a CSV here, or click to browse
                 </div>
                 <div style={{ fontSize: '12px', color: colors.text3, marginTop: '4px' }}>
-                    One row per agent for a single reporting period. Column 1 = agent name or email. Column 2 = period date.
+                    One row per agent{period ? ` for ${period.label}` : ''}. Column 1 = agent name or email. Remaining columns = your KPI values. No date column needed.
                 </div>
                 <div style={{ marginTop: '16px' }}>
                     <Button
@@ -473,7 +601,7 @@ function ConfirmStep({
     onBack: () => void
     onAddNew: (header: string) => void
 }) {
-    const dataHeaders = headers.slice(2)
+    const dataHeaders = headers.slice(1)
     function setForHeader(header: string, criterion: string) {
         onChange(mapping.map(m => m.header === header ? { ...m, criterion } : m))
     }
@@ -482,13 +610,12 @@ function ConfirmStep({
     return (
         <Card title="Confirm column mapping" subtitle={`${fileName ?? 'uploaded file'} · ${rowCount} rows`} icon="sparkles">
             <div style={{ color: colors.text2, fontSize: '12px', marginBottom: '14px' }}>
-                The first two columns are fixed system fields and can't be changed.
+                The first column is the agent identifier and can't be changed. Map each remaining column to a criterion.
             </div>
 
-            {/* Fixed system columns */}
+            {/* Fixed system column */}
             <div style={{ marginBottom: '16px', display: 'grid', gap: '8px' }}>
                 <FixedRow header={headers[0]} label="Agent identifier (name or email)" />
-                <FixedRow header={headers[1]} label="Period date or date range" />
             </div>
 
             <SectionLabel>Criteria columns ({dataHeaders.length})</SectionLabel>
@@ -574,30 +701,12 @@ function FixedRow({ header, label }: { header: string; label: string }) {
 }
 
 function ResultsStep({ results, onDone }: { results: ProcessUploadResult; onDone: () => void }) {
-    const extraPeriods = Math.max(results.periodsDetected - 1, 0)
     return (
-        <Card title="Upload results" icon="check">
-            {extraPeriods > 0 && results.processedPeriodLabel && (
-                <div style={{
-                    background: 'rgba(245,158,11,0.10)',
-                    border: `1px solid ${colors.warn}`,
-                    color: colors.text,
-                    padding: '10px 14px',
-                    borderRadius: radius.md,
-                    fontSize: '12px',
-                    marginBottom: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                }}>
-                    <Icon name="alertTriangle" size={14} color={colors.warn} />
-                    <div>
-                        <strong style={{ color: colors.warn }}>Only period {results.processedPeriodLabel} was processed.</strong>
-                        {' '}This CSV had {results.periodsDetected} different periods. Upload the remaining {extraPeriods === 1 ? 'period' : `${extraPeriods} periods`} separately.
-                    </div>
-                </div>
-            )}
-
+        <Card
+            title="Upload results"
+            subtitle={results.processedPeriodLabel ? `Period ${results.processedPeriodLabel}` : undefined}
+            icon="check"
+        >
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(2, 1fr)',

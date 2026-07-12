@@ -3,12 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { colors, radius, animation, shadows } from '@/design-system'
 import { Icon, Calendar } from '@/components/atoms'
-import { 
-    format, 
-    subDays, 
-    startOfMonth, 
-    endOfMonth, 
-    subMonths, 
+import {
+    format,
+    subDays,
+    subMonths,
     isSameDay,
     parseISO,
     startOfDay,
@@ -76,26 +74,21 @@ export function DateRangeSelector({
         let end = endOfDay(now)
 
         switch (range) {
-            case 'Today':
-                start = startOfDay(now)
-                end = endOfDay(now)
-                break
             case 'Last 7 Days':
                 start = startOfDay(subDays(now, 7))
+                end = endOfDay(now)
+                break
+            case 'Last 14 Days':
+                start = startOfDay(subDays(now, 14))
                 end = endOfDay(now)
                 break
             case 'Last 30 Days':
                 start = startOfDay(subDays(now, 30))
                 end = endOfDay(now)
                 break
-            case 'This Month':
-                start = startOfMonth(now)
-                end = endOfMonth(now)
-                break
-            case 'Last Month':
-                const lastMonth = subMonths(now, 1)
-                start = startOfMonth(lastMonth)
-                end = endOfMonth(lastMonth)
+            case 'Last Quarter':
+                start = startOfDay(subMonths(now, 3))
+                end = endOfDay(now)
                 break
             default:
                 return
@@ -107,11 +100,10 @@ export function DateRangeSelector({
 
     const ranges = [
         'All Time',
-        'Today',
         'Last 7 Days',
+        'Last 14 Days',
         'Last 30 Days',
-        'This Month',
-        'Last Month',
+        'Last Quarter',
         'Custom Range'
     ]
 

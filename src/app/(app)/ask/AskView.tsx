@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { colors, typography, radius, animation, shadows, aiGradient, gradientBorderBackground } from '@/design-system'
+import { colors, typography, radius, animation, shadows, aiGradient, gradientBorderBackground, layout } from '@/design-system'
 import { Icon } from '@/components/atoms'
 import { askQuestionAction } from '@/app/actions/askActions'
 import type { AskContext, AskScope, AskMessage, AskSession } from '@/app/actions/askActions'
@@ -34,7 +34,7 @@ function defaultScope(): AskScope {
 function getSuggestions(ctx: AskContext, scope: AskScope): string[] {
     if (scope.employeeIds.length === 1) {
         const emp = ctx.employees.find(e => e.id === scope.employeeIds[0])
-        const name = emp?.name || 'this employee'
+        const name = emp?.name || 'this person'
         return [
             `How is ${name} performing overall?`,
             `What are ${name}'s weakest criteria?`,
@@ -58,7 +58,7 @@ function fmtDate(s: string): string {
 
 function formatScope(ctx: AskContext, s: AskScope): string {
     const who = s.employeeIds.length === 0
-        ? 'All employees'
+        ? 'All people'
         : s.employeeIds.map(id => ctx.employees.find(e => e.id === id)?.name || 'Unknown').join(', ')
     const range = `${fmtDate(s.startDate)} to ${fmtDate(s.endDate)}`
     const goal = s.goalId ? ctx.goals.find(g => g.id === s.goalId)?.name : null
@@ -105,13 +105,13 @@ function MessageBubble({ msg }: { msg: AskMessage }) {
                 maxWidth: '78%',
                 padding: '11px 15px',
                 borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background: isUser ? colors.accent : colors.surface2,
+                background: isUser ? colors.surface3 : colors.surface2,
                 color: colors.text,
                 fontSize: '13.5px',
                 lineHeight: 1.6,
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
-                border: isUser ? 'none' : `1px solid ${colors.border}`,
+                border: `1px solid ${colors.border}`,
             }}>
                 {msg.text}
                 {cites && cites.length > 0 && (
@@ -163,18 +163,19 @@ function AskBar({ value, onChange, onSubmit, suggestions, loading, textareaRef }
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{
                 display: 'flex',
-                alignItems: 'flex-end',
+                alignItems: 'center',
                 gap: 10,
-                padding: '12px 14px',
-                border: '1px solid transparent',
+                padding: '10px 12px',
+                border: `1px solid ${colors.aiBorder}`,
                 borderRadius: radius.lg,
-                background: gradientBorderBackground(focus ? aiGradient.strong : aiGradient.subtle, colors.surface),
-                boxShadow: focus ? '0 0 24px rgba(91,127,255,0.12)' : 'none',
+                background: colors.surface,
+                boxShadow: focus ? '0 0 24px rgba(91,127,255,0.16)' : 'none',
                 transition: `box-shadow ${animation.base}`,
             }}>
-                <span style={{ display: 'flex', flexShrink: 0, paddingBottom: 5 }}>
-                    <Icon name="sparkles" size={18} color={colors.teal} />
+                <span style={{ display: 'flex', flexShrink: 0 }}>
+                    <Icon name="sparkleOutline" size={18} color={colors.ai} />
                 </span>
+                {/* Text is vertically centred in the composer (alignItems: center on the row). */}
                 <textarea
                     ref={textareaRef}
                     value={value}
@@ -197,13 +198,15 @@ function AskBar({ value, onChange, onSubmit, suggestions, loading, textareaRef }
                         fontSize: '14px',
                         lineHeight: 1.6,
                         fontFamily: 'inherit',
-                        maxHeight: 120,
+                        padding: 0,
+                        margin: 0,
+                        maxHeight: 160,
                         overflow: 'auto',
                     }}
                     onInput={e => {
                         const el = e.target as HTMLTextAreaElement
                         el.style.height = 'auto'
-                        el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+                        el.style.height = Math.min(el.scrollHeight, 160) + 'px'
                     }}
                 />
                 <button
@@ -218,10 +221,11 @@ function AskBar({ value, onChange, onSubmit, suggestions, loading, textareaRef }
                         height: 32,
                         flexShrink: 0,
                         borderRadius: radius.md,
-                        background: canSend ? colors.accent : colors.surface3,
+                        background: canSend ? colors.ai : colors.surface3,
                         border: 'none',
                         cursor: canSend ? 'pointer' : 'not-allowed',
-                        boxShadow: canSend ? shadows.accentGlow : 'none',
+                        boxShadow: 'none',
+                        transition: `background ${animation.fast}`,
                     }}
                 >
                     <Icon name="arrowUp" size={16} color={canSend ? '#fff' : colors.text3} />
@@ -377,7 +381,7 @@ export function AskView({ initialContext, initialSession }: Props) {
         <div style={{
             display: 'flex',
             flexDirection: 'column',
-            height: '100%',
+            minHeight: `calc(100vh - ${layout.headerHeight})`,
             background: colors.bg,
         }}>
             {/* ── Scope filter bar ─────────────────────────────────────── */}
@@ -397,15 +401,15 @@ export function AskView({ initialContext, initialSession }: Props) {
 
                 {/* Employee selector */}
                 <select
+                    className="zv-select"
                     value={scope.employeeIds.length === 1 ? scope.employeeIds[0] : ''}
                     onChange={e => setScope({
                         ...scope,
                         employeeIds: e.target.value ? [e.target.value] : [],
                         goalId: null,
                     })}
-                    style={selectStyle}
                 >
-                    <option value="">All employees</option>
+                    <option value="">All people</option>
                     {ctx.employees.map(emp => (
                         <option key={emp.id} value={emp.id}>{emp.name}</option>
                     ))}
@@ -434,9 +438,9 @@ export function AskView({ initialContext, initialSession }: Props) {
                     <>
                         <span style={{ color: colors.text3, fontSize: typography.size.sm }}>KPI</span>
                         <select
+                            className="zv-select"
                             value={scope.goalId ?? ''}
                             onChange={e => setScope({ ...scope, goalId: e.target.value || null })}
-                            style={selectStyle}
                         >
                             <option value="">All KPIs</option>
                             {ctx.goals.map(g => (
@@ -472,25 +476,10 @@ export function AskView({ initialContext, initialSession }: Props) {
                 padding: isEmpty ? 0 : '24px',
                 display: 'flex',
                 flexDirection: 'column',
+                justifyContent: isEmpty ? 'center' : undefined,
             }}>
                 {isEmpty ? (
                     <div className="animate-fade-up" style={{ margin: 'auto', width: '100%', maxWidth: 560, padding: 24 }}>
-                        {/* Teal sparkles tile — radius-lg, teal glow (the reference Ask mark) */}
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-                            <div style={{
-                                width: 52,
-                                height: 52,
-                                borderRadius: radius.lg,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                background: colors.tealGlow,
-                                border: '1px solid rgba(0,212,170,0.25)',
-                            }}>
-                                <Icon name="sparkles" size={24} color={colors.teal} />
-                            </div>
-                        </div>
-
                         <h2 style={{
                             fontFamily: typography.fonts.display,
                             fontSize: 20,
@@ -529,8 +518,9 @@ export function AskView({ initialContext, initialSession }: Props) {
                             )
                         })}
                         {loading && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: colors.text3, fontSize: 13, marginBottom: 12 }}>
-                                <Icon name="sparkles" size={14} color={colors.teal} /> Reading reports…
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginBottom: 12 }}>
+                                <Icon name="sparkleOutline" size={14} color={colors.ai} className="ai-breathe" />
+                                <span className="ai-shimmer-text">Reading reports…</span>
                             </div>
                         )}
                         {error && (
@@ -554,12 +544,7 @@ export function AskView({ initialContext, initialSession }: Props) {
             {/* ── Input bar — only once the thread has started; in the empty state the AskBar is
                 centred above. Mirrors the reference's 720px-wide footer AskBar. */}
             {!isEmpty && (
-                <div style={{
-                    flexShrink: 0,
-                    padding: '14px 24px',
-                    borderTop: `1px solid ${colors.border}`,
-                    background: colors.surface,
-                }}>
+                <div style={{ flexShrink: 0, padding: '4px 24px 22px' }}>
                     <div style={{ maxWidth: 720, margin: '0 auto' }}>
                         <AskBar
                             value={question}
@@ -575,24 +560,19 @@ export function AskView({ initialContext, initialSession }: Props) {
     )
 }
 
-const selectStyle: React.CSSProperties = {
-    background: colors.surface2,
+// Matches the .zv-select / DateRangeSelector guide so the Ask scope bar reads as the same control family.
+const dateInputStyle: React.CSSProperties = {
+    boxSizing: 'border-box',
+    height: '32px',
+    background: colors.surface,
     border: `1px solid ${colors.border}`,
-    borderRadius: radius.sm,
-    color: colors.text,
-    fontSize: typography.size.sm,
-    padding: '4px 8px',
+    borderRadius: radius.md,
+    color: colors.text2,
+    fontSize: '12px',
+    fontWeight: 500,
+    padding: '0 10px',
     outline: 'none',
     cursor: 'pointer',
-}
-
-const dateInputStyle: React.CSSProperties = {
-    background: colors.surface2,
-    border: `1px solid ${colors.border}`,
-    borderRadius: radius.sm,
-    color: colors.text,
-    fontSize: typography.size.sm,
-    padding: '4px 8px',
-    outline: 'none',
     colorScheme: 'dark',
+    fontFamily: typography.fonts.body,
 }

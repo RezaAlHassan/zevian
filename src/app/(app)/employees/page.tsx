@@ -4,7 +4,7 @@ import { getEmployeesAction } from '@/app/actions/employeeActions'
 import { getCachedUser } from '@/lib/auth/session'
 import { redirect } from 'next/navigation'
 
-export const metadata: Metadata = { title: 'Employees' }
+export const metadata: Metadata = { title: 'People' }
 export const dynamic = 'force-dynamic'
 
 export default async function EmployeesPage({

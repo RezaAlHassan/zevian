@@ -1,13 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { colors, typography, radius, shadows, animation } from '@/design-system'
 import Image from 'next/image'
 
 export function LoginForm() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -37,18 +35,15 @@ export function LoginForm() {
 
       if (employeeError) {
         console.error('Error fetching employee role:', employeeError)
-        // Fallback to /dashboard if role cannot be determined
-        router.push('/dashboard')
-      } else {
-        const role = employeeData?.role
-        if (role === 'employee') {
-          router.push('/my-dashboard')
-        } else {
-          router.push('/dashboard')
-        }
       }
-      
-      router.refresh()
+
+      const dest = employeeData?.role === 'employee' ? '/my-dashboard' : '/dashboard'
+
+      // Hard navigation (not router.push + refresh): the first server render after
+      // sign-in must see the freshly-set auth cookies. A soft navigation can race the
+      // cookie write and render the dashboard unauthenticated — the "empty dashboard
+      // right after login" bug.
+      window.location.assign(dest)
     }
   }
 
@@ -108,7 +103,7 @@ export function LoginForm() {
 
           <button
             type="submit" disabled={loading}
-            style={{ width: '100%', padding: '11px', background: colors.accent, border: 'none', borderRadius: radius.md, fontSize: '13px', fontWeight: 700, color: '#fff', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: `all ${animation.fast}`, boxShadow: shadows.accentGlow, fontFamily: typography.fonts.body }}
+            style={{ width: '100%', padding: '11px', background: colors.surface3, border: `1px solid ${colors.borderHover}`, borderRadius: radius.md, fontSize: '13px', fontWeight: 700, color: colors.text, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, transition: `all ${animation.fast}`, boxShadow: 'none', fontFamily: typography.fonts.body }}
           >
             {loading ? 'Signing in…' : 'Sign In'}
           </button>

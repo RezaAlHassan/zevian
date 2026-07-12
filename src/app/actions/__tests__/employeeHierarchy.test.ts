@@ -1,23 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const { getSessionContext, getTeamMembers, getStaffMembers, getManagers, getAllReports, getAllGoals } =
+const { getSessionContext, getTeamMembers, getStaffMembers, getManagers } =
   vi.hoisted(() => ({
     getSessionContext: vi.fn(),
     getTeamMembers: vi.fn().mockResolvedValue([]),
     getStaffMembers: vi.fn().mockResolvedValue([]),
     getManagers: vi.fn().mockResolvedValue([]),
-    getAllReports: vi.fn().mockResolvedValue([]),
-    getAllGoals: vi.fn().mockResolvedValue([]),
   }))
 
-vi.mock('@/lib/supabase/server', () => ({ createServerClient: () => ({}), createAdminClient: () => ({}) }))
+// getEmployeesAction reads reports/goal_assignees directly via slim supabase queries.
+vi.mock('@/lib/supabase/server', () => ({
+  createServerClient: () => ({
+    from: () => ({ select: () => Promise.resolve({ data: [], error: null }) }),
+  }),
+  createAdminClient: () => ({}),
+}))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('@/utils/trustSignal', () => ({ computeTrustSignal: () => ({ label: null }) }))
 vi.mock('@/lib/auth/session', () => ({ getSessionContext, getAuthUser: vi.fn() }))
 vi.mock('@/../databaseService2', () => ({
   employeeService: { getTeamMembers, getStaffMembers, getManagers },
-  reportService: { getAll: getAllReports },
-  goalService: { getAll: getAllGoals },
 }))
 
 import { getEmployeesAction } from '../employeeActions'

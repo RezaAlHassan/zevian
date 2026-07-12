@@ -316,7 +316,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                         {emails.map(email => (
                                             <div key={email} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 5px 3px 9px', background: colors.accentGlow, border: `1px solid ${colors.accentBorder}`, borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: colors.accent }}>
                                                 {email}
-                                                <div onClick={() => removeEmail(email)} style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'rgba(91,127,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                                                <div onClick={() => removeEmail(email)} style={{ width: '16px', height: '16px', borderRadius: '50%', background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                                                     <Icon name="x" size={8} />
                                                 </div>
                                             </div>
@@ -353,7 +353,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                                     <Icon name="user" size={15} color={colors.accent} />
                                                 </div>
                                             </div>
-                                            <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '5px', letterSpacing: '-0.2px', color: !isManager ? colors.accent : colors.text }}>Employee</div>
+                                            <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '5px', letterSpacing: '-0.2px', color: !isManager ? colors.accent : colors.text }}>Person</div>
                                             <div style={{ fontSize: '12px', color: !isManager ? colors.text2 : colors.text3, lineHeight: 1.55 }}>Submits reports. Views own scores only.</div>
                                         </div>
                                         <div onClick={() => setRole('manager')} style={{
@@ -408,7 +408,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                             <div>
                                                 <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '-0.2px', marginBottom: '2px' }}>{emails[0]}</div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                                                    <span style={{ fontSize: '12px', fontWeight: 700, color: isManager ? '#f97316' : colors.accent }}>{isManager ? 'Manager' : 'Employee'}</span>
+                                                    <span style={{ fontSize: '12px', fontWeight: 700, color: isManager ? '#f97316' : colors.accent }}>{isManager ? 'Manager' : 'Person'}</span>
                                                     <span style={{ color: colors.text3 }}>·</span>
                                                     <span style={{ fontSize: '12px', color: colors.text2 }}>Reports to {managerList.find(m => m.id === managerId)?.name || 'No manager'}</span>
                                                 </div>
@@ -557,7 +557,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                                     </div>
                                                     <div style={{ fontSize: '12px', fontWeight: 600, flex: 1 }}>{email}</div>
                                                     <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 7px', borderRadius: '4px', background: isManager ? 'rgba(249,115,22,0.1)' : colors.accentGlow, color: isManager ? '#f97316' : colors.accent }}>
-                                                        {isManager ? 'Manager' : 'Employee'}
+                                                        {isManager ? 'Manager' : 'Person'}
                                                     </span>
                                                 </div>
                                             ))}
@@ -571,7 +571,7 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                         <tr>
                                             <td style={{ fontSize: '12px', color: colors.text3, width: '120px', padding: '9px 12px 9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>Role</td>
                                             <td style={{ fontSize: '12px', fontWeight: 600, color: colors.text, padding: '9px 0', borderBottom: `1px solid ${colors.border}`, verticalAlign: 'top' }}>
-                                                <span style={{ fontWeight: 700, color: isManager ? '#f97316' : colors.accent }}>{isManager ? 'Manager' : 'Employee'}</span>
+                                                <span style={{ fontWeight: 700, color: isManager ? '#f97316' : colors.accent }}>{isManager ? 'Manager' : 'Person'}</span>
                                             </td>
                                         </tr>
                                         <tr>
@@ -629,8 +629,8 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
 
                                 {errorMsg && <div style={{ padding: '12px', marginBottom: '14px', background: colors.dangerGlow, border: `1px solid ${colors.danger}`, color: colors.danger, fontSize: '13px', borderRadius: '8px' }}>{errorMsg}</div>}
 
-                                <div style={{ padding: '12px 14px', background: 'rgba(91,127,255,0.06)', border: `1px solid ${colors.accentBorder}`, borderRadius: '10px', fontSize: '12px', color: colors.text2, lineHeight: 1.65, display: 'flex', gap: '9px' }}>
-                                    <Icon name="alert" size={14} color={colors.accent} style={{ flexShrink: 0, marginTop: '2px' }} />
+                                <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${colors.accentBorder}`, borderRadius: '10px', fontSize: '12px', color: colors.text2, lineHeight: 1.65, display: 'flex', gap: '9px' }}>
+                                    <Icon name="alert" size={14} color={colors.text2} style={{ flexShrink: 0, marginTop: '2px' }} />
                                     <div>Each invitee will receive a secure activation link. They won&apos;t appear on team dashboards until they accept and set a password. The link expires in <strong>7 days</strong>.</div>
                                 </div>
                             </div>
@@ -658,8 +658,8 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                     <button onClick={onClose} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: typography.fonts.body, border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.text2 }}>Close</button>
-                                    <button onClick={() => setStep(1)} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: typography.fonts.body, border: 'none', background: colors.accent, color: '#fff', boxShadow: `0 0 16px rgba(91,127,255,0.22)` }}>
-                                        <Icon name="plus" size={13} /> Invite Another
+                                    <button onClick={() => setStep(1)} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: typography.fonts.body, border: `1px solid ${colors.borderHover}`, background: colors.surface3, color: colors.text, boxShadow: 'none' }}>
+                                        <Icon name="plus" size={13} color={colors.text} /> Invite Another
                                     </button>
                                 </div>
                             </div>
@@ -677,14 +677,14 @@ export function InviteModal({ isOpen, onClose, orgName = 'Acme Inc' }: InviteMod
                                     </button>
                                 )}
                                 {step < 3 ? (
-                                    <button onClick={nextStep} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: typography.fonts.body, border: 'none', background: colors.accent, color: '#fff', boxShadow: `0 0 16px rgba(91,127,255,0.22)` }}>
-                                        Continue <Icon name="chevronRight" size={13} />
+                                    <button onClick={nextStep} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: typography.fonts.body, border: `1px solid ${colors.borderHover}`, background: colors.surface3, color: colors.text, boxShadow: 'none' }}>
+                                        Continue <Icon name="chevronRight" size={13} color={colors.text} />
                                     </button>
                                 ) : (
-                                    <button onClick={handleSend} disabled={isSubmitting} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 700, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.4 : 1, fontFamily: typography.fonts.body, border: 'none', background: colors.accent, color: '#fff', boxShadow: `0 0 16px rgba(91,127,255,0.22)` }}>
+                                    <button onClick={handleSend} disabled={isSubmitting} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 20px', borderRadius: '9px', fontSize: '13px', fontWeight: 700, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.4 : 1, fontFamily: typography.fonts.body, border: `1px solid ${colors.borderHover}`, background: colors.surface3, color: colors.text, boxShadow: 'none' }}>
                                         {isSubmitting ? 'Sending...' : (
                                             <>
-                                                <Icon name="mail" size={13} /> Send Invitation{emails.length > 1 ? 's' : ''}
+                                                <Icon name="mail" size={13} color={colors.text} /> Send Invitation{emails.length > 1 ? 's' : ''}
                                             </>
                                         )}
                                     </button>

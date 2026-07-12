@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { format } from 'date-fns'
-import { colors, radius, animation } from '@/design-system'
+import { colors, radius, animation, getScoreColor, getScoreBarColor } from '@/design-system'
 
 interface CriterionBar {
     name: string
@@ -27,12 +27,6 @@ interface Props {
     allReports: any[]
     viewMode: 'self' | 'detail'
     selectedGoalId: string | null
-}
-
-function barColor(score: number): string {
-    if (score < 6) return '#f04438'
-    if (score < 8) return '#f79009'
-    return '#10b981'
 }
 
 function formatDate(raw: string): string {
@@ -124,7 +118,10 @@ export function SkillAnalysisBar({ criteriaData, allReports, viewMode, selectedG
 
             {visible.map((criterion, i) => {
                 const isOpen = openCriterion === criterion.name
-                const color = barColor(criterion.score)
+                // Same bands as the rest of the app: the number carries the legible band color
+                // (getScoreColor → muted red below 5), the bar uses the quieter getScoreBarColor.
+                const color = getScoreColor(criterion.score)
+                const barFill = getScoreBarColor(criterion.score)
                 const entries = isOpen ? getLastFive(allReports, criterion.name, selectedGoalId) : []
 
                 return (
@@ -177,7 +174,7 @@ export function SkillAnalysisBar({ criteriaData, allReports, viewMode, selectedG
                                     top: 0,
                                     height: '100%',
                                     width: `${(criterion.score / 10) * 100}%`,
-                                    background: color,
+                                    background: barFill,
                                     borderRadius: '99px',
                                     transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
                                 }} />
@@ -239,7 +236,7 @@ export function SkillAnalysisBar({ criteriaData, allReports, viewMode, selectedG
                                     </div>
                                 ) : (
                                     entries.map((entry, j) => {
-                                        const entryColor = barColor(entry.score)
+                                        const entryColor = getScoreColor(entry.score)
                                         return (
                                             <div
                                                 key={j}

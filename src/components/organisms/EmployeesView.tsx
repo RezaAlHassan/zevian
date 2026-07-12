@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { colors, radius, typography, animation, layout, shadows, getAvatarGradient, getInitials } from '@/design-system'
+import { colors, radius, typography, animation, layout, shadows, getAvatarGradient, getInitials, getScoreColor } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { StatusPill } from '@/components/atoms/StatusPill'
@@ -113,11 +113,13 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
             {/* KPI Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 {[
-                    { label: 'Team Size', value: stats.teamSize, meta: 'Active members', icon: 'users', color: colors.accent },
-                    { label: 'Avg Score', value: stats.avgScore, meta: '+0.3 vs last week', icon: 'trendingUp', color: colors.green },
-                    { label: 'On Track', value: stats.onTrack, meta: 'Score ≥ 7.5', icon: 'check', color: colors.green },
-                    { label: 'At Risk', value: stats.atRisk, meta: 'Requires action', icon: 'alert', color: colors.danger },
-                    { label: 'Pending', value: stats.pending, meta: 'No report this week', icon: 'clock', color: colors.warn },
+                    // Color = meaning (matches the KPICard policy): counts neutral, Avg Score graded,
+                    // At Risk / Pending colored only when > 0.
+                    { label: 'Team Size', value: stats.teamSize, meta: 'Active members', icon: 'users', color: colors.text },
+                    { label: 'Avg Score', value: stats.avgScore, meta: '+0.3 vs last week', icon: 'trendingUp', color: Number(stats.avgScore) > 0 ? getScoreColor(Number(stats.avgScore)) : colors.text3 },
+                    { label: 'On Track', value: stats.onTrack, meta: 'Score ≥ 7.5', icon: 'check', color: colors.text },
+                    { label: 'At Risk', value: stats.atRisk, meta: 'Requires action', icon: 'alert', color: stats.atRisk > 0 ? colors.danger : colors.text },
+                    { label: 'Pending', value: stats.pending, meta: 'No report this week', icon: 'clock', color: stats.pending > 0 ? colors.warnMuted : colors.text },
                 ].map((kpi, i) => (
                     <div key={i} style={{
                         background: colors.surface,
@@ -128,9 +130,9 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
                             <Icon name={kpi.icon as any} size={12} color={colors.text3} />
-                            <span style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{kpi.label}</span>
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{kpi.label}</span>
                         </div>
-                        <div className="font-numeric" style={{ fontSize: '28px', fontWeight: 800, color: kpi.color, letterSpacing: '-1px', lineHeight: 1, marginBottom: '6px' }}>{kpi.value}</div>
+                        <div className="font-numeric" style={{ fontSize: '28px', fontWeight: 800, color: kpi.color, letterSpacing: '-0.3px', lineHeight: 1, marginBottom: '6px' }}>{kpi.value}</div>
                         <div style={{ fontSize: '11px', color: colors.text3 }}>{kpi.meta}</div>
                     </div>
                 ))}
@@ -146,39 +148,20 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
             }}>
                 {/* Left Side: Search & Filters */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                        position: 'relative',
-                        width: '240px'
-                    }}>
-                        <Icon
-                            name="search"
-                            size={14}
-                            color={colors.text3}
-                            style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
-                        />
+                    <div className="zv-search" style={{ width: '240px' }}>
+                        <Icon name="search" size={14} color={colors.text3} />
                         <input
                             type="text"
-                            placeholder="Search employees..."
+                            placeholder="Search people..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '10px 12px 10px 36px',
-                                background: colors.surface,
-                                border: `1px solid ${colors.border}`,
-                                borderRadius: radius.md,
-                                fontSize: '13px',
-                                color: colors.text,
-                                outline: 'none',
-                                transition: `all ${animation.fast}`
-                            }}
                         />
                     </div>
 
                     <select
+                        className="zv-select"
                         value={perfFilter}
                         onChange={(e) => setPerfFilter(e.target.value)}
-                        style={selectStyle}
                     >
                         <option value="">All Performance</option>
                         <option value="hi">On Track (7.5+)</option>
@@ -215,24 +198,27 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
 
                     <div style={{
                         display: 'flex',
+                        alignItems: 'center',
+                        boxSizing: 'border-box',
+                        height: '32px',
                         background: colors.surface,
                         border: `1px solid ${colors.border}`,
                         borderRadius: radius.md,
-                        padding: '3px',
+                        padding: '2px',
                         gap: '2px'
                     }}>
                         <button
                             onClick={() => setViewMode('table')}
                             style={{
                                 width: '30px',
-                                height: '30px',
+                                height: '26px',
                                 borderRadius: '5px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 cursor: 'pointer',
                                 background: viewMode === 'table' ? colors.surface2 : 'transparent',
-                                color: viewMode === 'table' ? colors.accent : colors.text3,
+                                color: viewMode === 'table' ? colors.text : colors.text3,
                                 border: 'none',
                                 transition: `all ${animation.fast}`,
                             }}
@@ -243,14 +229,14 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                             onClick={() => setViewMode('cards')}
                             style={{
                                 width: '30px',
-                                height: '30px',
+                                height: '26px',
                                 borderRadius: '5px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 cursor: 'pointer',
                                 background: viewMode === 'cards' ? colors.surface2 : 'transparent',
-                                color: viewMode === 'cards' ? colors.accent : colors.text3,
+                                color: viewMode === 'cards' ? colors.text : colors.text3,
                                 border: 'none',
                                 transition: `all ${animation.fast}`,
                             }}
@@ -272,7 +258,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                                <th style={tableHeaderStyle}>Employee</th>
+                                <th style={tableHeaderStyle}>Person</th>
                                 <th style={tableHeaderStyle}>Role</th>
                                 {effectiveView === 'org' && <th style={tableHeaderStyle}>Reports To</th>}
                                 <th style={tableHeaderStyle}>Avg Score</th>
@@ -306,8 +292,10 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                                 fontSize: '11px',
                                                 fontWeight: 700,
                                                 color: '#fff',
-                                                position: 'relative'
+                                                position: 'relative',
+                                                overflow: 'hidden'
                                             }}>
+                                                {emp.avatarUrl && <img src={emp.avatarUrl} alt={emp.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                                                 {getInitials(emp.name)}
                                             </div>
                                             <div>
@@ -426,8 +414,11 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                     justifyContent: 'center',
                                     fontSize: '14px',
                                     fontWeight: 800,
-                                    color: '#fff'
+                                    color: '#fff',
+                                    position: 'relative',
+                                    overflow: 'hidden'
                                 }}>
+                                    {emp.avatarUrl && <img src={emp.avatarUrl} alt={emp.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                                     {getInitials(emp.name)}
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
@@ -483,7 +474,7 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
                                             <div key={i} style={{
                                                 width: '4px',
                                                 height: `${10 + Math.random() * 20}px`,
-                                                background: emp.avgScore >= 7.5 ? colors.green : colors.accent,
+                                                background: emp.avgScore >= 7.5 ? colors.green : colors.text3,
                                                 borderRadius: '2px'
                                             }} />
                                         ))}
@@ -530,23 +521,6 @@ export function EmployeesView({ employees: initialEmployees, effectiveView = 'or
             />
         </div>
     )
-}
-
-const selectStyle: React.CSSProperties = {
-    padding: '8px 28px 8px 12px',
-    background: colors.surface,
-    border: `1px solid ${colors.border}`,
-    borderRadius: radius.md,
-    fontSize: '12px',
-    color: colors.text2,
-    fontFamily: 'inherit',
-    outline: 'none',
-    cursor: 'pointer',
-    appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23545d73' stroke-width='2'/%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 10px center',
-    transition: `border-color ${animation.fast}`
 }
 
 const tableHeaderStyle: React.CSSProperties = {

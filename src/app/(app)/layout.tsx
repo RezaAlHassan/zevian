@@ -33,6 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     role: employee.role ?? 'employee',
     organization_id: employee.organizationId || '',
     organizations: organization ? { name: organization.name } : null,
+    avatar_url: employee.avatarUrl ?? null,
     canManageSettings: employee.isAccountOwner || (employee.permissions?.canManageSettings ?? false),
     canViewOrganizationWide: employee.isAccountOwner || (employee.permissions?.canViewOrganizationWide ?? false),
   }

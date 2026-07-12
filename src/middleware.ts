@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
@@ -8,47 +8,28 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // getAll/setAll (rather than the removed per-cookie get/set/remove API) writes the whole
+  // auth cookie set atomically. The old API could persist a partially-updated session
+  // (new access token + stale refresh token) when a refresh raced a navigation, which
+  // surfaced as users being randomly logged out mid-click.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
         },
       },
     }
@@ -56,8 +37,8 @@ export async function middleware(request: NextRequest) {
 
   // Use getSession() (local cookie read, refreshes when expired) rather than getUser()
   // (a network round-trip to the Auth server on every request). This middleware only
-  // decides redirects — actual data access in Server Components/Actions still calls
-  // getUser() to cryptographically validate before reading anything.
+  // decides redirects — actual data access in Server Components/Actions still validates
+  // the JWT before reading anything.
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
 
@@ -67,7 +48,7 @@ export async function middleware(request: NextRequest) {
   const isPublicAsset = pathname.includes('.')
 
   // HELPER: Essential for auth stability - copies ALL cookies to the redirect
-  // This ensures that if Supabase set cookies during getUser(), they survive the redirect.
+  // This ensures that if Supabase set cookies during the session read, they survive the redirect.
   const createRedirect = (path: string) => {
     const redirectUrl = new URL(path, request.url)
     const redirectResponse = NextResponse.redirect(redirectUrl)

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { DashboardView } from '@/components/organisms/DashboardView'
 import { getDashboardDataAction } from '@/app/actions/dashboardActions'
 
@@ -12,15 +13,14 @@ export default async function DashboardPage({
   const view = searchParams.view as 'org' | 'direct' | undefined
   const dashboardData = await getDashboardDataAction(view, searchParams.start, searchParams.end)
 
+  // Never render a zeroed dashboard on failure — that reads as "all my data vanished".
+  // An auth failure goes back to login; anything else surfaces the error boundary,
+  // which offers a retry.
+  if (dashboardData?.error === 'Not authenticated') {
+    redirect('/login')
+  }
   if (dashboardData?.error || !dashboardData) {
-    return (
-      <DashboardView
-        teamStats={{ totalReports: 0, lateSubmissions: [], avgScore: 0, teamPerformance: [], projects: [] }}
-        recentReports={[]}
-        projects={[]}
-        lateSubmissions={[]}
-      />
-    )
+    throw new Error(dashboardData?.error || 'Failed to load dashboard data')
   }
 
   const d = dashboardData as any

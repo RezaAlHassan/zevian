@@ -92,7 +92,7 @@ export function RegisterForm() {
         <div style={{ width: '100%', maxWidth: '420px', padding: '0 16px', animation: 'fadeUp 0.4s ease both' }}>
             {/* Logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '36px', justifyContent: 'center' }}>
-                <div style={{ width: '36px', height: '36px', background: colors.accent, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff' }}>Z</div>
+                <div style={{ width: '36px', height: '36px', background: colors.brand, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff' }}>Z</div>
                 <span style={{ fontWeight: 700, fontSize: '22px' }}>Zevian</span>
             </div>
 
@@ -144,7 +144,7 @@ export function RegisterForm() {
                     <button
                         type="submit"
                         disabled={loading}
-                        style={{ width: '100%', padding: '12px', borderRadius: radius.md, background: colors.accent, color: '#fff', fontWeight: 700, fontSize: '14px', border: 'none', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.6 : 1, transition: animation.fast }}
+                        style={{ width: '100%', padding: '12px', borderRadius: radius.md, background: colors.surface3, color: colors.text, fontWeight: 700, fontSize: '14px', border: `1px solid ${colors.borderHover}`, cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.6 : 1, transition: animation.fast }}
                     >
                         {loading ? 'Creating account...' : 'Create account'}
                     </button>

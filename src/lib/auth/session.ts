@@ -46,13 +46,36 @@ export const getAuthUser = cache(async (): Promise<AuthUser | null> => {
   const supabase = createServerClient()
   const { data, error } = await supabase.auth.getClaims()
   const claims = data?.claims as any
-  if (error || !claims?.sub) return null
-  return {
-    id: claims.sub,
-    email: claims.email,
-    user_metadata: claims.user_metadata ?? {},
-    app_metadata: claims.app_metadata ?? {},
+  if (!error && claims?.sub) {
+    return {
+      id: claims.sub,
+      email: claims.email,
+      user_metadata: claims.user_metadata ?? {},
+      app_metadata: claims.app_metadata ?? {},
+    }
   }
+
+  // getClaims() can fail transiently (JWKS fetch blip, token mid-refresh) even though the
+  // user still holds a valid session. Returning null here would redirect them to /login —
+  // the "randomly logged out while clicking around" bug. Before declaring the user signed
+  // out, confirm with the Auth server; only a definitive "no user" answer logs them out.
+  if (error) {
+    try {
+      const { data: userData } = await supabase.auth.getUser()
+      const u = userData?.user
+      if (u) {
+        return {
+          id: u.id,
+          email: u.email ?? undefined,
+          user_metadata: u.user_metadata ?? {},
+          app_metadata: u.app_metadata ?? {},
+        }
+      }
+    } catch {
+      // fall through to null — treat as unauthenticated
+    }
+  }
+  return null
 })
 
 /** Validated auth user — runs auth validation at most once per request. */

@@ -1,7 +1,7 @@
 'use client'
 
 import { colors, radius, animation, typography } from '@/design-system'
-import { Icon, IconName, Chip } from '@/components/atoms'
+import { Icon, IconName, Chip, Button } from '@/components/atoms'
 import React from 'react'
 
 interface CardProps {
@@ -42,10 +42,10 @@ export function Card({ children, title, subtitle, icon, action, chip, danger, cl
           }}
         >
           {icon && (
-            <Icon name={icon} size={15} color={danger ? colors.danger : colors.accent} />
+            <Icon name={icon} size={13} color={danger ? colors.danger : colors.text3} />
           )}
           {title && (
-            <div style={{ fontFamily: typography.fonts.display, fontWeight: typography.weight.semibold, fontSize: '14px', color: danger ? colors.danger : colors.text, flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontFamily: typography.fonts.display, fontWeight: typography.weight.semibold, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', color: danger ? colors.danger : colors.text3, flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
               {title}
               {chip}
             </div>
@@ -92,5 +92,42 @@ export function SectionLabel({ children }: SectionLabelProps) {
       {children}
       <span style={{ flex: 1, height: '1px', background: colors.border }} />
     </div>
+  )
+}
+
+// Bottom "show all" action for list cards — the app-wide affordance for revealing a full list,
+// replacing top-right "View all" links. Centered ghost button matching the dashboard Team panel.
+export function ShowAllButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '8px' }}>
+      <Button variant="ghost" size="sm" onClick={onClick}>{label}</Button>
+    </div>
+  )
+}
+
+// Count badge for card headers ("29", "7") — a small, visible non-interactive pill so the count
+// reads clearly against the muted title without looking like a clickable control.
+export function CountLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '20px',
+        height: '18px',
+        padding: '0 6px',
+        borderRadius: '999px',
+        background: colors.surface3,
+        border: `1px solid ${colors.border}`,
+        fontSize: '11px',
+        fontWeight: typography.weight.bold,
+        color: colors.text2,
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {children}
+    </span>
   )
 }

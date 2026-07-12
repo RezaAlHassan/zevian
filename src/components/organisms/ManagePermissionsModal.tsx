@@ -55,12 +55,12 @@ const readOnlyPermissions: CustomPermissions = {
 }
 
 const PERMISSION_CONFIG = [
-    { key: 'canViewOrganizationWide', label: 'View Organization-Wide', desc: "See all employees' data, not just direct reports" },
+    { key: 'canViewOrganizationWide', label: 'View Organization-Wide', desc: "See all people's data, not just direct reports" },
     { key: 'canManageSettings', label: 'Manage Settings', desc: 'Modify org-level settings (reporting frequency, policies)' },
     { key: 'canSetGlobalFrequency', label: 'Set Global Frequency', desc: 'Override the global reporting schedule' },
     { key: 'canCreateProjects', label: 'Create Projects', desc: 'Create and manage organizational projects' },
     { key: 'canCreateGoals', label: 'Create Goals', desc: 'Create and assign goals to team members' },
-    { key: 'canInviteUsers', label: 'Invite Users', desc: 'Invite new employees to the organization' },
+    { key: 'canInviteUsers', label: 'Invite Users', desc: 'Invite new people to the organization' },
     { key: 'canOverrideAIScores', label: 'Override Scores', desc: 'Can manually override evaluation scores (Logged for audit trail)', danger: true },
 ]
 

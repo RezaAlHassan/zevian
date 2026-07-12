@@ -8,6 +8,7 @@ interface Props {
     role:         string
     organization_id: string
     organizations: { name: string } | null
+    avatar_url?: string | null
     canManageSettings: boolean
     canViewOrganizationWide: boolean
   } | null
@@ -19,6 +20,7 @@ export function AppShellServer({ profile, children }: Props) {
     <Suspense fallback={<div style={{ background: '#0a0c10', minHeight: '100vh' }} />}>
       <AppShellClient
         userName={profile?.full_name ?? 'User'}
+        avatarUrl={profile?.avatar_url ?? null}
         orgName={profile?.organizations?.name ?? 'My Org'}
         userRole={profile?.role ?? 'employee'}
         canManageSettings={profile?.canManageSettings ?? false}

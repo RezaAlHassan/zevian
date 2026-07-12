@@ -51,13 +51,13 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
     if (!isOpen) return null
 
     const categories = [
-        { label: 'Sales', emoji: '💰' },
-        { label: 'Operations', emoji: '⚙️' },
-        { label: 'Engineering', emoji: '🖥️' },
-        { label: 'Marketing', emoji: '📣' },
-        { label: 'Customer Support', emoji: '🎧' },
-        { label: 'Recruitment', emoji: '🤝' },
-        { label: 'Other', emoji: '📊' },
+        { label: 'Sales' },
+        { label: 'Operations' },
+        { label: 'Engineering' },
+        { label: 'Marketing' },
+        { label: 'Customer Support' },
+        { label: 'Recruitment' },
+        { label: 'Other' },
     ]
 
     const frequencies = [
@@ -206,23 +206,17 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                                         key={cat.label}
                                         onClick={() => setSelectedCategory(cat.label)}
                                         style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '12px 8px',
+                                            padding: '10px 12px',
                                             background: selectedCategory === cat.label ? colors.accentGlow : colors.surface2,
                                             border: `1.5px solid ${selectedCategory === cat.label ? colors.accentBorder : colors.border}`,
                                             borderRadius: radius.md,
                                             cursor: 'pointer',
                                             transition: `all ${animation.fast}`,
-                                            textAlign: 'center',
                                         }}
                                     >
-                                        <span style={{ fontSize: '20px' }}>{cat.emoji}</span>
-                                        <span style={{ fontSize: '11px', fontWeight: 600, color: selectedCategory === cat.label ? colors.accent : colors.text2 }}>
+                                        <div style={{ fontSize: '12px', fontWeight: 600, color: selectedCategory === cat.label ? colors.accent : colors.text2 }}>
                                             {cat.label}
-                                        </span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -250,7 +244,7 @@ export function AddProjectSheet({ isOpen, onClose, employees, project, onSave }:
                                         <div style={{ fontSize: '12px', fontWeight: 600, color: selectedFreq === freq.label ? colors.accent : colors.text2 }}>
                                             {freq.label}
                                         </div>
-                                        <div style={{ fontSize: '10px', color: selectedFreq === freq.label ? 'rgba(91,127,255,0.6)' : colors.text3, marginTop: '2px' }}>
+                                        <div style={{ fontSize: '10px', color: selectedFreq === freq.label ? colors.text2 : colors.text3, marginTop: '2px' }}>
                                             {freq.sub}
                                         </div>
                                     </div>

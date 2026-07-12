@@ -1,8 +1,9 @@
 'use client'
 
-import { colors, radius, typography, animation, shadows } from '@/design-system'
+import { colors, radius, typography, animation, shadows, layout } from '@/design-system'
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
+import { Avatar } from '@/components/atoms/Avatar'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { ScoreDisplay, ScoreBar } from '@/components/atoms/Score'
 import React, { useState } from 'react'
@@ -21,6 +22,41 @@ interface ReportDetailProps {
 }
 
 const SUMMARY_MAX = 200
+
+// The three score-calibration actions share the greyscale "raised" (P3) button shape — border +
+// hover-lighten — but each carries a distinct low-opacity tinted ground so a manager can tell the
+// three-way choice apart at a glance. This is a deliberate, contained exception to the greyscale-
+// chrome rule: agree = green (confirm), too-high = amber (dial back), too-low = blue (boost).
+const CALIB_TONES = {
+    agree: { base: 'rgba(16,185,129,0.10)', hover: 'rgba(16,185,129,0.18)', text: colors.green, border: 'rgba(16,185,129,0.30)', borderHover: 'rgba(16,185,129,0.48)' },
+    down:  { base: 'rgba(245,158,11,0.10)', hover: 'rgba(245,158,11,0.18)', text: colors.warn,  border: 'rgba(245,158,11,0.30)', borderHover: 'rgba(245,158,11,0.48)' },
+    up:    { base: 'rgba(91,127,255,0.10)', hover: 'rgba(91,127,255,0.18)', text: colors.brand, border: 'rgba(91,127,255,0.30)', borderHover: 'rgba(91,127,255,0.48)' },
+} as const
+
+function CalibButton({ tone, label, onClick, disabled }: { tone: keyof typeof CALIB_TONES; label: string; onClick: () => void; disabled?: boolean }) {
+    const [hovered, setHovered] = useState(false)
+    const t = CALIB_TONES[tone]
+    const lifted = hovered && !disabled
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={{
+                padding: '5px 11px', borderRadius: '6px',
+                border: `1px solid ${lifted ? t.borderHover : t.border}`,
+                background: lifted ? t.hover : t.base,
+                color: t.text, fontSize: '12px', fontWeight: 700,
+                cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
+                display: 'flex', alignItems: 'center', gap: '4px',
+                transition: `all ${animation.fast}`,
+            }}
+        >
+            {label}
+        </button>
+    )
+}
 
 export function ReportDetailView({ report, role = 'manager', canOverride = true }: ReportDetailProps) {
     const router = useRouter()
@@ -168,25 +204,9 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                             </div>
                         ) : (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <button
-                                    onClick={handleCalibrationAgree}
-                                    disabled={isSavingOverride}
-                                    style={{ padding: '5px 11px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.green, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                >
-                                    ✓ Looks Right
-                                </button>
-                                <button
-                                    onClick={handleCalibrationDown}
-                                    style={{ padding: '5px 11px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.warn, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                >
-                                    ↓ Too High
-                                </button>
-                                <button
-                                    onClick={handleCalibrationUp}
-                                    style={{ padding: '5px 11px', borderRadius: '6px', border: `1px solid ${colors.border}`, background: colors.surface2, color: colors.accent, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                                >
-                                    ↑ Too Low
-                                </button>
+                                <CalibButton tone="agree" label="✓ Looks Right" onClick={handleCalibrationAgree} disabled={isSavingOverride} />
+                                <CalibButton tone="down" label="↓ Too High" onClick={handleCalibrationDown} disabled={isSavingOverride} />
+                                <CalibButton tone="up" label="↑ Too Low" onClick={handleCalibrationUp} disabled={isSavingOverride} />
                             </div>
                         )}
                         {localReviewed && (
@@ -201,7 +221,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                 )}
             </header>
 
-            <div style={{ padding: '28px 28px 0', maxWidth: '1180px', margin: '0 auto' }}>
+            <div style={{ padding: layout.contentPadding, paddingBottom: 0, maxWidth: '1180px', margin: '0 auto' }}>
                 {/* Hero Card */}
                 <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: '20px',
@@ -209,20 +229,16 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     background: colors.surface, border: `1px solid ${colors.border}`,
                     borderRadius: radius.lg,
                 }}>
-                    {/* Icon */}
-                    <div style={{
-                        width: '52px', height: '52px', borderRadius: radius.lg,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: colors.surface2, border: `1px solid ${colors.border}`, flexShrink: 0,
-                    }}>
-                        <Icon name="user" size={24} color={colors.accent} />
-                    </div>
+                    <Avatar name={employeeName} src={(report.employees as any)?.avatar_url ?? null} size="2xl" style={{ borderRadius: radius.lg, flexShrink: 0 }} />
 
                     {/* Center */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <h1 style={{ fontFamily: typography.fonts.display, fontSize: '21px', fontWeight: 800, color: colors.text, letterSpacing: '-0.5px', marginBottom: '6px' }}>
-                            {employeeName}
-                        </h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <h1 style={{ fontFamily: typography.fonts.display, fontSize: '21px', fontWeight: 800, color: colors.text, letterSpacing: '-0.5px' }}>
+                                {employeeName}
+                            </h1>
+                            <StatusPill status={status as any} score={effectiveScore} />
+                        </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', color: colors.text2, marginBottom: '4px', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 <Icon name="goals" size={13} color={colors.text3} />{goalName}
@@ -251,18 +267,14 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                             </p>
                         )}
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '14px' }}>
-                            <StatusPill status={status as any} score={effectiveScore} />
-                            <div style={{ display: 'flex', background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '20px', padding: '3px 10px', fontSize: '11px', fontWeight: 600, color: colors.text2 }}>
-                                {projectName}
-                            </div>
-                            {report.managerOverrideReasoning && (
+                        {report.managerOverrideReasoning && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '14px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: colors.accentGlow, border: `1px solid ${colors.accent}30`, borderRadius: '20px', padding: '3px 10px', fontSize: '11px', fontWeight: 600, color: colors.accent }}>
                                     <Icon name="edit" size={10} color={colors.accent} />
                                     Overridden
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Score */}
@@ -289,11 +301,10 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                         )}
                     </div>
                 </div>
-            </div>
 
             {/* Flags */}
             {flags.length > 0 && (
-                <div style={{ margin: '0 28px', padding: '12px 20px', background: `${colors.warn}10`, border: `1px solid ${colors.warn}20`, borderRadius: radius.md, marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ padding: '12px 20px', background: `${colors.warn}10`, border: `1px solid ${colors.warn}20`, borderRadius: radius.md, marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <div style={{ fontSize: '11px', fontWeight: 700, color: colors.warn, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Icon name="alert" size={14} color={colors.warn} />
                         Evaluation Warnings
@@ -310,7 +321,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
 
             {/* Override reasoning */}
             {report.managerOverrideReasoning && (
-                <div style={{ margin: '0 28px 16px', padding: '12px 20px', background: colors.accentGlow, border: `1px solid ${colors.accent}20`, borderRadius: radius.md, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <div style={{ marginBottom: '16px', padding: '12px 20px', background: colors.accentGlow, border: `1px solid ${colors.accent}20`, borderRadius: radius.md, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '6px', padding: '3px 9px', fontSize: '11px', fontWeight: 700, color: colors.accent, whiteSpace: 'nowrap' }}>
                         <Icon name="edit" size={12} color={colors.accent} />
                         Override
@@ -324,7 +335,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
             {/* Consistency Flag — manager-only, non-STABLE */}
             {role === 'manager' && report.consistencyFlag && report.consistencyFlag !== 'STABLE' && (
                 <div style={{
-                    margin: '0 28px 16px',
+                    marginBottom: '16px',
                     padding: '16px 20px',
                     background: `${colors.warn}08`,
                     border: `1px solid ${colors.warn}`,
@@ -344,43 +355,46 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     )}
                 </div>
             )}
+            </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', borderBottom: `1px solid ${colors.border}`, padding: '0 28px', background: colors.surface }}>
-                {[
-                    { id: 'breakdown', label: 'Analysis' },
-                    { id: 'content', label: 'Report Content' },
-                    { id: 'activity', label: 'Activity' }
-                ].map(tab => (
-                    <div
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        style={{
-                            padding: '12px 16px', fontSize: '13px',
-                            fontWeight: activeTab === tab.id ? 600 : 500,
-                            color: activeTab === tab.id ? colors.accent : colors.text3,
-                            cursor: 'pointer',
-                            borderBottom: `2px solid ${activeTab === tab.id ? colors.accent : 'transparent'}`,
-                            marginBottom: '-1px', transition: `all ${animation.fast}`
-                        }}
-                    >
-                        {tab.label}
-                    </div>
-                ))}
+            <div style={{ borderBottom: `1px solid ${colors.border}`, background: colors.surface }}>
+                <div style={{ display: 'flex', maxWidth: '1180px', margin: '0 auto', padding: `0 ${layout.contentPadding}` }}>
+                    {[
+                        { id: 'breakdown', label: 'Analysis' },
+                        { id: 'content', label: 'Report Content' },
+                        { id: 'activity', label: 'Activity' }
+                    ].map(tab => (
+                        <div
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            style={{
+                                padding: '12px 16px', fontSize: '13px',
+                                fontWeight: activeTab === tab.id ? 600 : 500,
+                                color: activeTab === tab.id ? colors.accent : colors.text3,
+                                cursor: 'pointer',
+                                borderBottom: `2px solid ${activeTab === tab.id ? colors.accent : 'transparent'}`,
+                                marginBottom: '-1px', transition: `all ${animation.fast}`
+                            }}
+                        >
+                            {tab.label}
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* Tab Content */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 28px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', maxWidth: '1180px', margin: '0 auto', width: '100%', padding: `20px ${layout.contentPadding}` }}>
                 {activeTab === 'breakdown' && (
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                            <Icon name="target" size={13} color={colors.accent} />
+                            <Icon name="target" size={13} color={colors.text3} />
                             Criteria Analysis
                         </div>
                         {!hasScored || !evaluationData?.criterion_scores?.length ? (
                             <div style={{ padding: '60px 0', textAlign: 'center' }}>
                                 <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: colors.accentGlow, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                                    <Icon name="star" size={26} color={colors.accent} />
+                                    <Icon name="star" size={26} color={colors.text3} />
                                 </div>
                                 <div style={{ fontSize: '16px', fontWeight: 800, color: colors.text, marginBottom: '8px' }}>Not yet scored</div>
                                 <div style={{ fontSize: '13px', color: colors.text3, maxWidth: '260px', margin: '0 auto' }}>Click "Score" to generate an objective breakdown against each criterion.</div>
@@ -440,7 +454,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                     return (
                         <div>
                             <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                                <Icon name="fileText" size={13} color={colors.accent} />
+                                <Icon name="fileText" size={13} color={colors.text3} />
                                 Submitted Content
                                 {isManagerUpload && (
                                     <span style={{
@@ -469,7 +483,7 @@ export function ReportDetailView({ report, role = 'manager', canOverride = true 
                 {activeTab === 'activity' && (
                     <div>
                         <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                            <Icon name="clock" size={13} color={colors.accent} />
+                            <Icon name="clock" size={13} color={colors.text3} />
                             Activity Log
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>

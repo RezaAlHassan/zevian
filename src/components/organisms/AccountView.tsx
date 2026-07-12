@@ -5,7 +5,7 @@ import { colors, radius, typography, animation, layout, shadows, getAvatarGradie
 import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { Card } from '@/components/molecules/Card'
-import { updateEmployeeProfileAction, updatePasswordAction } from '@/app/actions/employeeActions'
+import { updateEmployeeProfileAction, updatePasswordAction, updateEmployeeAvatarAction } from '@/app/actions/employeeActions'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -24,6 +24,47 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
 
     const [isSaving, setIsSaving] = useState(false)
     const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
+
+    // ── Profile picture upload ──────────────────────────────────────────────
+    const fileInputRef = React.useRef<HTMLInputElement>(null)
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(initialEmployee?.avatarUrl ?? null)
+    const [avatarUploading, setAvatarUploading] = useState(false)
+    const [avatarError, setAvatarError] = useState<string | null>(null)
+
+    const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        e.target.value = '' // let the same file be re-picked after an error
+        if (!file) return
+        if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) { setAvatarError('Use a PNG, JPG, or WebP image.'); return }
+        if (file.size > 2 * 1024 * 1024) { setAvatarError('Image must be under 2 MB.'); return }
+
+        setAvatarError(null)
+        setAvatarUploading(true)
+        try {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) { setAvatarError('You are not signed in.'); setAvatarUploading(false); return }
+
+            // Path is namespaced by auth uid so the storage RLS policy permits the write.
+            const ext = (file.name.split('.').pop() || 'png').toLowerCase()
+            const path = `${user.id}/avatar-${Date.now()}.${ext}`
+            const { error: upErr } = await supabase.storage
+                .from('avatars')
+                .upload(path, file, { upsert: true, cacheControl: '3600', contentType: file.type })
+            if (upErr) { setAvatarError(upErr.message); setAvatarUploading(false); return }
+
+            const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
+            const res = await updateEmployeeAvatarAction(pub.publicUrl)
+            if (!res.success) { setAvatarError(res.error || 'Failed to save picture.'); setAvatarUploading(false); return }
+
+            setAvatarUrl(pub.publicUrl)
+            setAvatarUploading(false)
+            router.refresh() // refresh header/roster avatars
+        } catch {
+            setAvatarError('Upload failed. Please try again.')
+            setAvatarUploading(false)
+        }
+    }
 
     const handleSaveProfile = async () => {
         if (!initialEmployee?.id) return
@@ -96,10 +137,17 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
     ]
 
 
+    const RAIL_WIDTH = 210
+
     return (
-        <div style={{ display: 'flex', height: '100%', background: colors.bg }}>
-            {/* Left Rail Navigation */}
-            <div style={{ width: '210px', borderRight: `1px solid ${colors.border}`, padding: '20px 12px', background: colors.surface }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%', background: colors.bg }}>
+            {/* Left Rail Navigation — sticks to the left of the grid while the content scrolls */}
+            <div style={{
+                width: `${RAIL_WIDTH}px`, flexShrink: 0,
+                position: 'sticky', top: layout.headerHeight, alignSelf: 'flex-start',
+                maxHeight: `calc(100vh - ${layout.headerHeight})`, overflowY: 'auto',
+                borderRight: `1px solid ${colors.border}`, padding: '20px 12px', background: colors.surface,
+            }}>
                 {tabs.map(tab => (
                     <div
                         key={tab.id}
@@ -125,18 +173,45 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
                 ))}
             </div>
 
-            {/* Content Area */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+            {/* Content Area — centers within the remaining space to the right of the rail */}
+            <div style={{ flex: 1, minWidth: 0, maxWidth: '980px', margin: '0 auto', padding: layout.contentPadding }}>
                 {activeTab === 'profile' && (
                     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         <Card title="Profile Information" icon="user">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '32px', padding: '16px', borderRadius: '12px', background: 'linear-gradient(135deg, rgba(91,127,246,0.05), rgba(0,212,170,0.05))' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '32px', padding: '16px', borderRadius: '12px', background: colors.surface2 }}>
                                 <div style={{ position: 'relative' }}>
-                                    <div style={{ width: '80px', height: '80px', borderRadius: '20px', background: getAvatarGradient(userName || 'User'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', fontWeight: 800, color: '#fff', boxShadow: shadows.accentGlow }}>
-                                        {getInitials(userName || 'User')}
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/webp"
+                                        onChange={handleAvatarSelect}
+                                        style={{ display: 'none' }}
+                                    />
+                                    <div
+                                        onClick={() => !avatarUploading && fileInputRef.current?.click()}
+                                        style={{
+                                            width: '80px', height: '80px', borderRadius: '20px', overflow: 'hidden', position: 'relative',
+                                            background: getAvatarGradient(userName || 'User'), display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontFamily: typography.fonts.display, fontSize: '26px', fontWeight: 600, color: '#fff',
+                                            boxShadow: shadows.accentGlow, cursor: avatarUploading ? 'default' : 'pointer',
+                                        }}
+                                        title="Change profile picture"
+                                    >
+                                        {avatarUrl
+                                            ? <img src={avatarUrl} alt={userName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            : getInitials(userName || 'User')}
+                                        {avatarUploading && (
+                                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                <div className="avatar-spinner" />
+                                            </div>
+                                        )}
                                     </div>
-                                    <div style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '26px', height: '26px', borderRadius: '50%', background: colors.accent, border: `3px solid ${colors.surface}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                                        <Icon name="edit" size={11} color="#fff" />
+                                    <div
+                                        onClick={() => !avatarUploading && fileInputRef.current?.click()}
+                                        style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '26px', height: '26px', borderRadius: '50%', background: colors.text, border: `3px solid ${colors.surface}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                        title="Change profile picture"
+                                    >
+                                        <Icon name="edit" size={11} color={colors.bg} />
                                     </div>
                                 </div>
                                 <div style={{ flex: 1 }}>
@@ -154,6 +229,10 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
                                     </div>
                                 </div>
                             </div>
+
+                            {avatarError && (
+                                <div className="fade-in" style={{ fontSize: '12px', color: colors.danger, fontWeight: 600, marginBottom: '16px' }}>{avatarError}</div>
+                            )}
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
@@ -182,7 +261,7 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
                                     />
                                 </div>
                                 <div>
-                                    <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '8px' }}>Employee ID</div>
+                                    <div style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase', marginBottom: '8px' }}>Person ID</div>
                                     <input
                                         style={{ ...inputStyle, background: `${colors.surface3}80`, cursor: 'not-allowed' }}
                                         value={initialEmployee?.id || 'N/A'}
@@ -354,6 +433,15 @@ export function AccountView({ role = 'manager', initialEmployee }: AccountViewPr
                     from { opacity: 0; transform: translateY(8px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
+                .avatar-spinner {
+                    width: 22px;
+                    height: 22px;
+                    border-radius: 50%;
+                    border: 2px solid rgba(255,255,255,0.35);
+                    border-top-color: #fff;
+                    animation: avatarSpin 0.7s linear infinite;
+                }
+                @keyframes avatarSpin { to { transform: rotate(360deg); } }
             `}</style>
         </div>
     )

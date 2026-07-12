@@ -7,7 +7,7 @@ import type { SkillItem } from '@/lib/skillThresholds'
 function SkillBar({ skill }: { skill: SkillItem }) {
     const percentage = (skill.score / skill.maxScore) * 100
     const color = skill.category === 'strength' ? colors.green
-        : skill.category === 'weakness' ? colors.danger
+        : skill.category === 'weakness' ? colors.dangerMuted
         : colors.accent
 
     return (
@@ -66,7 +66,7 @@ export function SkillList({ skills }: SkillListProps) {
                 </div>
             </div>
             <div>
-                <div style={{ fontSize: '10px', fontWeight: 800, color: colors.danger, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: colors.dangerMuted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
                     Growth Areas
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>

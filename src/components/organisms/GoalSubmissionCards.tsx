@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { colors, radius, animation } from '@/design-system'
+import { colors, radius, animation, badgeTones } from '@/design-system'
 import { Icon } from '@/components/atoms'
 import { ApproveLeaveModal } from './ApproveLeaveModal'
 import type { GoalSubmissionState } from '@/utils/goalSubmissionState'
@@ -21,6 +21,11 @@ const fmtFreq = (f: string) =>
 // ── Section header ────────────────────────────────────────────────────────────
 
 function SectionHeader({ label, count, color }: { label: string; count: number; color: string }) {
+  // Badge tone follows the section color (light fill + darker same-hue number, rounded square) —
+  // the canonical count-badge look shared with the Chip atom.
+  const tone = color === colors.warn
+    ? badgeTones.warn
+    : (color === colors.danger || color === colors.dangerMuted) ? badgeTones.danger : badgeTones.neutral
   return (
     <div
       style={{
@@ -43,12 +48,16 @@ function SectionHeader({ label, count, color }: { label: string; count: number; 
       </span>
       <span
         style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: '16px',
           fontSize: '10px',
           fontWeight: 800,
-          color: '#fff',
-          background: color,
-          borderRadius: '10px',
-          padding: '1px 7px',
+          color: tone.text,
+          background: tone.bg,
+          borderRadius: radius.sm,
+          padding: '1px 6px',
           lineHeight: 1.6,
         }}
       >
@@ -303,7 +312,7 @@ export function GoalSubmissionCards({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {attentionGoals.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <SectionHeader label="Needs Attention" count={attentionGoals.length} color={colors.danger} />
+            <SectionHeader label="Needs Attention" count={attentionGoals.length} color={colors.dangerMuted} />
             {attentionGoals.map(g => (
               <GoalRow
                 key={g.goalId}

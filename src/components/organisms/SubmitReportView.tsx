@@ -114,7 +114,7 @@ export function SubmitReportView() {
             zIndex: 10
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Icon name="reports" color={colors.accent} size={20} />
+                <Icon name="reports" color={colors.text3} size={20} />
                 <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.3px' }}>Submit Weekly Report</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>

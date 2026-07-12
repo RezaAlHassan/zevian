@@ -27,13 +27,26 @@
   --color-text-2: #8b93a8;      /* secondary / labels */
   --color-text-3: #7c8499;      /* muted / placeholder / timestamps — ≥4:1 on card surfaces (was #545d73) */
 
-  /* ── Accent (blue-violet) ─────────────────────────────── */
-  --color-accent: #5b7fff;
-  --color-accent-hover: #7090ff;
-  --color-accent-glow: rgba(91, 127, 255, 0.18);
-  --color-accent-border: rgba(91, 127, 255, 0.28);
+  /* ── Interactive chrome (greyscale) ───────────────────── */
+  /* Formerly the blue accent; repointed to greyscale so nav/tabs/links/buttons stop competing with
+     score data. `--color-accent` == text-primary → links & active tabs read as high-contrast white.
+     Interactivity is signalled by weight / underline-on-hover / border, never hue. */
+  --color-accent: #f0f2f7;
+  --color-accent-hover: #ffffff;
+  --color-accent-glow: rgba(255, 255, 255, 0.06);
+  --color-accent-border: rgba(255, 255, 255, 0.13);
 
-  /* ── Teal — the AI / Ask color ────────────────────────── */
+  /* ── Brand (blue) — logo mark only ────────────────────── */
+  --color-brand: #5b7fff;
+  --color-brand-border: rgba(91, 127, 255, 0.28);
+
+  /* ── AI accent (low-opacity blue) — Ask / generated surfaces ── */
+  --color-ai: #5b7fff;
+  --color-ai-hover: #7090ff;
+  --color-ai-glow: rgba(91, 127, 255, 0.14);
+  --color-ai-border: rgba(91, 127, 255, 0.26);
+
+  /* ── Teal — the AI / Ask secondary ────────────────────── */
   --color-teal: #00d4aa;
   --color-teal-glow: rgba(0, 212, 170, 0.12);
 
@@ -42,14 +55,18 @@
   --color-green-glow: rgba(16, 185, 129, 0.12);
   --color-warn: #f59e0b;
   --color-warn-glow: rgba(245, 158, 11, 0.12);
+  --color-warn-muted: #d1ac6b;                       /* below-target amber for numbers (matches muted red) */
+  --color-warn-muted-glow: rgba(209, 172, 107, 0.14);
   --color-danger: #f04438;
   --color-danger-glow: rgba(240, 68, 56, 0.15);
+  --color-danger-muted: #d1746b;                     /* below-target scores/bars (calm, not alarm) */
+  --color-danger-muted-glow: rgba(209, 116, 107, 0.14);
   --color-purple: #8b5cf6;
   --color-purple-glow: rgba(139, 92, 246, 0.12);
 
-  /* ── AI gradient (accent → teal) ──────────────────────── */
-  --gradient-ai-strong: linear-gradient(120deg, rgba(91, 127, 255, 0.55), rgba(0, 212, 170, 0.45));
-  --gradient-ai-subtle: linear-gradient(120deg, rgba(91, 127, 255, 0.32), rgba(0, 212, 170, 0.26));
+  /* ── AI gradient (low-opacity blue → teal) ────────────── */
+  --gradient-ai-strong: linear-gradient(120deg, rgba(91, 127, 255, 0.30), rgba(0, 212, 170, 0.20));
+  --gradient-ai-subtle: linear-gradient(120deg, rgba(91, 127, 255, 0.18), rgba(0, 212, 170, 0.12));
 
   /* ── Semantic aliases (intent → primitive) ────────────── */
   --color-text-primary: var(--color-text);
@@ -66,10 +83,13 @@
   --color-error: var(--color-danger);
 
   /* ── Fonts — wired to next/font variables in layout.tsx ─ */
-  --font-display: var(--font-outfit-google), 'Outfit', sans-serif;
+  /* Structural voice = Plus Jakarta Sans: display titles/headings/logo AND data (scores/KPI values),
+     the latter rendered heavy + tabular (see .font-numeric) for instant, substantial legibility.
+     Reading voice = Outfit (body/UI). DM Mono is reserved for small tabular contexts only. */
+  --font-display: var(--font-jakarta-google), 'Plus Jakarta Sans', sans-serif;
   --font-body: var(--font-outfit-google), 'Outfit', sans-serif;
   --font-mono: var(--font-mono-google), 'DM Mono', monospace;
-  --font-numeric: var(--font-outfit-google), 'Outfit', sans-serif;
+  --font-numeric: var(--font-jakarta-google), 'Plus Jakarta Sans', sans-serif;
 
   /* ── Type scale (UI is compact) ───────────────────────── */
   --text-xs: 10px;    /* micro labels, badges */
@@ -95,8 +115,10 @@
   --weight-extrabold: 800;
 
   /* ── Section-label recipe (uppercase eyebrow) ─────────── */
+  /* Weight 600 (was 700): the eyebrow is the quiet tier — tracking + uppercase carry it, so it
+     recedes beneath the display titles instead of competing at near-bold weight. */
   --label-size: 11px;
-  --label-weight: 700;
+  --label-weight: 600;
   --label-tracking: 0.07em;
 
   /* ── Border radius — exactly three ────────────────────── */
@@ -123,11 +145,12 @@
   --space-10: 40px;
 
   /* ── Shadows & glows ──────────────────────────────────── */
-  --shadow-accent-glow: 0 0 16px rgba(91, 127, 255, 0.25);
-  --shadow-accent-glow-lg: 0 0 24px rgba(91, 127, 255, 0.35);
-  --shadow-logo-glow: 0 0 16px rgba(91, 127, 255, 0.18);
+  /* Chrome glows neutralized — greyscale chrome carries no colored halo. */
+  --shadow-accent-glow: none;
+  --shadow-accent-glow-lg: none;
+  --shadow-logo-glow: none;
   --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.30);
-  --shadow-input-focus: 0 0 0 3px rgba(91, 127, 255, 0.08);
+  --shadow-input-focus: 0 0 0 3px rgba(255, 255, 255, 0.08);
 
   /* ── Motion ───────────────────────────────────────────── */
   --ease-fast: 0.15s;
@@ -156,6 +179,10 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Never fake bold. Outfit + Plus Jakarta Sans are variable (all weights real), so this only affects DM Mono —
+     which ships 400/500 only. A numeric span asking for 700–900 resolves to DM Mono's real 500
+     instead of an ugly synthetic bold. Restraint + a clean data face, for free. */
+  font-synthesis: none;
 }
 
 body {
@@ -274,6 +301,20 @@ svg {
   }
 }
 
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.55;
+    filter: drop-shadow(0 0 0 rgba(91, 127, 255, 0));
+  }
+
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+    filter: drop-shadow(0 0 5px rgba(91, 127, 255, 0.5));
+  }
+}
+
 @keyframes barGrow {
   from {
     width: 0%;
@@ -282,15 +323,15 @@ svg {
 
 @keyframes pulse-ring {
   0% {
-    box-shadow: 0 0 0 0 rgba(91, 127, 255, 0.25);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.22);
   }
 
   70% {
-    box-shadow: 0 0 0 10px rgba(91, 127, 255, 0);
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
   }
 
   100% {
-    box-shadow: 0 0 0 0 rgba(91, 127, 255, 0);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
 }
 
@@ -305,6 +346,33 @@ svg {
 
 .animate-fade-in {
   animation: fadeIn 0.25s ease both;
+}
+
+/* AI "thinking" loading — a light sweeps the label while the mark softly breathes. */
+.ai-shimmer-text {
+  background: linear-gradient(100deg, #7c8499 30%, #d3dcf0 50%, #7c8499 70%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 1.7s linear infinite;
+}
+
+.ai-breathe {
+  transform-origin: center;
+  animation: breathe 1.9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-shimmer-text {
+    animation: none;
+    color: #7c8499;
+  }
+
+  .ai-breathe {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 .font-numeric {
@@ -379,3 +447,85 @@ svg {
   background: var(--color-green);
   box-shadow: 0 0 6px var(--color-green);
 }
+
+/* ─── Filter select ──────────────────────────────
+   Canonical style for every native <select> filter/dropdown. One size, one caret treatment,
+   matched to the DateRangeSelector it sits beside in filter rows: 32px tall, surface ground,
+   12px/500 text2, a single greyscale caret with balanced padding (12px from the edge, never
+   colliding with the label). Hover lifts to surface-2 + brighter text, like the other controls. */
+.zv-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 32px 0 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-text-2);
+  cursor: pointer;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b93a8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color var(--ease-fast), color var(--ease-fast), background-color var(--ease-fast);
+}
+
+.zv-select:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text);
+  background-color: var(--color-surface-2);
+}
+
+/* No focus ring — matches the DateRangeSelector, which shows no focus state. The base sets
+   outline:none; we deliberately don't add a border/outline on :focus so an open dropdown reads
+   identical to its rest state. */
+.zv-select:focus,
+.zv-select:focus-visible {
+  outline: none;
+  border-color: var(--color-border);
+}
+
+/* Native option list — force the dark control surface so the popup isn't a bright OS default. */
+.zv-select option,
+.zv-select optgroup {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* ─── Filter search box ──────────────────────────
+   Search input in a filter row, matched to the same 32px control family as .zv-select and the
+   DateRangeSelector so the whole row lines up. Width is set per-instance; everything else is shared. */
+.zv-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--ease-fast);
+}
+
+.zv-search:focus-within { border-color: var(--color-border-hover); }
+
+.zv-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.zv-search input::placeholder { color: var(--color-text-3); }

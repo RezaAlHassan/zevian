@@ -1,36 +1,31 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { LoginForm } from '../LoginForm'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 // Mock dependencies
-vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(),
-}))
-
 vi.mock('@/lib/supabase/client', () => ({
   createClient: vi.fn(),
 }))
 
 describe('LoginForm Component', () => {
-  let mockPush: ReturnType<typeof vi.fn>
-  let mockRefresh: ReturnType<typeof vi.fn>
+  let mockAssign: ReturnType<typeof vi.fn>
   let mockSignInWithPassword: ReturnType<typeof vi.fn>
   let mockFrom: ReturnType<typeof vi.fn>
   let mockSelect: ReturnType<typeof vi.fn>
   let mockEq: ReturnType<typeof vi.fn>
   let mockSingle: ReturnType<typeof vi.fn>
+  const originalLocation = window.location
 
   beforeEach(() => {
     vi.clearAllMocks()
 
-    // Set up mock implementations
-    mockPush = vi.fn()
-    mockRefresh = vi.fn()
-    ;(useRouter as ReturnType<typeof vi.fn>).mockReturnValue({
-      push: mockPush,
-      refresh: mockRefresh,
+    // LoginForm navigates with window.location.assign (a hard navigation, so the
+    // first server render is guaranteed to see the fresh auth cookies).
+    mockAssign = vi.fn()
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: { ...originalLocation, assign: mockAssign },
     })
 
     mockSignInWithPassword = vi.fn()
@@ -44,6 +39,13 @@ describe('LoginForm Component', () => {
         signInWithPassword: mockSignInWithPassword,
       },
       from: mockFrom,
+    })
+  })
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: originalLocation,
     })
   })
 
@@ -72,7 +74,7 @@ describe('LoginForm Component', () => {
       expect(screen.getByText('Invalid login credentials')).toBeInTheDocument()
     })
 
-    expect(mockPush).not.toHaveBeenCalled()
+    expect(mockAssign).not.toHaveBeenCalled()
   })
 
   it('redirects to /my-dashboard for employee role', async () => {
@@ -99,8 +101,7 @@ describe('LoginForm Component', () => {
     await waitFor(() => {
       expect(mockFrom).toHaveBeenCalledWith('employees')
       expect(mockEq).toHaveBeenCalledWith('auth_user_id', 'user-123')
-      expect(mockPush).toHaveBeenCalledWith('/my-dashboard')
-      expect(mockRefresh).toHaveBeenCalled()
+      expect(mockAssign).toHaveBeenCalledWith('/my-dashboard')
     })
   })
 
@@ -122,8 +123,7 @@ describe('LoginForm Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/dashboard')
-      expect(mockRefresh).toHaveBeenCalled()
+      expect(mockAssign).toHaveBeenCalledWith('/dashboard')
     })
   })
 
@@ -149,8 +149,7 @@ describe('LoginForm Component', () => {
 
     await waitFor(() => {
       expect(consoleSpy).toHaveBeenCalled()
-      expect(mockPush).toHaveBeenCalledWith('/dashboard')
-      expect(mockRefresh).toHaveBeenCalled()
+      expect(mockAssign).toHaveBeenCalledWith('/dashboard')
     })
 
     consoleSpy.mockRestore()

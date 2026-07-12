@@ -390,7 +390,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
                                     <div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                            <Icon name="calendar" size={14} color={colors.accent} />
+                                            <Icon name="calendar" size={14} color={colors.text3} />
                                             <span style={{ fontSize: '14px', fontWeight: 800, color: colors.text }}>Submission Date</span>
                                         </div>
                                         <div style={{ fontSize: '12px', color: colors.text3, maxWidth: '300px' }}>
@@ -472,8 +472,8 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
                                                         <div style={{ fontSize: '14px', fontWeight: 800, color: isSelected ? colors.accent : colors.text, lineHeight: 1.3 }}>{goal.name}</div>
                                                         {isSelected && (
-                                                            <div style={{ flexShrink: 0, width: '20px', height: '20px', borderRadius: '50%', background: colors.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                <Icon name="check" size={11} />
+                                                            <div style={{ flexShrink: 0, width: '20px', height: '20px', borderRadius: '50%', background: colors.text, color: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                <Icon name="check" size={11} color="currentColor" />
                                                             </div>
                                                         )}
                                                     </div>
@@ -594,9 +594,9 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                             Reports are scored against your goal&apos;s criteria &amp; instructions, your org&apos;s metrics, and past submission history.
                                         </div>
                                         <div style={{ display: 'flex', gap: '8px' }}>
-                                            <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.md, padding: '10px 12px', textAlign: 'center' }}>
-                                                <div style={{ fontSize: '20px', fontWeight: 900, color: colors.accent, lineHeight: 1 }}>{initialMetrics.length > 0 ? `${goalWeight}%` : '100%'}</div>
-                                                <div style={{ fontSize: '10px', fontWeight: 700, color: colors.accent, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>KPI Alignment</div>
+                                            <div style={{ flex: 1, background: `${colors.ai}12`, border: `1px solid ${colors.ai}30`, borderRadius: radius.md, padding: '10px 12px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: '20px', fontWeight: 900, color: colors.ai, lineHeight: 1 }}>{initialMetrics.length > 0 ? `${goalWeight}%` : '100%'}</div>
+                                                <div style={{ fontSize: '10px', fontWeight: 700, color: colors.ai, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>KPI Alignment</div>
                                             </div>
                                             {initialMetrics.length > 0 && (
                                                 <div style={{ flex: 1, background: `${colors.purple}12`, border: `1px solid ${colors.purple}30`, borderRadius: radius.md, padding: '10px 12px', textAlign: 'center' }}>
@@ -612,7 +612,7 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                             {/* ── 2. You are scored on ── */}
                             <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                                    <Icon name="target" size={13} color={colors.accent} />
+                                    <Icon name="target" size={13} color={colors.text3} />
                                     <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: colors.text3 }}>You are scored on</span>
                                 </div>
                                 <div style={{ background: '#151B2A', border: '1px solid #2A3860', borderRadius: '8px', padding: '16px' }}>
@@ -780,9 +780,9 @@ export function SubmitReportClient({ initialProjects, initialGoals, initialMetri
                                         Reports are scored against your goal's criteria &amp; instructions, your org's metrics, and past submission history.
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px' }}>
-                                        <div style={{ flex: 1, background: `${colors.accent}12`, border: `1px solid ${colors.accent}30`, borderRadius: radius.md, padding: '10px 12px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: '20px', fontWeight: 900, color: colors.accent, lineHeight: 1 }}>{initialMetrics.length > 0 ? `${goalWeight}%` : '100%'}</div>
-                                            <div style={{ fontSize: '10px', fontWeight: 700, color: colors.accent, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>KPI Alignment</div>
+                                        <div style={{ flex: 1, background: `${colors.ai}12`, border: `1px solid ${colors.ai}30`, borderRadius: radius.md, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '20px', fontWeight: 900, color: colors.ai, lineHeight: 1 }}>{initialMetrics.length > 0 ? `${goalWeight}%` : '100%'}</div>
+                                            <div style={{ fontSize: '10px', fontWeight: 700, color: colors.ai, marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>KPI Alignment</div>
                                             <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>Criteria &amp; instructions</div>
                                         </div>
                                         {initialMetrics.length > 0 && (

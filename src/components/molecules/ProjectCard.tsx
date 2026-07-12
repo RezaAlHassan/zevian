@@ -18,7 +18,7 @@ interface ProjectCardProps {
   goalCount: number
   lastReport: string
   emoji?: string
-  members: { employee: { full_name: string } }[]
+  members: { employee: { full_name: string; avatar_url?: string | null } }[]
   onComplete?: (e: React.MouseEvent) => void
   onDelete?: (e: React.MouseEvent) => void
   onEdit?: (e: React.MouseEvent) => void
@@ -46,7 +46,6 @@ export function ProjectCard({
 }: ProjectCardProps) {
   const searchParams = useSearchParams()
   const view = searchParams.get('view') || 'org'
-  const emojiValue = emoji || '🖥️'
   const scoreColor = getScoreColor(score)
 
   // Gradient for the top strip based on category or status
@@ -73,22 +72,8 @@ export function ProjectCard({
         <div style={{ height: '3px', width: '100%', background: typeof score !== 'number' || isNaN(score) ? colors.surface3 : gradient }} />
 
         <div style={{ padding: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: radius.md,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '15px',
-              background: typeof score !== 'number' || isNaN(score) ? colors.surface2 : `${scoreColor}15`,
-              flexShrink: 0,
-            }}>
-              {emojiValue}
-            </div>
-            {!readOnly && (
-              <div className="card-actions" style={{ display: 'flex', gap: '4px', opacity: 0, transition: `opacity ${animation.fast}` }}>
+          {!readOnly && (
+              <div className="card-actions" style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '4px', opacity: 0, transition: `opacity ${animation.fast}`, zIndex: 2 }}>
                 {onComplete && status !== 'completed' && (
                   <div
                     onClick={onComplete}
@@ -115,8 +100,8 @@ export function ProjectCard({
                       width: '28px',
                       height: '28px',
                       borderRadius: '6px',
-                      background: 'rgba(91,127,255,0.1)',
-                      color: colors.accent,
+                      background: 'rgba(255,255,255,0.08)',
+                      color: colors.text2,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -148,7 +133,6 @@ export function ProjectCard({
                 )}
               </div>
             )}
-          </div>
 
           <div style={{ fontFamily: typography.fonts.display, fontSize: '14px', fontWeight: typography.weight.bold, color: colors.text, letterSpacing: '-0.2px', marginBottom: '2px' }}>
             {name}
@@ -178,8 +162,11 @@ export function ProjectCard({
                     color: '#fff',
                     marginLeft: i === 0 ? 0 : '-6px',
                     background: getAvatarGradient(m.employee.full_name),
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
+                  {m.employee.avatar_url && <img src={m.employee.avatar_url} alt={m.employee.full_name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                   {getInitials(m.employee.full_name)}
                 </div>
               ))}

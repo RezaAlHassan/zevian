@@ -5,8 +5,8 @@ import { Button } from '@/components/atoms/Button'
 import { Icon } from '@/components/atoms/Icon'
 import { StatusPill } from '@/components/atoms/StatusPill'
 import { ScoreDisplay } from '@/components/atoms/Score'
-import { Avatar, Chip } from '@/components/atoms'
-import { Card } from '@/components/molecules/Card'
+import { Avatar } from '@/components/atoms'
+import { Card, ShowAllButton, CountLabel } from '@/components/molecules/Card'
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -41,6 +41,10 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
     }
 
     const [isSavingMembers, setIsSavingMembers] = useState(false)
+    const [showAllMembers, setShowAllMembers] = useState(false)
+
+    // Cap the team panel so a large roster doesn't stretch the sidebar; the rest is one tap away.
+    const MEMBER_PREVIEW = 5
 
     if (!project) return null
 
@@ -92,20 +96,6 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                     borderRadius: radius.lg,
                     boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
                 }}>
-                    <div style={{
-                        width: '64px',
-                        height: '64px',
-                        borderRadius: radius.lg,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '32px',
-                        background: colors.surface2,
-                        border: `1px solid ${colors.border}`,
-                        flexShrink: 0
-                    }}>
-                        {project.emoji || '🖥️'}
-                    </div>
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                             <h1 style={{
@@ -145,11 +135,11 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                             dense
                             title="Active Goals"
                             icon="target"
-                            chip={<Chip variant="default">{goals.length}</Chip>}
+                            chip={<CountLabel>{goals.length}</CountLabel>}
                             action={!readOnly ? (
-                                <Link href={`${goalBasePath}/create?projectId=${project.id}&view=${view}`} style={{ textDecoration: 'none', fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium }}>
+                                <Button variant="ghost" size="sm" icon="plus" onClick={() => router.push(`${goalBasePath}?new=true&project=${project.id}&view=${view}`)}>
                                     Add goal
-                                </Link>
+                                </Button>
                             ) : undefined}
                         >
                             {goals.length > 0 ? (
@@ -172,7 +162,7 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                             ) : (
                                 <div style={{ padding: '24px 8px', textAlign: 'center', color: colors.text3, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
                                     <div style={{ fontSize: '13px', fontWeight: 500 }}>No goals defined yet.</div>
-                                    <Button variant="primary" size="sm" icon="plus" onClick={() => router.push(`/goals?new=true&project=${project.id}`)}>
+                                    <Button variant="primary" size="sm" icon="plus" onClick={() => router.push(`${goalBasePath}?new=true&project=${project.id}&view=${view}`)}>
                                         Create First Goal
                                     </Button>
                                 </div>
@@ -184,22 +174,18 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                             dense
                             title="Latest Reports"
                             icon="fileText"
-                            chip={<Chip variant="default">{reports.length}</Chip>}
-                            action={reports.length > 3 ? (
-                                <Link href={`/reports?search=${encodeURIComponent(project.name)}`} style={{ textDecoration: 'none', fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium }}>
-                                    View all
-                                </Link>
-                            ) : undefined}
+                            chip={<CountLabel>{reports.length}</CountLabel>}
                         >
                             {reports.length > 0 ? (
-                                reports.slice(0, 3).map((report: any) => (
+                                <>
+                                {reports.slice(0, 3).map((report: any) => (
                                     <Link key={report.id} href={`${basePath.includes('my-') ? '/my-reports' : '/reports'}/${report.id}?${searchParams.toString()}`} style={{ textDecoration: 'none', display: 'block' }}>
                                         <div
                                             style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: radius.md, marginBottom: '2px', cursor: 'pointer', transition: `background ${animation.fast}`, background: 'transparent' }}
                                             onMouseEnter={(e) => e.currentTarget.style.background = colors.surface2}
                                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                         >
-                                            <Avatar name={report.employees?.name || 'Unknown'} size="md" style={{ flexShrink: 0 }} />
+                                            <Avatar name={report.employees?.name || 'Unknown'} src={report.employees?.avatar_url ?? null} size="md" style={{ flexShrink: 0 }} />
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>
                                                     {(() => { const d = report.submittedForDate || report.submissionDate; return new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })()}
@@ -210,7 +196,11 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                                             <Icon name="chevronRight" size={14} color={colors.text3} style={{ flexShrink: 0 }} />
                                         </div>
                                     </Link>
-                                ))
+                                ))}
+                                {reports.length > 3 && (
+                                    <ShowAllButton label="View all reports" onClick={() => router.push(`/reports?search=${encodeURIComponent(project.name)}`)} />
+                                )}
+                                </>
                             ) : (
                                 <div style={{ padding: '24px 8px', textAlign: 'center', color: colors.text3, fontSize: '13px', fontWeight: 500 }}>No reports submitted yet.</div>
                             )}
@@ -238,22 +228,32 @@ export function ProjectDetailView({ project, employees, readOnly = false, basePa
                             dense
                             title="Team"
                             icon="people"
-                            chip={<Chip variant="default">{members.length} {members.length === 1 ? 'member' : 'members'}</Chip>}
+                            chip={<CountLabel>{members.length}</CountLabel>}
                             action={!readOnly ? (
-                                <span onClick={() => setIsManageTeamOpen(true)} style={{ fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium, cursor: 'pointer' }}>
+                                <Button variant="ghost" size="sm" icon="settings" onClick={() => setIsManageTeamOpen(true)}>
                                     Manage team
-                                </span>
+                                </Button>
                             ) : undefined}
                         >
-                            {members.length > 0 ? members.map((m: any, i: number) => (
-                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: radius.md, marginBottom: '2px' }}>
-                                    <Avatar name={m.employee.full_name} size="md" style={{ flexShrink: 0 }} />
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>{m.employee.full_name}</div>
-                                        <div style={{ fontSize: '12px', color: colors.text3, textTransform: 'capitalize' }}>{m.employee.role}</div>
+                            {members.length > 0 ? (
+                                <>
+                                {(showAllMembers ? members : members.slice(0, MEMBER_PREVIEW)).map((m: any, i: number) => (
+                                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: radius.md, marginBottom: '2px' }}>
+                                        <Avatar name={m.employee.full_name} src={m.employee.avatar_url ?? null} size="md" style={{ flexShrink: 0 }} />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: '13px', fontWeight: 600, color: colors.text }}>{m.employee.full_name}</div>
+                                            <div style={{ fontSize: '12px', color: colors.text3, textTransform: 'capitalize' }}>{m.employee.role}</div>
+                                        </div>
                                     </div>
-                                </div>
-                            )) : (
+                                ))}
+                                {members.length > MEMBER_PREVIEW && (
+                                    <ShowAllButton
+                                        label={showAllMembers ? 'Show less' : `Show all ${members.length}`}
+                                        onClick={() => setShowAllMembers(v => !v)}
+                                    />
+                                )}
+                                </>
+                            ) : (
                                 <div style={{ padding: '20px 8px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
                                     No team members assigned.
                                 </div>

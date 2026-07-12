@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { colors, radius, typography, getScoreColor, animation } from '@/design-system'
 import { Avatar, Button } from '@/components/atoms'
 import { Icon, IconName } from '@/components/atoms/Icon'
-import { Card } from '@/components/molecules/Card'
+import { Card, ShowAllButton } from '@/components/molecules/Card'
 import { DateRangeSelector } from '@/components/molecules/DateRangeSelector'
 import { Organization } from '@/types'
 
@@ -37,6 +37,49 @@ const META_LINE: React.CSSProperties = {
   textOverflow: 'ellipsis',
 }
 
+// Full-width smooth area sparkline (Catmull-Rom → cubic bézier) with a soft gradient fill under the
+// curve. It bleeds to the card's edges and stretches to fill the available height, so the hero score
+// card reads as one composed unit — number over trend — rather than a figure floating in empty
+// space. `vectorEffect: non-scaling-stroke` keeps the 2px line crisp when the SVG stretches.
+function AreaTrend({ data, color }: { data: number[]; color: string }) {
+  const gid = React.useId()
+  if (!data || data.length < 2) return null
+  const W = 300, H = 100
+  const topPad = 12, botPad = 2
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const stepX = W / (data.length - 1)
+  const pts = data.map((v, i) => ({
+    x: i * stepX,
+    y: topPad + (H - topPad - botPad) * (1 - (v - min) / range),
+  }))
+  let line = `M ${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[i + 2] || p2
+    const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6
+    const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6
+    line += ` C ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`
+  }
+  const area = `${line} L ${pts[pts.length - 1].x.toFixed(1)},${H} L ${pts[0].x.toFixed(1)},${H} Z`
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function KpiCard({
   label,
   icon,
@@ -46,6 +89,8 @@ function KpiCard({
   meta2,
   onClick,
   alert = false,
+  big = false,
+  sparkline,
 }: {
   label: string
   // Leading glyph for the label row, from the shared Icon set. Sits left of the label text.
@@ -62,6 +107,10 @@ function KpiCard({
   // When true the card is a systemic alert: amber top strip + stronger amber border. Reserved for
   // the Overdue card when overdue > 0 — never red (red is for low scores only).
   alert?: boolean
+  // Enlarge the primary value (the hero Team Avg Score card).
+  big?: boolean
+  // Optional trend series → a compact smooth sparkline sits to the right of the value.
+  sparkline?: number[]
 }) {
   const [hovered, setHovered] = React.useState(false)
   const clickable = !!onClick
@@ -124,7 +173,7 @@ function KpiCard({
       )}
       <div style={{
         fontSize: '11px',
-        fontWeight: 700,
+        fontWeight: 600,
         color: colors.text3,
         textTransform: 'uppercase',
         letterSpacing: '0.06em',
@@ -139,26 +188,42 @@ function KpiCard({
         <Icon name={icon} size={13} color={colors.text3} />
         {label}
       </div>
-      {/* Primary value — fixed line height so a fraction suffix or score keeps the meta block
-          aligned across the four cards. */}
-      <div style={{
-        fontFamily: typography.fonts.numeric,
-        fontSize: '30px',
-        fontWeight: 900,
-        minHeight: '34px',
-        lineHeight: 1.1,
-        color: valueColor,
-        overflow: 'hidden',
-      }}>
-        {value}
-      </div>
-      {/* Meta block — only the lines that have content are rendered, so the card hugs its content
-          instead of reserving blank space. */}
-      {(meta1 != null || meta2 != null) && (
-        <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {meta1 != null && <div style={META_LINE}>{meta1}</div>}
-          {meta2 != null && <div style={META_LINE}>{meta2}</div>}
-        </div>
+      {big ? (
+        <>
+          {/* Number + delta at the top … */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
+            <span className="font-numeric" style={{ fontSize: '48px', fontWeight: 900, lineHeight: 1, letterSpacing: '-0.5px', color: valueColor }}>{value}</span>
+            {meta2 != null && meta2}
+          </div>
+          {meta1 != null && <div style={{ ...META_LINE, marginTop: '8px' }}>{meta1}</div>}
+          {/* … and the trend fills the rest, bleeding to the card's edges. */}
+          {sparkline && sparkline.length >= 2 && (
+            <div style={{ position: 'relative', flex: 1, minHeight: '52px', margin: '14px -22px -22px' }}>
+              <AreaTrend data={sparkline} color={valueColor} />
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div style={{
+            fontFamily: typography.fonts.numeric,
+            fontSize: '30px',
+            fontWeight: 900,
+            minHeight: '34px',
+            lineHeight: 1.1,
+            color: valueColor,
+            overflow: 'hidden',
+          }}>
+            {value}
+          </div>
+          {/* Meta block — only the lines that have content are rendered, so the card hugs its content. */}
+          {(meta1 != null || meta2 != null) && (
+            <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {meta1 != null && <div style={META_LINE}>{meta1}</div>}
+              {meta2 != null && <div style={META_LINE}>{meta2}</div>}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
@@ -201,24 +266,109 @@ function EmptyValue({ text }: { text: string }) {
   return <span style={{ fontFamily: typography.fonts.body, fontSize: '15px', fontWeight: 600, color: colors.text3 }}>{text}</span>
 }
 
-// Member-count badge for the Team card header. Neutral greys — blue is reserved for CTAs only, so a
-// passive count never competes with an actionable accent.
-function CountChip({ children }: { children: React.ReactNode }) {
+// One cell of the reporting status row: dot + label, then a colored count + %. Needs-Review and
+// Overdue are clickable (Ask hand-off) so the actionable slices keep their affordance; Reviewed is
+// passive. Lifts to surface-2 on hover when clickable.
+function ReportStatCell({ dot, label, count, pct, color, onClick }: {
+  dot: string; label: string; count: number; pct: number | null; color: string; onClick?: () => void
+}) {
+  const [hover, setHover] = React.useState(false)
+  const clickable = !!onClick
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: '3px 9px',
-      borderRadius: '999px',
-      fontSize: '11px',
-      fontWeight: 700,
-      color: colors.text3,
-      background: colors.surface3,
-      border: `1px solid ${colors.borderStrong}`,
-      whiteSpace: 'nowrap',
+    <div
+      onClick={onClick}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick!() } } : undefined}
+      onMouseEnter={clickable ? () => setHover(true) : undefined}
+      onMouseLeave={clickable ? () => setHover(false) : undefined}
+      style={{
+        flex: 1, minWidth: 0, padding: '8px 10px', margin: '-8px 0', borderRadius: radius.md,
+        cursor: clickable ? 'pointer' : 'default', outline: 'none',
+        background: clickable && hover ? colors.surface2 : 'transparent',
+        transition: `background ${animation.fast}`,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: colors.text2, fontWeight: 500, whiteSpace: 'nowrap' }}>
+        <span style={{ width: '8px', height: '8px', borderRadius: '3px', background: dot, flexShrink: 0 }} />
+        {label}
+      </div>
+      <div style={{ marginTop: '7px', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+        <span className="font-numeric" style={{ fontSize: '24px', fontWeight: 800, letterSpacing: '-0.3px', lineHeight: 1, color }}>{count}</span>
+        {pct != null && <span className="font-numeric" style={{ fontSize: '12px', fontWeight: 600, color: colors.text3 }}>{pct}%</span>}
+        {clickable && (
+          <span aria-hidden style={{ marginLeft: 'auto', fontSize: '13px', fontWeight: 700, color: colors.accent, opacity: hover ? 1 : 0, transform: hover ? 'translateX(0)' : 'translateX(-2px)', transition: `opacity ${animation.fast}, transform ${animation.fast}` }}>→</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Reporting distribution — merges the former Overdue / Submissions / Review cards into one
+// part-to-whole panel: Reviewed + Needs Review + Overdue = Expected, a status row over a single
+// segmented bar. Team Avg Score stays its own KPI card (an outcome, not part of this funnel).
+function ReportingPanel({
+  expected, submitted, needsReview, overdue, late, contributors, members, onReview, onOverdue,
+}: {
+  expected: number; submitted: number; needsReview: number; overdue: number; late: number
+  contributors: number; members: number; onReview: () => void; onOverdue: () => void
+}) {
+  const hasDue = expected > 0
+  const reviewed = Math.max(0, submitted - needsReview)
+  const pct = (n: number) => (hasDue ? Math.round((n / expected) * 100) : null)
+  const segs = [
+    { key: 'reviewed', val: reviewed, color: colors.green },
+    { key: 'needs', val: needsReview, color: colors.warnMuted },
+    { key: 'overdue', val: overdue, color: colors.dangerMuted },
+  ].filter((s) => s.val > 0)
+
+  return (
+    <div style={{
+      background: colors.surface, border: `1px solid ${colors.borderStrong}`, borderRadius: radius.md,
+      padding: '18px 22px 20px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box',
     }}>
-      {children}
-    </span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.text3 }}>
+          <Icon name="reports" size={13} color={colors.text3} />
+          Reporting this period
+        </span>
+        <span className="font-numeric" style={{ fontSize: '12px', color: colors.text3 }}>
+          {hasDue ? `${expected} expected` : 'None due'}
+        </span>
+      </div>
+
+      {hasDue ? (
+        <>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <ReportStatCell dot={colors.green} label="Reviewed" count={reviewed} pct={pct(reviewed)} color={colors.text} />
+            <ReportStatCell dot={colors.warnMuted} label="Needs review" count={needsReview} pct={pct(needsReview)} color={needsReview > 0 ? colors.warnMuted : colors.text3} onClick={needsReview > 0 ? onReview : undefined} />
+            <ReportStatCell dot={colors.dangerMuted} label="Overdue" count={overdue} pct={pct(overdue)} color={overdue > 0 ? colors.dangerMuted : colors.text3} onClick={overdue > 0 ? onOverdue : undefined} />
+          </div>
+
+          {/* Single part-to-whole bar: Reviewed + Needs Review + Overdue = Expected. Styled after the
+              Team Avg Score AreaTrend above — a crisp full-strength line riding a softer fade of the
+              same colour — so the two hero visuals on this page read as one family. */}
+          <div style={{ marginTop: '20px', height: '34px', background: colors.surface3, borderRadius: radius.sm, display: 'flex', gap: '2px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+            {segs.map((s) => (
+              <div key={s.key} style={{
+                flex: s.val,
+                background: `linear-gradient(180deg, ${s.color}38 0%, ${s.color}00 100%)`,
+                borderTop: `2px solid ${s.color}`,
+                transition: `flex ${animation.slow} ease`,
+              }} />
+            ))}
+          </div>
+
+          <div style={{ marginTop: '12px', fontSize: '12px', color: colors.text3 }}>
+            {contributors} of {members} member{members === 1 ? '' : 's'} submitted{late > 0 ? ` · ${late} late` : ''}
+          </div>
+        </>
+      ) : (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', minHeight: '96px', color: colors.text3, fontSize: '13px' }}>
+          No reports due in this period.
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -230,17 +380,6 @@ function formatCompactReportDate(value?: string | null): string {
   } catch {
     return value
   }
-}
-
-// Deterministic per-person gradient: djb2 hash → HSL hue, 45° spread between stops.
-// Covers the full color wheel so teammates get teal, orange, green, purple, red, amber rather
-// than a monolithic blue-purple cluster. Both stops are high-saturation and dark enough (42-55%
-// lightness) to keep white initials legible.
-function getPerfAvatarGradient(name: string): string {
-  let h = 5381
-  for (let i = 0; i < name.length; i++) h = ((h << 5) + h) ^ name.charCodeAt(i)
-  const hue = Math.abs(h) % 360
-  return `linear-gradient(135deg, hsl(${hue},82%,55%), hsl(${(hue + 45) % 360},90%,42%))`
 }
 
 // Dot-label pairs for team row status indicators: a 5px filled circle + lowercase text — reads as
@@ -292,8 +431,8 @@ function AttentionDot() {
   )
 }
 
-// Tinted-accent action for the expansion ("Review report"): accentGlow fill + accent border, a
-// quieter sibling of the solid-accent DS primary button so it sits inside the panel.
+// Primary action for the expansion ("Review report"): matches the DS primary button (P3 raised
+// neutral) — dark raised surface + white label + hairline border that lifts on hover.
 function TintedAction({ label, onClick }: { label: string; onClick: () => void }) {
   const [hover, setHover] = React.useState(false)
   return (
@@ -305,9 +444,10 @@ function TintedAction({ label, onClick }: { label: string; onClick: () => void }
       style={{
         display: 'inline-flex', alignItems: 'center', gap: '6px',
         padding: '6px 12px', borderRadius: radius.md,
-        background: colors.accentGlow, border: `1px solid ${hover ? colors.accent : colors.accentBorder}`,
-        color: colors.accent, fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-        transition: `border-color ${animation.fast}`, whiteSpace: 'nowrap',
+        background: hover ? '#262c3a' : colors.surface3,
+        border: `1px solid ${hover ? 'rgba(255,255,255,0.22)' : colors.borderHover}`,
+        color: colors.text, fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+        transition: `background ${animation.fast}, border-color ${animation.fast}`, whiteSpace: 'nowrap',
       }}
     >
       {label}
@@ -362,7 +502,7 @@ function CollapsibleReportRow({
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
         style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', cursor: 'pointer', outline: 'none' }}
       >
-        <Avatar name={r.employeeName} size="md" style={{ background: getPerfAvatarGradient(r.employeeName), flexShrink: 0 }} />
+        <Avatar name={r.employeeName} src={r.employeeAvatarUrl} size="md" style={{ flexShrink: 0 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
           <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text, ...ELLIPSIS }}>{r.employeeName}</span>
           {attention && <AttentionDot />}
@@ -453,8 +593,9 @@ function RecentReportsList({
   const ordered = React.useMemo(() => {
     const needsReview = (reports as any[]).filter((r) => !r.reviewed)
     const reviewed = (reports as any[]).filter((r) => r.reviewed)
-    // Cap the list at 9 rows — needs-review first, so the highest-priority reports survive the cut.
-    return [...needsReview, ...reviewed].slice(0, 9)
+    // Cap the list at 8 rows — needs-review first, so the highest-priority reports survive the cut.
+    // Anything beyond is reachable via the "View all reports" button below the list.
+    return [...needsReview, ...reviewed].slice(0, 8)
   }, [reports])
 
   return (
@@ -501,7 +642,7 @@ function TeamRow({ e, onOpen }: { e: any; onOpen: () => void }) {
         marginBottom: '2px',
       }}
     >
-      <Avatar name={e.name} size="md" style={{ background: getPerfAvatarGradient(e.name), flexShrink: 0 }} />
+      <Avatar name={e.name} src={e.avatarUrl} size="md" style={{ flexShrink: 0 }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
         {e.flagged && <AttentionDot />}
         <span style={{ fontSize: '13px', fontWeight: 600, color: colors.text, ...ELLIPSIS }}>{e.name}</span>
@@ -548,6 +689,10 @@ function TeamList({ team, onOpen }: { team: any[]; onOpen: (id: string) => void 
 export function DashboardView({ teamStats }: Props) {
   const searchParams = useSearchParams()
   const router = useRouter()
+  // Filter changes re-render the page on the server (same route, new searchParams), which
+  // never triggers loading.tsx — without a pending state the dashboard looks frozen/dead
+  // for the whole round-trip. isPending dims the content so the user sees the filter working.
+  const [isPending, startTransition] = React.useTransition()
 
   const paramsString = searchParams.toString()
   const appendParams = React.useCallback((href: string) => {
@@ -579,6 +724,8 @@ export function DashboardView({ teamStats }: Props) {
   const teamPerformance = teamStats?.teamPerformance || []
   const goals = teamStats?.goals || []
   const recentReports = teamStats?.recentReports || []
+  // Team-level cumulative avg-score series → the Team Avg Score card's sparkline.
+  const trendScores: number[] = teamStats?.trendScores || []
 
   // Risk-flag lookup: an employee previously triggered Needs Attention iff they appear in
   // needsAttention, the source of the per-person lowest-criterion reason line.
@@ -634,19 +781,11 @@ export function DashboardView({ teamStats }: Props) {
   const scoredGoals = goals.filter((g: any) => (g.reports ?? 0) > 0)
   const kpisScored = scoredGoals.reduce((a: number, g: any) => a + (g.criteriaCount ?? 0), 0)
 
-  // ── Card 3: Overdue Reports ────────────────────────────────────────────
-  // Overdue = expected − submitted from the same windowed submissionRate as Card 1, so the two
-  // cards can never disagree (Card 1 shows "X of Y", Card 3 shows the Y−X that didn't come in).
-  // overdueDelta = this-period overdue minus last-period overdue; null when no prior window / no
-  // change. Inverted colour on the pill: more overdue (up) is the bad direction.
+  // ── Reporting distribution: Overdue slice ──────────────────────────────
+  // Overdue = expected − submitted from the same windowed submissionRate, so the "submitted" and
+  // "overdue" segments of the reporting bar can never disagree — they partition the same total.
   const hasDue = subExpected > 0
   const overdue = hasDue ? subExpected - subSubmitted : 0
-  const overdueDelta = kpis.overdueDelta as { value: number; direction: 'up' | 'down' } | null
-  // All reports overdue: the period has come due but nothing was submitted (distinct empty state).
-  const allOverdue = hasDue && subSubmitted === 0
-  // Submission rate for the Overdue subtext — always present (the trend pill, when available, sits
-  // beneath it), so the card never shows a blank subtitle.
-  const submissionPct = hasDue ? Math.round((subSubmitted / subExpected) * 100) : null
 
   // ── Card 4: Review Reports ─────────────────────────────────────────────
   // needsReviewCount = unreviewed reports. lateCount = reports submitted late in the selected
@@ -675,8 +814,24 @@ export function DashboardView({ teamStats }: Props) {
       })
   }, [teamPerformance, needsAttentionById])
 
+  // The team panel previews a reasonable slice (flagged/lowest-score members surface first, so the
+  // preview keeps the ones that matter) and expands to the full roster on demand — a large org
+  // shouldn't render 30+ rows into the fold by default.
+  const TEAM_PREVIEW_COUNT = 8
+  const [showAllTeam, setShowAllTeam] = React.useState(false)
+  const visibleTeam = showAllTeam ? orderedTeam : orderedTeam.slice(0, TEAM_PREVIEW_COUNT)
+  const hasMoreTeam = orderedTeam.length > TEAM_PREVIEW_COUNT
+
   return (
-    <div className="animate-fade-up" style={{ padding: '24px', maxWidth: '1180px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div
+      className="animate-fade-up"
+      style={{
+        padding: '24px', maxWidth: '1180px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '18px',
+        opacity: isPending ? 0.55 : 1,
+        pointerEvents: isPending ? 'none' : 'auto',
+        transition: `opacity ${animation.base} ease`,
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' }}>
         <DateRangeSelector
           startDate={searchParams.get('start') || undefined}
@@ -694,16 +849,21 @@ export function DashboardView({ teamStats }: Props) {
               params.delete('start')
               params.delete('end')
             }
-            router.push(`?${params.toString()}`)
+            startTransition(() => {
+              router.push(`?${params.toString()}`)
+            })
           }}
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' }}>
-        {/* Card 1 — Team Avg Score */}
+      {/* KPI row — Team Avg Score leads as its own card (an outcome); the former Overdue /
+          Submissions / Review cards merge into the reporting distribution panel to its right. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2.4fr)', gap: '12px', alignItems: 'stretch' }}>
         <KpiCard
           label="Team Avg Score"
           icon="trendingUp"
+          big
+          sparkline={teamAvgScore != null && trendScores.length >= 2 ? trendScores : undefined}
           value={teamAvgScore != null ? teamAvgScore.toFixed(1) : <EmptyValue text="No scores yet" />}
           valueColor={teamAvgScore != null ? getScoreColor(teamAvgScore) : colors.text3}
           meta1={teamAvgScore != null && scoredGoals.length > 0
@@ -717,83 +877,35 @@ export function DashboardView({ teamStats }: Props) {
           )}
         />
 
-        {/* Card 2 — Overdue Reports */}
-        <KpiCard
-          label="Overdue Reports"
-          icon="alertTriangle"
-          value={allOverdue
-            ? <EmptyValue text="All reports overdue" />
-            : overdue > 0
-              ? overdue
-              : <EmptyValue text="No overdue reports" />}
-          valueColor={overdue > 0 && !allOverdue ? colors.warn : colors.text3}
-          meta1={submissionPct != null ? `${submissionPct}% submitted this period` : null}
-          meta2={overdue > 0 && !allOverdue && overdueDelta
-            ? <TrendPill value={overdueDelta.value} label="overdue this period" invertColor />
-            : null}
-          onClick={() => goToAsk('Which reports are overdue this cycle, and who is behind?')}
-        />
-
-        {/* Card 3 — Submissions */}
-        <KpiCard
-          label="Submissions"
-          icon="reports"
-          value={subSubmitted > 0
-            ? (
-              <span>
-                {subSubmitted}
-                <span style={{ fontSize: '15px', fontWeight: 600, color: colors.text3, marginLeft: '6px' }}>
-                  of {subExpected} submitted
-                </span>
-              </span>
-            )
-            : <EmptyValue text="No reports submitted yet" />}
-          valueColor={subSubmitted > 0 ? colors.text : colors.text3}
-          meta1={subSubmitted > 0 ? `${contributorCount} of ${totalMembers} members submitted` : null}
-          onClick={() => goToAsk('Which team members submitted in this date range, and who has not?')}
-        />
-
-        {/* Card 4 — Review Reports */}
-        <KpiCard
-          label="Review Reports"
-          icon="alert"
-          value={needsReviewCount > 0 ? needsReviewCount : <EmptyValue text="No reports to review" />}
-          valueColor={needsReviewCount > 0 ? colors.text : colors.text3}
-          meta1={lateCount > 0 ? `${lateCount} submitted late` : 'No late reports'}
-          onClick={() => goToAsk('Which reports still need my review, and what was flagged in them?')}
+        <ReportingPanel
+          expected={subExpected}
+          submitted={subSubmitted}
+          needsReview={needsReviewCount}
+          overdue={overdue}
+          late={lateCount}
+          contributors={contributorCount}
+          members={totalMembers}
+          onReview={() => goToAsk('Which reports still need my review, and what was flagged in them?')}
+          onOverdue={() => goToAsk('Which reports are overdue this cycle, and who is behind?')}
         />
       </div>
 
-      {/* ── AI Summary banner — glow + gradient background, sitting between the KPI strip and the
-          content grid. Untouched. */}
+      {/* ── Team insight banner — a raised neutral surface (surface-2 + borderStrong); colour is
+          rationed to the outline-sparkle mark alone (AI blue), no background wash. The message is a
+          rule-based template from live data (teamAvgDelta + the top flagged member), not an LLM
+          summary — so it carries no "AI" label. */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '16px',
+          gap: '14px',
           padding: '14px 18px',
-          background: 'linear-gradient(90deg, rgba(91,127,255,0.08), rgba(0,212,170,0.05))',
-          border: '1px solid rgba(91,127,255,0.20)',
+          background: colors.surface2,
+          border: `1px solid ${colors.borderStrong}`,
           borderRadius: radius.md,
         }}
       >
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            flexShrink: 0,
-            fontSize: '11px',
-            fontWeight: 700,
-            letterSpacing: '0.07em',
-            textTransform: 'uppercase',
-            color: colors.teal,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <Icon name="sparkles" size={13} color={colors.teal} />
-          AI Summary
-        </span>
+        <Icon name="sparkleOutline" size={15} color={colors.ai} style={{ flexShrink: 0 }} />
         <span style={{ flex: 1, fontSize: '13px', color: colors.text2, lineHeight: 1.55 }}>
           {kpis.teamAvgDelta && kpis.teamAvgDelta.direction !== 'flat' ? (
             <>
@@ -809,7 +921,7 @@ export function DashboardView({ teamStats }: Props) {
             <> Nobody is flagged for attention right now.</>
           )}
         </span>
-        <Button variant="secondary" size="sm" icon="sparkles" onClick={() => goToAsk('Give me an overview of team performance.')} style={{ flexShrink: 0 }}>
+        <Button variant="secondary" size="sm" onClick={() => goToAsk('Give me an overview of team performance.')} style={{ flexShrink: 0 }}>
           Ask a follow-up
         </Button>
       </div>
@@ -821,23 +933,18 @@ export function DashboardView({ teamStats }: Props) {
           dense
           title="Recent Reports"
           icon="reports"
-          action={
-            <span
-              onClick={() => router.push(appendParams('/reports'))}
-              style={{ fontSize: '12px', color: colors.accent, fontWeight: typography.weight.medium, cursor: 'pointer' }}
-            >
-              View all
-            </span>
-          }
         >
           {recentReports.length > 0 ? (
-            <RecentReportsList
-              reports={recentReports}
-              attentionById={attentionByEmployee}
-              frequencyByProject={frequencyByProject}
-              onOpenReport={(id) => router.push(appendParams(`/reports/${id}`))}
-              onAskWhy={askWhyAboutReport}
-            />
+            <>
+              <RecentReportsList
+                reports={recentReports}
+                attentionById={attentionByEmployee}
+                frequencyByProject={frequencyByProject}
+                onOpenReport={(id) => router.push(appendParams(`/reports/${id}`))}
+                onAskWhy={askWhyAboutReport}
+              />
+              <ShowAllButton label="View all reports" onClick={() => router.push(appendParams('/reports'))} />
+            </>
           ) : (
             <div style={{ padding: '8px 0', color: colors.text3, fontSize: '13px' }}>No reports yet.</div>
           )}
@@ -851,13 +958,20 @@ export function DashboardView({ teamStats }: Props) {
             dense
             title="Team"
             icon="people"
-            chip={<CountChip>{teamPerformance.length} {teamPerformance.length === 1 ? 'member' : 'members'}</CountChip>}
           >
             {orderedTeam.length > 0 ? (
-              <TeamList
-                team={orderedTeam}
-                onOpen={(id) => router.push(appendParams(`/employees/${id}`))}
-              />
+              <>
+                <TeamList
+                  team={visibleTeam}
+                  onOpen={(id) => router.push(appendParams(`/employees/${id}`))}
+                />
+                {hasMoreTeam && (
+                  <ShowAllButton
+                    label={showAllTeam ? 'Show less' : `Show all ${orderedTeam.length} members`}
+                    onClick={() => setShowAllTeam((v) => !v)}
+                  />
+                )}
+              </>
             ) : (
               <div style={{ padding: '4px 0', color: colors.text3, fontSize: '13px' }}>No team members to show.</div>
             )}

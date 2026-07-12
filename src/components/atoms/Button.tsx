@@ -37,18 +37,25 @@ export function Button({ variant = 'primary', size = 'md', icon, loading, childr
 
   const variantStyles: Record<string, React.CSSProperties> = {
     primary: {
-      background: hovered && !isActuallyDisabled ? colors.accentHover : colors.accent,
-      color: '#fff',
-      boxShadow: hovered && !isActuallyDisabled ? '0 0 24px rgba(91,127,255,0.4)' : '0 0 20px rgba(91,127,255,0.25)',
+      // Greyscale primary "Raised neutral" (P3): a dark raised surface + white label + hairline
+      // border that lifts on hover. Primary by weight and border, not by a bright fill — so it reads
+      // as the affirmative action without shouting over score data.
+      background: hovered && !isActuallyDisabled ? '#262c3a' : colors.surface3,
+      color: colors.text,
+      border: `1px solid ${hovered && !isActuallyDisabled ? 'rgba(255,255,255,0.22)' : colors.borderHover}`,
+      boxShadow: 'none',
     },
     secondary: {
-      background: hovered && !isActuallyDisabled ? colors.surface3 : colors.surface2,
+      // Greyscale secondary "Ghost outline" (S2): transparent with a defined border; fills faintly
+      // and brightens its text on hover. Lightest footprint that still reads as a button at rest.
+      background: hovered && !isActuallyDisabled ? 'rgba(255,255,255,0.04)' : 'transparent',
       color: hovered && !isActuallyDisabled ? colors.text : colors.text2,
-      border: `1px solid ${hovered && !isActuallyDisabled ? colors.borderHover : colors.border}`,
+      border: `1px solid ${hovered && !isActuallyDisabled ? 'rgba(255,255,255,0.22)' : colors.borderHover}`,
     },
     ghost: {
+      // Quietest tier: no border at rest, a faint tint + text→white on hover.
       background: hovered && !isActuallyDisabled ? colors.accentGlow : 'transparent',
-      color: hovered && !isActuallyDisabled ? colors.accent : colors.text2,
+      color: hovered && !isActuallyDisabled ? colors.text : colors.text2,
     },
   }
 

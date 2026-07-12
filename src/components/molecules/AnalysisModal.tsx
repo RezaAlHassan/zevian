@@ -136,7 +136,7 @@ export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, confirm
                                             <span style={{ fontSize: '22px', fontWeight: 500, color: colors.text3, marginLeft: '6px' }}>/10</span>
                                         </div>
                                         <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
-                                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '4px 9px', borderRadius: '20px', background: `${colors.accent}15`, color: colors.accent, border: `1px solid ${colors.accent}25` }}>Goals {orgMetrics.length > 0 ? `${weights?.goalWeight}%` : '100%'}</span>
+                                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '4px 9px', borderRadius: '20px', background: `${colors.ai}15`, color: colors.ai, border: `1px solid ${colors.ai}25` }}>Goals {orgMetrics.length > 0 ? `${weights?.goalWeight}%` : '100%'}</span>
                                             {orgMetrics.length > 0 && (
                                                 <>
                                                     <span style={{ color: colors.text3, fontSize: '13px', fontWeight: 600, alignSelf: 'center' }}>+</span>
@@ -152,12 +152,12 @@ export function AnalysisModal({ isOpen, isAnalyzing, onClose, onConfirm, confirm
                                             background: colors.surface2, border: `1px solid ${colors.border}`, borderRadius: '12px',
                                             padding: '16px 18px', position: 'relative'
                                         }}>
-                                            <span style={{ position: 'absolute', top: '10px', left: '14px', fontSize: '28px', color: colors.accent, opacity: 0.4, fontWeight: 800 }}>"</span>
+                                            <span style={{ position: 'absolute', top: '10px', left: '14px', fontSize: '28px', color: colors.ai, opacity: 0.4, fontWeight: 800 }}>"</span>
                                             <p style={{ paddingLeft: '18px' }}>{summary}</p>
                                         </div>
                                         <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: colors.accent }} />
+                                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: colors.ai }} />
                                                 <span style={{ fontSize: '12px', color: colors.text2, fontWeight: 500 }}>Goal criteria avg: {goalAvg}</span>
                                             </div>
                                             {orgMetrics.length > 0 && (

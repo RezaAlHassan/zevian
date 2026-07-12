@@ -9,6 +9,79 @@
 
 export const SKIP_COLUMN = '__skip__'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pure helpers (no server-only deps) — kept here so they can be unit tested.
+// The action file (`'use server'`) can't export non-async functions, and
+// importing it from a test would pull in Supabase/Gemini.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function kindFromFrequency(freq: string | null | undefined): 'tangible' | 'intangible' {
+    return (freq || '').toLowerCase() === 'monthly' ? 'intangible' : 'tangible'
+}
+
+/**
+ * Human-readable cadence label for row messages ("weekly" / "bi-weekly" /
+ * "monthly"), or null if the goal's frequency isn't one we can name confidently.
+ */
+export function frequencyLabel(freq: string | null | undefined): string | null {
+    const f = (freq || '').toLowerCase().replace(/[\s_]/g, '-')
+    if (f === 'weekly') return 'weekly'
+    if (f === 'biweekly' || f === 'bi-weekly') return 'bi-weekly'
+    if (f === 'monthly') return 'monthly'
+    return null
+}
+
+/**
+ * Parse the period column. Accepts:
+ *   - YYYY-MM-DD
+ *   - DD/MM/YYYY or MM/DD/YYYY (assume ISO if dashed)
+ *   - A range like "YYYY-MM-DD to YYYY-MM-DD" or "YYYY-MM-DD - YYYY-MM-DD" — use the START
+ * Returns a Date at UTC midnight, or null if unparseable.
+ */
+export function parsePeriodDate(raw: string): Date | null {
+    if (!raw) return null
+    const trimmed = raw.trim()
+    if (!trimmed) return null
+
+    const firstChunk = trimmed.split(/\s+(?:to|-|–|—)\s+/i)[0].trim()
+
+    // ISO
+    const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(firstChunk)
+    if (iso) {
+        const d = new Date(`${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}T00:00:00Z`)
+        return isNaN(d.getTime()) ? null : d
+    }
+
+    // Slash format: prefer DD/MM/YYYY if first chunk > 12
+    const slash = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(firstChunk)
+    if (slash) {
+        const a = parseInt(slash[1], 10)
+        const b = parseInt(slash[2], 10)
+        const y = parseInt(slash[3], 10)
+        const day = a > 12 ? a : b
+        const month = a > 12 ? b : a
+        const d = new Date(Date.UTC(y, month - 1, day))
+        return isNaN(d.getTime()) ? null : d
+    }
+
+    const native = new Date(firstChunk)
+    return isNaN(native.getTime()) ? null : native
+}
+
+/**
+ * Human-readable label for a reporting-period window, in UTC.
+ *   • same month  → "Jul 6 – 10"
+ *   • spans months → "Jun 29 – Jul 3"
+ */
+export function formatPeriodWindow(startIso: string, endIso: string): string {
+    const s = new Date(startIso)
+    const e = new Date(endIso)
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return ''
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+    const sameMonth = s.getUTCFullYear() === e.getUTCFullYear() && s.getUTCMonth() === e.getUTCMonth()
+    return sameMonth ? `${fmt(s)} – ${e.getUTCDate()}` : `${fmt(s)} – ${fmt(e)}`
+}
+
 export interface UploadGoalSummary {
     id: string
     name: string
@@ -29,10 +102,20 @@ export interface MappingSuggestion {
     suggestedCriterion: string                          // criterion name or SKIP_COLUMN
 }
 
+/** An open reporting-period window the manager can upload numbers into. */
+export interface UploadPeriod {
+    key: string                 // window identifier = period_start's UTC date (YYYY-MM-DD)
+    periodStart: string         // ISO
+    periodEnd: string           // ISO
+    label: string               // human-readable, e.g. "Jul 6 – 10"
+    openCount: number           // employees in this window with no report yet
+    totalCount: number          // employees with a period in this window
+}
+
 export interface RowResult {
     rowIndex: number                                    // 1-based, matching CSV row number after header
     agentIdentifier: string
-    periodInput: string
+    periodInput: string                                 // the selected period's label (same for every row)
     status: 'created' | 'skipped'
     reportId?: string
     score?: number
@@ -44,9 +127,7 @@ export interface ProcessUploadResult {
     created: number
     skipped: number
     rows: RowResult[]
-    /** Number of distinct period dates detected in the CSV. */
-    periodsDetected: number
-    /** Date-only label (YYYY-MM-DD) of the single period this upload processed, or null if no parseable dates were found. */
+    /** Human-readable label of the reporting period this upload targeted. */
     processedPeriodLabel: string | null
     error?: string
 }

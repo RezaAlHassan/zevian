@@ -9,6 +9,8 @@ interface Member {
     employee: {
         id: string
         full_name: string
+        avatar_url?: string | null
+        avatarUrl?: string | null
     }
 }
 
@@ -93,7 +95,7 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
                             Assign Employees
                         </div>
                         <div style={{ fontSize: '12px', color: colors.text3, marginTop: '2px' }}>
-                            Assign employees to this goal to receive and submit reports.
+                            Assign people to this goal to receive and submit reports.
                         </div>
                     </div>
                     <button
@@ -121,7 +123,7 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
 
                         {/* Search + Inline results */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>Add Employee</label>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: colors.text }}>Add Person</label>
                             <div style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -136,7 +138,7 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Search employees..."
+                                    placeholder="Search people..."
                                     style={{
                                         flex: 1,
                                         background: 'none',
@@ -181,7 +183,9 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
                                                 background: getAvatarGradient(displayName),
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 fontSize: '10px', fontWeight: 700, color: '#fff', flexShrink: 0,
+                                                position: 'relative', overflow: 'hidden',
                                             }}>
+                                                {(emp.avatar_url || emp.avatarUrl) && <img src={emp.avatar_url || emp.avatarUrl} alt={displayName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                                                 {getInitials(displayName)}
                                             </div>
                                             <div style={{ flex: 1 }}>
@@ -195,7 +199,7 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
                                     )
                                 }) : (
                                     <div style={{ padding: '16px 12px', fontSize: '13px', color: colors.text3, textAlign: 'center', background: colors.surface2, borderRadius: radius.md, border: `1px solid ${colors.border}` }}>
-                                        {searchQuery ? 'No employees match your search.' : 'All employees have been assigned.'}
+                                        {searchQuery ? 'No people match your search.' : 'All people have been assigned.'}
                                     </div>
                                 )}
                                 {filteredEmployees.length > 6 && (
@@ -213,7 +217,7 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
                             </label>
                             {members.length === 0 ? (
                                 <div style={{ padding: '20px', fontSize: '13px', color: colors.text3, textAlign: 'center', background: colors.surface2, borderRadius: radius.md, border: `1px dashed ${colors.border}` }}>
-                                    No employees assigned yet.
+                                    No people assigned yet.
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -232,7 +236,9 @@ export function ManageGoalTeamSheet({ isOpen, onClose, goal, employees, isSaving
                                                 background: getAvatarGradient(m.employee.full_name),
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 fontWeight: 700, fontSize: '10px', color: '#fff',
+                                                position: 'relative', overflow: 'hidden',
                                             }}>
+                                                {(m.employee.avatar_url || m.employee.avatarUrl) && <img src={(m.employee.avatar_url || m.employee.avatarUrl) || undefined} alt={m.employee.full_name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                                                 {getInitials(m.employee.full_name)}
                                             </div>
                                             <div style={{ flex: 1 }}>

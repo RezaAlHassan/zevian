@@ -150,59 +150,29 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '24px' }}>
           {/* Left: Search & Filters */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '7px 12px',
-              background: colors.surface,
-              border: `1px solid ${colors.border}`,
-              borderRadius: radius.md,
-              width: '240px'
-            }}>
+            <div className="zv-search" style={{ width: '240px' }}>
               <Icon name="search" size={13} color={colors.text3} />
               <input
                 type="text"
                 placeholder="Search KPIs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ background: 'none', border: 'none', outline: 'none', fontSize: '13px', color: colors.text, width: '100%', fontFamily: typography.fonts.body }}
               />
             </div>
 
             <select
+              className="zv-select"
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              style={{
-                padding: '7px 12px',
-                background: colors.surface,
-                border: `1px solid ${colors.border}`,
-                borderRadius: radius.md,
-                fontSize: '12px',
-                color: colors.text2,
-                outline: 'none',
-                cursor: 'pointer',
-                fontFamily: typography.fonts.body
-              }}
             >
               <option value="All">All Projects</option>
               {projects.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
             </select>
 
             <select
+              className="zv-select"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{
-                padding: '7px 12px',
-                background: colors.surface,
-                border: `1px solid ${colors.border}`,
-                borderRadius: radius.md,
-                fontSize: '12px',
-                color: colors.text2,
-                outline: 'none',
-                cursor: 'pointer',
-                fontFamily: typography.fonts.body
-              }}
             >
               <optgroup label="Active">
                 <option value="active_all">All Active</option>
@@ -222,19 +192,9 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
               <span style={{ fontSize: '11px', fontWeight: 700, color: colors.text3, textTransform: 'uppercase' }}>Sort:</span>
               <select
+                className="zv-select"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                style={{
-                  padding: '7px 12px',
-                  background: colors.surface,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: radius.md,
-                  fontSize: '12px',
-                  color: colors.text2,
-                  outline: 'none',
-                  cursor: 'pointer',
-                  fontFamily: typography.fonts.body
-                }}
               >
                 <option value="due">Due Date</option>
                 <option value="score">Avg Score</option>
@@ -256,20 +216,20 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
               </Button>
             )}
 
-            <div style={{ display: 'flex', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '2px', gap: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', boxSizing: 'border-box', height: '32px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: radius.md, padding: '2px', gap: '2px' }}>
               <button
                 onClick={() => setViewMode('Grid')}
                 title="Grid View"
                 style={{
                   width: '30px',
-                  height: '30px',
+                  height: '26px',
                   borderRadius: '5px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                   background: viewMode === 'Grid' ? colors.surface2 : 'transparent',
-                  color: viewMode === 'Grid' ? colors.accent : colors.text3,
+                  color: viewMode === 'Grid' ? colors.text : colors.text3,
                   border: 'none',
                   transition: `all ${animation.fast}`,
                 }}
@@ -281,14 +241,14 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                 title="Table View"
                 style={{
                   width: '30px',
-                  height: '30px',
+                  height: '26px',
                   borderRadius: '5px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                   background: viewMode === 'Table' ? colors.surface2 : 'transparent',
-                  color: viewMode === 'Table' ? colors.accent : colors.text3,
+                  color: viewMode === 'Table' ? colors.text : colors.text3,
                   border: 'none',
                   transition: `all ${animation.fast}`,
                 }}
@@ -312,7 +272,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
             gap: '16px'
           }}>
             <div style={{ width: '56px', height: '56px', borderRadius: radius.md, background: colors.accentGlow, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="target" size={24} color={colors.accent} />
+              <Icon name="target" size={24} color={colors.text3} />
             </div>
             <div>
               <div style={{ fontSize: '16px', fontWeight: 700, color: colors.text }}>No KPIs found</div>
@@ -367,7 +327,7 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                           <div key={crit.id} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <div style={{ fontSize: '10px', color: colors.text3, width: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{crit.name}</div>
                             <div style={{ flex: 1, height: '3px', background: colors.surface3, borderRadius: '2px', overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${crit.weight}%`, background: colors.accent }} />
+                              <div style={{ height: '100%', width: `${crit.weight}%`, background: colors.text2 }} />
                             </div>
                             <div style={{ fontSize: '10px', color: colors.text3, width: '25px', textAlign: 'right', fontFamily: typography.fonts.numeric, fontWeight: typography.weight.heavy }}>{crit.weight}%</div>
                           </div>
@@ -392,9 +352,12 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                               fontWeight: 700,
                               color: '#fff',
                               border: `2px solid ${colors.surface}`,
-                              marginLeft: i === 0 ? 0 : '-6px'
+                              marginLeft: i === 0 ? 0 : '-6px',
+                              position: 'relative',
+                              overflow: 'hidden'
                             }}
                           >
+                            {m.employee.avatar_url && <img src={m.employee.avatar_url} alt={m.employee.full_name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                             {getInitials(m.employee.full_name)}
                           </div>
                         ))}

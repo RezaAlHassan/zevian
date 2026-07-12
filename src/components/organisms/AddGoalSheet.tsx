@@ -314,7 +314,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                     {/* 1. Quick Start Templates */}
                     <div style={{ padding: '20px 26px', borderBottom: `1px solid ${colors.border}` }}>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                            <Icon name="clock" size={15} color={colors.accent} />
+                            <Icon name="clock" size={15} color={colors.text3} />
                             Quick Start Templates
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
@@ -349,9 +349,8 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                     {/* 2. Smart Goal Builder */}
                     <div style={{ padding: '20px 26px', borderBottom: `1px solid ${colors.border}` }}>
                         <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                            <Icon name="sparkles" size={15} color={colors.accent} />
+                            <Icon name="sparkleOutline" size={15} color={colors.ai} />
                             AI KPI Builder
-                            <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 7px', borderRadius: '4px', background: colors.accentGlow, color: colors.accent }}>✦ AI</span>
                         </div>
                         <div style={{ background: colors.surface2, border: `1.5px solid ${colors.border}`, borderRadius: '12px', overflow: 'hidden' }}>
                             <textarea
@@ -371,18 +370,17 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                         gap: '7px',
                                         padding: '8px 16px',
                                         borderRadius: '8px',
-                                        background: isGenerating ? colors.accentGlow : colors.surface3,
-                                        border: `1px solid ${isGenerating ? colors.accent : colors.border}`,
+                                        background: isGenerating ? colors.aiGlow : colors.surface3,
+                                        border: `1px solid ${isGenerating ? colors.ai : colors.border}`,
                                         fontSize: '12px',
                                         fontWeight: 700,
-                                        color: isGenerating ? colors.accent : colors.text2,
+                                        color: isGenerating ? colors.ai : colors.text2,
                                         cursor: aiPrompt.length < 10 ? 'not-allowed' : 'pointer',
                                         transition: 'all 0.18s',
                                         fontFamily: typography.fonts.display,
                                         opacity: aiPrompt.length < 10 ? 0.45 : 1
                                     }}
                                 >
-                                    <Icon name={isGenerating ? 'refresh' : 'sparkles'} size={13} className={isGenerating ? 'animate-spin' : ''} />
                                     {isGenerating ? 'Generating...' : 'Generate Tracker →'}
                                 </button>
                             </div>
@@ -412,11 +410,10 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
 
                     {/* 4. Instructions */}
                     <div style={{ padding: '20px 26px', borderBottom: `1px solid ${colors.border}` }}>
-                        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                            <Icon name="list" size={16} color={colors.accent} />
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                            <Icon name="list" size={16} color={colors.text3} />
                             Instructions
                         </div>
-                        <p style={{ fontSize: '12px', color: colors.text3, marginBottom: '12px', lineHeight: 1.55 }}>Specific, objective instructions for Zevian to follow during evaluation.</p>
                         <textarea
                             value={instructions}
                             onChange={(e) => setInstructions(e.target.value)}
@@ -427,9 +424,9 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
 
                     {/* 5. KPIs */}
                     <div style={{ padding: '20px 26px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                             <div style={{ fontSize: '13px', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Icon name="target" size={16} color={colors.accent} />
+                                <Icon name="target" size={16} color={colors.text3} />
                                 What matters for this KPI?
                             </div>
                             {criteria.length > 0 && (
@@ -438,7 +435,6 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                 </div>
                             )}
                         </div>
-                        <p style={{ fontSize: '12px', color: colors.text3, marginBottom: '14px', lineHeight: 1.55 }}>Add criteria and mark their importance — weights are auto-calculated.</p>
 
                         {/* Add Crit Row */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: colors.surface2, border: `1.5px solid ${colors.border}`, borderRadius: '10px' }}>
@@ -464,8 +460,8 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                                 fontSize: '11px',
                                                 fontWeight: 600,
                                                 cursor: 'pointer',
-                                                color: newCritImportance === lvl ? '#fff' : colors.text3,
-                                                background: newCritImportance === lvl ? (lvl === 'low' ? colors.text3 : lvl === 'medium' ? '#f59e0b' : lvl === 'high' ? colors.accent : '#f04438') : 'transparent',
+                                                color: newCritImportance === lvl ? importanceColors[lvl].text : colors.text3,
+                                                background: newCritImportance === lvl ? importanceColors[lvl].bg : 'transparent',
                                                 transition: 'all 0.15s'
                                             }}
                                         >
@@ -476,9 +472,9 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                                 </div>
                                 <button
                                     onClick={addCriterion}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', background: colors.accent, border: 'none', fontSize: '12px', fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: typography.fonts.display, boxShadow: '0 0 12px rgba(91,127,255,.2)' }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', background: colors.surface3, border: `1px solid ${colors.borderHover}`, fontSize: '12px', fontWeight: 700, color: colors.text, cursor: 'pointer', fontFamily: typography.fonts.display, boxShadow: 'none' }}
                                 >
-                                    <Icon name="plus" size={12} />
+                                    <Icon name="plus" size={12} color={colors.text} />
                                     Add
                                 </button>
                             </div>
@@ -631,7 +627,7 @@ export function AddGoalSheet({ isOpen, onClose, projects, employees, goal, onCre
                             variant="primary"
                             onClick={handleSave}
                             disabled={isSaveDisabled}
-                            style={{ borderRadius: '9px', fontFamily: typography.fonts.display, boxShadow: isSaveDisabled ? 'none' : '0 0 16px rgba(91,127,255,.25)' }}
+                            style={{ borderRadius: '9px', fontFamily: typography.fonts.display, boxShadow: 'none' }}
                         >
                             <Icon name={loading ? 'refresh' : 'check'} size={14} className={loading ? 'animate-spin' : ''} />
                             {loading ? 'Saving...' : 'Save KPI'}

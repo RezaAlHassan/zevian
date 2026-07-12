@@ -17,7 +17,7 @@ interface ProjectRowProps {
     score: number | null
     reportCount: number
     lastActivity: string
-    members: { employee: { full_name: string } }[]
+    members: { employee: { full_name: string; avatar_url?: string | null } }[]
     onComplete?: (e: React.MouseEvent) => void
     onDelete?: (e: React.MouseEvent) => void
     onEdit?: (e: React.MouseEvent) => void
@@ -106,8 +106,11 @@ export function ProjectRow({
                                     color: '#fff',
                                     marginLeft: i === 0 ? 0 : '-6px',
                                     background: getAvatarGradient(m.employee.full_name),
+                                    position: 'relative',
+                                    overflow: 'hidden',
                                 }}
                             >
+                                {m.employee.avatar_url && <img src={m.employee.avatar_url} alt={m.employee.full_name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                                 {getInitials(m.employee.full_name)}
                             </div>
                         ))}

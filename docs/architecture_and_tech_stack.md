@@ -1,14 +1,20 @@
 # Zevian: Architecture & Tech Stack
 
+> **Superseded by [`technical_reference.md`](./technical_reference.md)**, which is verified against
+> the current source and includes the data model, route/shell structure, and known gaps. The
+> corrections below were applied 2026-07-07; keep this file for its high-level framing, but treat
+> `technical_reference.md` as the source of truth for anything specific.
+
 ## Tech Stack
 
 ### Frontend
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS & Vanilla CSS (Custom Design System `zevian-ds`)
-- **Icons**: Lucide React (via custom `Icon` component)
+- **Styling**: Hand-rolled CSS-variable design system (`src/design-system/tokens.ts` +
+  `src/styles/globals.css`) — **not Tailwind**. No `tailwind.config.*` exists at the repo root.
+- **Icons**: Fully custom hand-drawn SVG set via `Icon` component — **not Lucide React**.
 - **State Management**: React Hooks (Server Components & Client Components)
-- **Fonts**: Outfit (Global), DM Mono (Monospace)
+- **Fonts**: Plus Jakarta Sans (display/numeric), Outfit (body/UI), DM Mono (monospace/tabular)
 
 ### Backend & Infrastructure
 - **BaaS**: Supabase
@@ -16,7 +22,7 @@
     - **Authentication**: Supabase Auth (Email/Password, OAuth, Invitation flow)
     - **Security**: Row Level Security (RLS)
     - **Storage**: Supabase Storage (Project documents)
-- **Deployment**: Vercel (standard)
+- **Deployment**: Netlify (`netlify.toml` + `@netlify/plugin-nextjs`) — dev branch → Netlify dev URL, main branch → app.zevian.co, per `CLAUDE.md`.
 - **Email**: Resend (Transactional emails like invitations)
 
 ### AI Core

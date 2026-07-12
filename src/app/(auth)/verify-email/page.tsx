@@ -16,7 +16,7 @@ export default function VerifyEmailPage() {
         }}>
             {/* Logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '48px', justifyContent: 'center' }}>
-                <div style={{ width: '36px', height: '36px', background: colors.accent, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: typography.fonts.display, fontWeight: 800, fontSize: '16px', color: '#fff', boxShadow: shadows.logoGlow }}>Z</div>
+                <div style={{ width: '36px', height: '36px', background: colors.brand, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: typography.fonts.display, fontWeight: 800, fontSize: '16px', color: '#fff', boxShadow: shadows.logoGlow }}>Z</div>
                 <span style={{ fontFamily: typography.fonts.display, fontWeight: 700, fontSize: '22px', letterSpacing: '-0.3px' }}>Zevian</span>
             </div>
 

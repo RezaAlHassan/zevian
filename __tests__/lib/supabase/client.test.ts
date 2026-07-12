@@ -46,7 +46,8 @@ describe('Supabase createClient', () => {
       () => {
         createClient();
       },
-      /Your project's URL and Key are required to create a Supabase client/i,
+      // @supabase/ssr 0.12 says "URL and API key"; older versions said "URL and Key".
+      /Your project's URL and (API )?key are required to create a Supabase client/i,
       'Should throw an error about missing URL and Key'
     );
   });

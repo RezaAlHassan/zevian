@@ -16,6 +16,7 @@ const InviteModal = dynamic(
 
 interface Props {
   userName: string
+  avatarUrl?: string | null
   orgName: string
   userRole: string
   canManageSettings: boolean
@@ -30,7 +31,7 @@ const NAV_ITEMS = [
   },
   {
     id: 'ask', label: 'Ask', href: '/ask',
-    icon: <svg viewBox="0 0 16 16" fill="currentColor" stroke="none"><path d="M8 1L9 5L13 6L9 7L8 11L7 7L3 6L7 5L8 1ZM13 10L13.5 12L15 12.5L13.5 13L13 15L12.5 13L11 12.5L12.5 12L13 10ZM3 2L3.5 4L5 4.5L3.5 5L3 7L2.5 5L1 4.5L2.5 4L3 2Z" /></svg>,
+    icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"><path d="M8 1.5 L9.5 6.4 L14.5 8 L9.5 9.6 L8 14.5 L6.5 9.6 L1.5 8 L6.5 6.4 Z" /></svg>,
   },
   {
     id: 'reports', label: 'Reports', href: '/reports',
@@ -45,7 +46,7 @@ const NAV_ITEMS = [
     icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5" /></svg>,
   },
   {
-    id: 'employees', label: 'Employees', href: '/employees',
+    id: 'employees', label: 'People', href: '/employees',
     icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="6" cy="5" r="3" /><path d="M1 14c0-3 2-5 5-5s5 2 5 5" /><circle cx="12" cy="5" r="2" /><path d="M14 14c0-2-1-3.5-2-4" /></svg>,
   },
   {
@@ -65,7 +66,7 @@ const SETTINGS_ITEMS = [
   },
 ]
 
-export function AppShellClient({ userName, orgName, userRole, canManageSettings, canViewOrganizationWide, children }: Props) {
+export function AppShellClient({ userName, avatarUrl, orgName, userRole, canManageSettings, canViewOrganizationWide, children }: Props) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const view = searchParams.get('view') || 'org'
@@ -79,7 +80,7 @@ export function AppShellClient({ userName, orgName, userRole, canManageSettings,
     if (pathname.startsWith('/goals')) return 'KPIs'
     if (pathname.startsWith('/reports')) return 'Reports'
     if (pathname.startsWith('/upload')) return 'Submit'
-    if (pathname.startsWith('/employees')) return 'Employees'
+    if (pathname.startsWith('/employees')) return 'People'
     if (pathname.startsWith('/ask')) return 'Ask'
     if (pathname.startsWith('/knowledge-base')) return 'Knowledge Base'
     if (pathname.startsWith('/organization')) return 'Organization'
@@ -169,14 +170,14 @@ export function AppShellClient({ userName, orgName, userRole, canManageSettings,
             onClick={() => setIsInviteOpen(true)}
             style={{ ...t.ctaButton, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}
           >
-            <Icon name="plus" size={14} color="#fff" />
+            <Icon name="plus" size={14} color={colors.text} />
             Invite Member
           </button>
         </div>
       </aside>
 
       <div style={{ marginLeft: layout.sidebarWidth, minHeight: '100vh', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Header title={pageTitle} subtitle={subtitle} userName={userName} showViewSwitcher={canViewOrganizationWide} />
+        <Header title={pageTitle} subtitle={subtitle} userName={userName} avatarUrl={avatarUrl} showViewSwitcher={canViewOrganizationWide} />
         <div style={{ paddingTop: layout.headerHeight, flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div style={{ flex: 1 }}>
             {children}

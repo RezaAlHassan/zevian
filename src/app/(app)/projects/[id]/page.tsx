@@ -34,7 +34,8 @@ export default async function ProjectPage({ params }: { params: { id: string } }
                 employee: {
                     id: a.assignee_id,
                     full_name: a.employees?.name || 'Unknown',
-                    role: a.assignee_type || 'employee'
+                    role: a.assignee_type || 'employee',
+                    avatar_url: a.employees?.avatar_url ?? null
                 }
             })) || [];
 
@@ -66,7 +67,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
 
     // Fetch the manager list and the caller's cached identity in parallel.
     const [{ data: employees }, ctx] = await Promise.all([
-        supabase.from('employees').select('id, name, role').eq('role', 'manager').eq('is_active', true).order('name'),
+        supabase.from('employees').select('id, name, role, avatar_url').eq('role', 'manager').eq('is_active', true).order('name'),
         getSessionContext(),
     ])
 

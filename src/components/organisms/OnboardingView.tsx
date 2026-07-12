@@ -166,7 +166,7 @@ export function OnboardingView() {
             position: 'sticky', top: 0, zIndex: 10,
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', background: colors.accent, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800 }}>Z</div>
+                <div style={{ width: '32px', height: '32px', background: colors.brand, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800 }}>Z</div>
                 <span style={{ fontWeight: 800, fontSize: '18px', letterSpacing: '-0.5px' }}>Zevian</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -321,7 +321,7 @@ export function OnboardingView() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: colors.accent, fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '12px' }}>
                 <Icon name="users" size={14} /> Step 4: Your Team
             </div>
-            <h1 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '12px', letterSpacing: '-0.5px' }}>Invite employees</h1>
+            <h1 style={{ fontSize: '32px', fontWeight: 800, marginBottom: '12px', letterSpacing: '-0.5px' }}>Invite people</h1>
             <p style={{ color: colors.text3, fontSize: '15px', marginBottom: '32px', lineHeight: 1.6 }}>Add their email addresses. They'll be automatically assigned to your project and KPI.</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>

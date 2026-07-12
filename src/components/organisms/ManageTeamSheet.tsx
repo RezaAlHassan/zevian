@@ -10,6 +10,8 @@ interface Member {
         id: string
         full_name: string
         role: string
+        avatar_url?: string | null
+        avatarUrl?: string | null
     }
 }
 
@@ -183,7 +185,9 @@ export function ManageTeamSheet({ isOpen, onClose, project, employees, isSaving 
                                                 background: getAvatarGradient(displayName),
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 fontSize: '10px', fontWeight: 700, color: '#fff', flexShrink: 0,
+                                                position: 'relative', overflow: 'hidden',
                                             }}>
+                                                {(emp.avatar_url || emp.avatarUrl) && <img src={emp.avatar_url || emp.avatarUrl} alt={displayName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                                                 {getInitials(displayName)}
                                             </div>
                                             <div style={{ flex: 1 }}>
@@ -234,7 +238,9 @@ export function ManageTeamSheet({ isOpen, onClose, project, employees, isSaving 
                                                 background: getAvatarGradient(m.employee.full_name),
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 fontWeight: 700, fontSize: '10px', color: '#fff',
+                                                position: 'relative', overflow: 'hidden',
                                             }}>
+                                                {(m.employee.avatar_url || m.employee.avatarUrl) && <img src={(m.employee.avatar_url || m.employee.avatarUrl) || undefined} alt={m.employee.full_name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
                                                 {getInitials(m.employee.full_name)}
                                             </div>
                                             <div style={{ flex: 1 }}>

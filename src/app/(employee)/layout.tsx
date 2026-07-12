@@ -25,7 +25,8 @@ export default async function EmployeeLayout({ children }: { children: React.Rea
         name: employee.name,
         role: employee.role,
         organization_id: employee.organizationId,
-        organizations: organization 
+        organizations: organization,
+        avatar_url: employee.avatarUrl ?? null
     } : null
 
     return <EmployeeShellServer profile={profile as any}>{children}</EmployeeShellServer>

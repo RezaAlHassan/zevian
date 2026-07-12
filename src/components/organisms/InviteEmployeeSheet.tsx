@@ -110,7 +110,7 @@ export function InviteEmployeeSheet({ isOpen, onClose }: InviteEmployeeSheetProp
                                     color: role === 'employee' ? colors.accent : colors.text,
                                     marginBottom: '4px'
                                 }}>
-                                    Employee
+                                    Person
                                 </div>
                                 <div style={{ fontSize: '11px', color: colors.text3, lineHeight: 1.4 }}>
                                     Submits weekly reports. Sees their own scores only.

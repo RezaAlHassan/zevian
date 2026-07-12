@@ -11,9 +11,10 @@ interface EmployeeHeaderProps {
     title: string
     userName?: string
     employeeId?: string
+    avatarUrl?: string | null
 }
 
-export function EmployeeHeader({ title, userName = 'User', employeeId = 'N/A' }: EmployeeHeaderProps) {
+export function EmployeeHeader({ title, userName = 'User', employeeId = 'N/A', avatarUrl }: EmployeeHeaderProps) {
     const [isAccountOpen, setIsAccountOpen] = useState(false)
     const router = useRouter()
     const pathname = usePathname()
@@ -70,17 +71,18 @@ export function EmployeeHeader({ title, userName = 'User', employeeId = 'N/A' }:
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
-                            background: colors.accent,
-                            color: '#fff',
+                            background: colors.surface3,
+                            border: `1px solid ${colors.borderHover}`,
+                            color: colors.text,
                             padding: '6px 14px',
                             borderRadius: radius.md,
                             fontSize: '13px',
                             fontWeight: 600,
                             cursor: 'pointer',
                             transition: `all ${animation.fast}`,
-                            boxShadow: `0 2px 4px ${colors.accent}33`
+                            boxShadow: 'none'
                         }} className="submit-report-btn">
-                            <Icon name="plus" size={14} color="#fff" />
+                            <Icon name="plus" size={14} color={colors.text} />
                             <span>Submit Report</span>
                         </div>
                     </Link>
@@ -120,7 +122,7 @@ export function EmployeeHeader({ title, userName = 'User', employeeId = 'N/A' }:
                     }}
                     className="account-trigger"
                 >
-                    <Avatar name={userName} size="md" />
+                    <Avatar name={userName} src={avatarUrl} size="md" />
                     <Icon name="chevronDown" size={10} color={colors.text3} />
                 </div>
 
