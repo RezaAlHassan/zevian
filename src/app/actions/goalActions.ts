@@ -150,6 +150,7 @@ export async function addCriterionToGoalAction(input: {
     goalId: string
     name: string
     importance: 'low' | 'medium' | 'high' | 'critical'
+    target_description?: string
 }): Promise<{ success: true; criteria: { id: string; name: string; weight: number; target_description: string | null }[] } | { error: string }> {
     try {
         const supabase = createServerClient()
@@ -191,7 +192,7 @@ export async function addCriterionToGoalAction(input: {
             id: `crit-${Math.random().toString(36).slice(2, 7)}`,
             name: input.name.trim(),
             weight: newCritWeight,
-            target_description: null,
+            target_description: input.target_description?.trim() || null,
         }
 
         const all = [...existing, newCrit]

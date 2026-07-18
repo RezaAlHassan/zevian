@@ -48,13 +48,6 @@ export function ProjectCard({
   const view = searchParams.get('view') || 'org'
   const scoreColor = getScoreColor(score)
 
-  // Gradient for the top strip based on category or status
-  const gradient = status === 'at-risk'
-    ? 'linear-gradient(90deg, #f04438, #f97316)'
-    : status === 'review'
-      ? 'linear-gradient(90deg, #f59e0b, #fb923c)'
-      : 'linear-gradient(90deg, #5b7fff, #818cf8)'
-
   return (
     <Link href={`${basePath}/${id}?${searchParams.toString()}`} style={{ textDecoration: 'none' }}>
       <div
@@ -69,8 +62,6 @@ export function ProjectCard({
           position: 'relative',
         }}
       >
-        <div style={{ height: '3px', width: '100%', background: typeof score !== 'number' || isNaN(score) ? colors.surface3 : gradient }} />
-
         <div style={{ padding: '12px' }}>
           {!readOnly && (
               <div className="card-actions" style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '4px', opacity: 0, transition: `opacity ${animation.fast}`, zIndex: 2 }}>

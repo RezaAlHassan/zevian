@@ -334,34 +334,65 @@ export function GoalsView({ goals: initialGoals, projects, employees, readOnly =
                         ))}
                       </div>
                     </td>
-                    <td style={{ padding: '14px 20px' }}>
-                      <div style={{ display: 'flex' }}>
-                        {(goal.goal_members?.length > 0 ? goal.goal_members : (goal.project?.project_members || [])).map((m: any, i: number) => (
-                          <div
-                            key={i}
-                            title={m.employee.full_name}
-                            style={{
-                              width: '24px',
-                              height: '24px',
-                              borderRadius: '6px',
-                              background: getAvatarGradient(m.employee.full_name),
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '9px',
-                              fontWeight: 700,
-                              color: '#fff',
-                              border: `2px solid ${colors.surface}`,
-                              marginLeft: i === 0 ? 0 : '-6px',
-                              position: 'relative',
-                              overflow: 'hidden'
-                            }}
-                          >
-                            {m.employee.avatar_url && <img src={m.employee.avatar_url} alt={m.employee.full_name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
-                            {getInitials(m.employee.full_name)}
+                    <td style={{ padding: '14px 20px', width: '120px' }}>
+                      {(() => {
+                        const allMembers = goal.goal_members?.length > 0 ? goal.goal_members : (goal.project?.project_members || [])
+                        const MAX_AVATARS = 3
+                        const shown = allMembers.slice(0, MAX_AVATARS)
+                        const overflow = allMembers.length - shown.length
+                        return (
+                          <div style={{ display: 'flex' }}>
+                            {shown.map((m: any, i: number) => (
+                              <div
+                                key={i}
+                                title={m.employee.full_name}
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '6px',
+                                  background: getAvatarGradient(m.employee.full_name),
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '9px',
+                                  fontWeight: 700,
+                                  color: '#fff',
+                                  border: `2px solid ${colors.surface}`,
+                                  marginLeft: i === 0 ? 0 : '-6px',
+                                  position: 'relative',
+                                  overflow: 'hidden',
+                                  flexShrink: 0
+                                }}
+                              >
+                                {m.employee.avatar_url && <img src={m.employee.avatar_url} alt={m.employee.full_name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                {getInitials(m.employee.full_name)}
+                              </div>
+                            ))}
+                            {overflow > 0 && (
+                              <div
+                                title={`${overflow} more`}
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '6px',
+                                  background: colors.surface3,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '9px',
+                                  fontWeight: 700,
+                                  color: colors.text3,
+                                  border: `2px solid ${colors.surface}`,
+                                  marginLeft: '-6px',
+                                  flexShrink: 0
+                                }}
+                              >
+                                +{overflow}
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                        )
+                      })()}
                     </td>
                     <td style={{ padding: '14px 20px' }}>
                       <ScoreDisplay score={goal.avg_score} size="sm" />

@@ -2,13 +2,14 @@
 
 import React, { useMemo, useRef, useState } from 'react'
 import { colors, radius, typography, animation } from '@/design-system'
-import { Button, Icon, StatusPill, Badge } from '@/components/atoms'
+import { Button, Icon, StatusPill, Badge, Avatar } from '@/components/atoms'
 import { Card, SectionLabel } from '@/components/molecules'
 import { parseCSV } from '@/utils/csv'
 import {
     suggestMappingAction,
     processUploadAction,
     getUploadPeriodsAction,
+    getUploadMatchPreviewAction,
 } from '@/app/actions/managerUploadActions'
 import { addCriterionToGoalAction } from '@/app/actions/goalActions'
 import {
@@ -17,6 +18,8 @@ import {
     type UploadPeriod,
     type MappingSuggestion,
     type ProcessUploadResult,
+    type RowMatchPreview,
+    type UploadRosterEmployee,
 } from '@/app/actions/managerUploadShared'
 
 const ADD_NEW_CRITERION = '__add_new__'
@@ -28,7 +31,7 @@ const importanceStyle = {
     critical: { border: '#f04438',     bg: 'rgba(240,68,56,.15)',   text: '#f04438',     label: 'Critical' },
 }
 
-type Step = 'pick-goal' | 'pick-period' | 'upload' | 'confirm' | 'results'
+type Step = 'pick-goal' | 'pick-period' | 'upload' | 'match-check' | 'confirm' | 'results'
 
 interface Props {
     goals: UploadGoalSummary[]
@@ -50,6 +53,10 @@ export function UploadDataView({ goals, loadError }: Props) {
     const [results, setResults] = useState<ProcessUploadResult | null>(null)
     const [effectiveCriteria, setEffectiveCriteria] = useState<{ id: string; name: string; weight: number }[] | null>(null)
     const [addCritModal, setAddCritModal] = useState<{ header: string } | null>(null)
+    const [matchPreview, setMatchPreview] = useState<RowMatchPreview[]>([])
+    const [roster, setRoster] = useState<UploadRosterEmployee[]>([])
+    const [overrides, setOverrides] = useState<Record<number, string>>({})
+    const [matchLoading, setMatchLoading] = useState(false)
 
     const goal = useMemo(() => goals.find(g => g.id === goalId) || null, [goals, goalId])
     const selectedPeriod = useMemo(() => periods.find(p => p.key === periodKey) || null, [periods, periodKey])
@@ -73,6 +80,9 @@ export function UploadDataView({ goals, loadError }: Props) {
         setResults(null)
         setEffectiveCriteria(null)
         setAddCritModal(null)
+        setMatchPreview([])
+        setRoster([])
+        setOverrides({})
     }
 
     // Goal chosen → load the goal's open reporting periods, then move to the period step.
@@ -107,6 +117,25 @@ export function UploadDataView({ goals, loadError }: Props) {
             setFileName(file.name)
             setHeaders(parsed.headers)
             setRows(parsed.rows)
+            setOverrides({})
+
+            // Run the identifier match check up front so mismatches surface before
+            // any row is scored, not after — in parallel with mapping resolution.
+            // Resolves to the matches so we can decide whether to interrupt.
+            setMatchLoading(true)
+            const matchPromise = getUploadMatchPreviewAction({
+                goalId: goal!.id, periodKey: periodKey!, headers: parsed.headers, rows: parsed.rows,
+            }).then((res): RowMatchPreview[] => {
+                setMatchLoading(false)
+                if ('error' in res) {
+                    setMatchPreview([])
+                    setRoster([])
+                    return []
+                }
+                setMatchPreview(res.matches)
+                setRoster(res.roster)
+                return res.matches
+            })
 
             // If a saved mapping exists, prefill straight away — same column names → reuse.
             const saved = goal?.savedMapping
@@ -117,7 +146,7 @@ export function UploadDataView({ goals, loadError }: Props) {
                     return { header: h, criterion: prev?.criterion ?? SKIP_COLUMN }
                 })
                 setMapping(next)
-                setStep('confirm')
+                setStep(await nextStepAfterMatch(matchPromise))
                 return
             }
 
@@ -133,11 +162,21 @@ export function UploadDataView({ goals, loadError }: Props) {
                     header: s.header, criterion: s.suggestedCriterion,
                 })))
             }
-            setStep('confirm')
+            setStep(await nextStepAfterMatch(matchPromise))
         } catch (e: any) {
             setBusy(false)
+            setMatchLoading(false)
             setErr(e?.message || 'Could not read file')
         }
+    }
+
+    // Only stop at the match-check step when there's something the manager can
+    // actually fix there — an unmatched row. If every identifier resolved (exact
+    // or via a saved alias), skip straight to mapping; any not-scheduled /
+    // already-reported rows are reported at the end anyway.
+    async function nextStepAfterMatch(matchPromise: Promise<RowMatchPreview[]>): Promise<Step> {
+        const matches = await matchPromise
+        return matches.some(m => m.status === 'unmatched') ? 'match-check' : 'confirm'
     }
 
     async function handleConfirm() {
@@ -150,6 +189,7 @@ export function UploadDataView({ goals, loadError }: Props) {
             headers,
             rows,
             mapping,
+            identifierOverrides: overrides,
         })
         setBusy(false)
         setResults(res)
@@ -157,9 +197,9 @@ export function UploadDataView({ goals, loadError }: Props) {
         setStep('results')
     }
 
-    async function handleAddCriterion(name: string, importance: 'low' | 'medium' | 'high' | 'critical') {
+    async function handleAddCriterion(name: string, importance: 'low' | 'medium' | 'high' | 'critical', targetDescription: string) {
         if (!goal || !addCritModal) return
-        const res = await addCriterionToGoalAction({ goalId: goal.id, name, importance })
+        const res = await addCriterionToGoalAction({ goalId: goal.id, name, importance, target_description: targetDescription })
         if ('error' in res) {
             setErr(res.error)
             setAddCritModal(null)
@@ -179,10 +219,11 @@ export function UploadDataView({ goals, loadError }: Props) {
         { id: 'pick-goal', label: '1. Select goal' },
         { id: 'pick-period', label: '2. Select period' },
         { id: 'upload', label: '3. Upload CSV' },
-        { id: 'confirm', label: '4. Confirm mapping' },
-        { id: 'results', label: '5. Results' },
+        { id: 'match-check', label: '4. Check matches' },
+        { id: 'confirm', label: '5. Confirm mapping' },
+        { id: 'results', label: '6. Results' },
     ]
-    const stepOrder: Step[] = ['pick-goal', 'pick-period', 'upload', 'confirm', 'results']
+    const stepOrder: Step[] = ['pick-goal', 'pick-period', 'upload', 'match-check', 'confirm', 'results']
 
     return (
         <div style={{ padding: '24px', maxWidth: '980px', margin: '0 auto' }}>
@@ -276,6 +317,18 @@ export function UploadDataView({ goals, loadError }: Props) {
                 />
             )}
 
+            {step === 'match-check' && goal && (
+                <MatchCheckStep
+                    matches={matchPreview}
+                    roster={roster}
+                    overrides={overrides}
+                    onOverride={(rowIndex, employeeId) => setOverrides(prev => ({ ...prev, [rowIndex]: employeeId }))}
+                    loading={matchLoading}
+                    onNext={() => setStep('confirm')}
+                    onBack={() => setStep('upload')}
+                />
+            )}
+
             {step === 'confirm' && goal && (
                 <ConfirmStep
                     goal={displayGoal ?? goal}
@@ -286,7 +339,7 @@ export function UploadDataView({ goals, loadError }: Props) {
                     onChange={setMapping}
                     busy={busy}
                     onConfirm={handleConfirm}
-                    onBack={() => setStep('upload')}
+                    onBack={() => setStep(matchPreview.some(m => m.status === 'unmatched') ? 'match-check' : 'upload')}
                     onAddNew={(header) => setAddCritModal({ header })}
                 />
             )}
@@ -384,6 +437,7 @@ function PickPeriodStep({
     onBack: () => void
 }) {
     const freq = (goal.reportFrequency || 'weekly').toLowerCase()
+    const selectedPeriod = periods.find(p => p.key === selectedKey) || null
     return (
         <Card title="Which period are these numbers for?" subtitle={`${goal.name} · ${goal.projectName}`} icon="calendar">
             {/* Plain-language definition, anchored to this goal's own cadence */}
@@ -402,7 +456,7 @@ function PickPeriodStep({
                 Pick the period your spreadsheet is for; you upload one period at a time.
                 <br />
                 <span style={{ color: colors.text3 }}>
-                    “{'2 of 5 open'}” means 2 of the 5 agents on that period still need a report — those are the ones this upload can fill.
+                    Select a period to see exactly who still needs a report — those are the ones this upload can fill.
                 </span>
             </div>
 
@@ -420,7 +474,7 @@ function PickPeriodStep({
                     period, or this goal hasn&apos;t started its {freq} reporting yet.
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
                     {periods.map(p => {
                         const isSelected = p.key === selectedKey
                         return (
@@ -443,7 +497,7 @@ function PickPeriodStep({
                                     <span style={{ fontSize: '13px', fontWeight: typography.weight.semibold }}>{p.label}</span>
                                 </div>
                                 <div style={{ color: colors.text3, fontSize: '12px', marginTop: '6px' }}>
-                                    {p.openCount} of {p.totalCount} {p.totalCount === 1 ? 'agent' : 'agents'} open
+                                    {p.openCount} of {p.totalCount} still to report
                                 </div>
                             </button>
                         )
@@ -451,11 +505,62 @@ function PickPeriodStep({
                 </div>
             )}
 
+            {selectedPeriod && selectedPeriod.openEmployees.length > 0 && (
+                <OpenEmployeesPanel period={selectedPeriod} />
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
                 <Button variant="secondary" size="sm" onClick={onBack}>Back</Button>
                 <Button onClick={onNext} disabled={!selectedKey} icon="chevronRight">Next</Button>
             </div>
         </Card>
+    )
+}
+
+// Full, named list of who still owes a report for the chosen period. Scrolls
+// past ~a dozen so a large team stays contained.
+function OpenEmployeesPanel({ period }: { period: UploadPeriod }) {
+    return (
+        <div style={{
+            marginTop: '14px',
+            background: colors.surface2,
+            border: `1px solid ${colors.border}`,
+            borderRadius: radius.md,
+            padding: '12px 14px',
+        }}>
+            <div style={{
+                fontSize: '11px',
+                fontWeight: typography.weight.semibold,
+                color: colors.text3,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                marginBottom: '10px',
+            }}>
+                Still to report · {period.label} ({period.openEmployees.length})
+            </div>
+            <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                maxHeight: '168px',
+                overflowY: 'auto',
+            }}>
+                {period.openEmployees.map(e => (
+                    <div key={e.id} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '7px',
+                        padding: '4px 10px 4px 4px',
+                        background: colors.surface,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: '999px',
+                    }}>
+                        <Avatar name={e.name} src={e.avatarUrl} size="sm" />
+                        <span style={{ fontSize: '12px', color: colors.text }}>{e.name}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
     )
 }
 
@@ -582,6 +687,130 @@ function UploadStep({
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
                 <Button variant="secondary" size="sm" onClick={onBack}>Back</Button>
+            </div>
+        </Card>
+    )
+}
+
+const matchStatusStyle: Record<RowMatchPreview['status'], { bg: string; border: string; text: string; label: string }> = {
+    'ok':               { bg: 'rgba(34,197,94,.12)',  border: colors.green,  text: colors.green,  label: 'Will import' },
+    'unmatched':        { bg: 'rgba(240,68,56,.12)',  border: colors.danger, text: colors.danger, label: 'No match' },
+    'no-period':        { bg: 'rgba(245,158,11,.12)', border: '#f59e0b',     text: '#f59e0b',     label: 'Not scheduled' },
+    'already-reported': { bg: 'rgba(245,158,11,.12)', border: '#f59e0b',     text: '#f59e0b',     label: 'Already reported' },
+}
+
+function MatchCheckStep({
+    matches, roster, overrides, onOverride, loading, onNext, onBack,
+}: {
+    matches: RowMatchPreview[]
+    roster: UploadRosterEmployee[]
+    overrides: Record<number, string>
+    onOverride: (rowIndex: number, employeeId: string) => void
+    loading: boolean
+    onNext: () => void
+    onBack: () => void
+}) {
+    const resolvedCount = matches.filter(m => m.status === 'ok' || overrides[m.rowIndex]).length
+    const attentionCount = matches.length - resolvedCount
+
+    return (
+        <Card title="Check agent matches" subtitle="Every row is checked against your roster before anything is scored" icon="check">
+            {loading ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: colors.text3, fontSize: '13px' }}>
+                    Checking rows against your roster…
+                </div>
+            ) : (
+                <>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '12px',
+                        marginBottom: '16px',
+                    }}>
+                        <KpiTile label="Will import" value={resolvedCount} tint={colors.green} />
+                        <KpiTile label="Need attention" value={attentionCount} tint={attentionCount > 0 ? colors.warn : colors.text3} />
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '6px', marginBottom: '16px' }}>
+                        {matches.map(m => {
+                            const overrideId = overrides[m.rowIndex]
+                            const isResolved = m.status === 'ok' || !!overrideId
+                            const style = matchStatusStyle[m.status]
+                            return (
+                                <div key={m.rowIndex} style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '48px 1fr auto',
+                                    gap: '10px',
+                                    alignItems: 'center',
+                                    padding: '8px 12px',
+                                    background: colors.surface2,
+                                    border: `1px solid ${colors.border}`,
+                                    borderRadius: radius.md,
+                                }}>
+                                    <div style={{ fontSize: '11px', color: colors.text3, fontFamily: typography.fonts.mono }}>
+                                        Row {m.displayRow}
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: colors.text }}>
+                                        <span>{m.agentIdentifier || '—'}</span>
+                                        {overrideId ? (
+                                            <span style={{ color: colors.green }}>
+                                                {' '}→ assigned to {roster.find(r => r.id === overrideId)?.name ?? overrideId}
+                                            </span>
+                                        ) : m.reason ? (
+                                            <span style={{ color: colors.text3 }}> · {m.reason}</span>
+                                        ) : m.matchedEmployeeName ? (
+                                            <span style={{ color: colors.text3 }}> · matched {m.matchedEmployeeName}</span>
+                                        ) : null}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        {!isResolved && (
+                                            <select
+                                                value={overrideId ?? ''}
+                                                onChange={e => { if (e.target.value) onOverride(m.rowIndex, e.target.value) }}
+                                                style={{
+                                                    background: colors.surface,
+                                                    color: colors.text,
+                                                    border: `1px solid ${colors.border}`,
+                                                    borderRadius: radius.md,
+                                                    padding: '5px 8px',
+                                                    fontSize: '12px',
+                                                    fontFamily: typography.fonts.body,
+                                                }}
+                                            >
+                                                <option value="">Assign to…</option>
+                                                {roster.map(r => (
+                                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                                ))}
+                                            </select>
+                                        )}
+                                        <span style={{
+                                            fontSize: '11px',
+                                            fontWeight: typography.weight.semibold,
+                                            color: isResolved ? colors.green : style.text,
+                                            background: isResolved ? 'rgba(34,197,94,.12)' : style.bg,
+                                            border: `1px solid ${isResolved ? colors.green : style.border}`,
+                                            borderRadius: radius.sm,
+                                            padding: '3px 8px',
+                                            whiteSpace: 'nowrap',
+                                        }}>
+                                            {isResolved ? 'Will import' : style.label}
+                                        </span>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                        {matches.length === 0 && (
+                            <div style={{ color: colors.text3, fontSize: '13px', padding: '12px 0' }}>No rows to check.</div>
+                        )}
+                    </div>
+                </>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Button variant="secondary" size="sm" onClick={onBack}>Back</Button>
+                <Button onClick={onNext} disabled={loading} icon="chevronRight">
+                    {attentionCount > 0 ? `Continue (${attentionCount} will be skipped)` : 'Continue'}
+                </Button>
             </div>
         </Card>
     )
@@ -736,7 +965,10 @@ function ResultsStep({ results, onDone }: { results: ProcessUploadResult; onDone
                                     Row {r.rowIndex}
                                 </div>
                                 <div style={{ fontSize: '12px', color: colors.text }}>
-                                    <span>{r.agentIdentifier || '—'}</span>
+                                    <span>{r.assignedName || r.agentIdentifier || '—'}</span>
+                                    {r.assignedName && r.agentIdentifier && r.assignedName !== r.agentIdentifier && (
+                                        <span style={{ color: colors.text3 }}> · from “{r.agentIdentifier}”</span>
+                                    )}
                                     <span style={{ color: colors.text3 }}> · {r.periodInput || '—'}</span>
                                     {r.reason && (
                                         <span style={{ color: colors.text3 }}> · {r.reason}</span>
@@ -803,11 +1035,12 @@ function AddCriterionModal({
 }: {
     header: string
     currentCriteria: { name: string; weight: number }[]
-    onConfirm: (name: string, importance: 'low' | 'medium' | 'high' | 'critical') => Promise<void>
+    onConfirm: (name: string, importance: 'low' | 'medium' | 'high' | 'critical', targetDescription: string) => Promise<void>
     onCancel: () => void
 }) {
     const [name, setName] = React.useState(header)
     const [importance, setImportance] = React.useState<'low' | 'medium' | 'high' | 'critical'>('medium')
+    const [targetDescription, setTargetDescription] = React.useState('')
     const [busy, setBusy] = React.useState(false)
 
     // Live weight preview using same formula as the server action.
@@ -825,7 +1058,7 @@ function AddCriterionModal({
     async function handleConfirm() {
         if (!name.trim()) return
         setBusy(true)
-        await onConfirm(name, importance)
+        await onConfirm(name, importance, targetDescription)
         setBusy(false)
     }
 
@@ -926,6 +1159,35 @@ function AddCriterionModal({
                                     </button>
                                 )
                             })}
+                        </div>
+                    </div>
+
+                    {/* Target description */}
+                    <div>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: colors.text2, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: '6px' }}>
+                            Target (optional, but recommended for KPI scoring)
+                        </div>
+                        <textarea
+                            value={targetDescription}
+                            onChange={e => setTargetDescription(e.target.value)}
+                            placeholder="e.g. Target: 35+ sits per week. Below 30 is underperforming."
+                            rows={2}
+                            style={{
+                                width: '100%',
+                                padding: '9px 12px',
+                                background: colors.surface2,
+                                border: `1px solid ${colors.border}`,
+                                borderRadius: radius.md,
+                                fontSize: '12px',
+                                color: colors.text,
+                                fontFamily: typography.fonts.display,
+                                outline: 'none',
+                                resize: 'none',
+                                boxSizing: 'border-box' as const,
+                            }}
+                        />
+                        <div style={{ fontSize: '11px', color: colors.text3, marginTop: '4px', lineHeight: 1.4 }}>
+                            Without a target, uploaded values for this criterion can&apos;t be scored against a threshold.
                         </div>
                     </div>
 

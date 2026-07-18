@@ -136,20 +136,6 @@ export function GoalDetailView({ goal, projects, employees, readOnly = false, ba
                     border: `1px solid ${colors.border}`,
                     borderRadius: radius.lg
                 }}>
-                    <div style={{
-                        width: '52px',
-                        height: '52px',
-                        borderRadius: radius.lg,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '24px',
-                        background: colors.surface2,
-                        border: `1px solid ${colors.border}`,
-                        flexShrink: 0
-                    }}>
-                        <Icon name="target" size={26} color={colors.text3} />
-                    </div>
                     <div style={{ flex: 1 }}>
                         <h1 style={{ fontFamily: typography.fonts.display, fontSize: '21px', fontWeight: 800, color: colors.text, letterSpacing: '-0.5px', marginBottom: '4px' }}>
                             {goal.name}

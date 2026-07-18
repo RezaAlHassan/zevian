@@ -102,6 +102,13 @@ export interface MappingSuggestion {
     suggestedCriterion: string                          // criterion name or SKIP_COLUMN
 }
 
+/** An employee who still owes a report for a given period window. */
+export interface OpenPeriodEmployee {
+    id: string
+    name: string
+    avatarUrl: string | null
+}
+
 /** An open reporting-period window the manager can upload numbers into. */
 export interface UploadPeriod {
     key: string                 // window identifier = period_start's UTC date (YYYY-MM-DD)
@@ -110,11 +117,13 @@ export interface UploadPeriod {
     label: string               // human-readable, e.g. "Jul 6 – 10"
     openCount: number           // employees in this window with no report yet
     totalCount: number          // employees with a period in this window
+    openEmployees: OpenPeriodEmployee[]  // the specific employees still owing a report, for display
 }
 
 export interface RowResult {
     rowIndex: number                                    // 1-based, matching CSV row number after header
-    agentIdentifier: string
+    agentIdentifier: string                             // raw value from the CSV's first column
+    assignedName?: string                               // the employee the row was actually assigned to (matched or manually overridden)
     periodInput: string                                 // the selected period's label (same for every row)
     status: 'created' | 'skipped'
     reportId?: string
@@ -130,4 +139,26 @@ export interface ProcessUploadResult {
     /** Human-readable label of the reporting period this upload targeted. */
     processedPeriodLabel: string | null
     error?: string
+}
+
+/** A roster member eligible to receive a row via manual override — i.e. has an open, unreported period in the selected window. */
+export interface UploadRosterEmployee {
+    id: string
+    name: string
+    email: string
+}
+
+/**
+ * Per-row preflight result, computed right after the CSV is parsed and before
+ * any row is scored — lets the manager fix identifier mismatches before
+ * committing the batch instead of discovering them in the results screen.
+ */
+export interface RowMatchPreview {
+    rowIndex: number                 // 0-based index into the CSV data rows array (same key used for identifierOverrides)
+    displayRow: number                // 1-based row number as it appears in the CSV (header = row 1)
+    agentIdentifier: string
+    status: 'ok' | 'no-period' | 'already-reported' | 'unmatched'
+    matchedEmployeeId: string | null
+    matchedEmployeeName: string | null
+    reason: string | null
 }
